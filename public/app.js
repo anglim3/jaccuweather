@@ -721,7 +721,7 @@ function displayWeather(data) {
         hourItem.className = 'flex flex-col items-center bg-white/10 rounded-lg p-3 backdrop-blur-sm min-w-[80px] clickable';
         hourItem.innerHTML = `
             <div class="text-white/70 text-sm mb-1">${formatTime12Hour(hour)}</div>
-            <div class="text-2xl mb-2">${getWeatherIcon(data.hourly.weather_code[hourIndex])}</div>
+            <div class="text-2xl mb-2">${getWeatherIcon(data.hourly.weather_code[hourIndex], hour, data.latitude, data.longitude)}</div>
             <div class="text-white font-bold text-lg">${Math.round(data.hourly.temperature_2m[hourIndex])}${data.hourly_units.temperature_2m}</div>
             <div class="text-white/60 text-xs mt-1">${data.hourly.wind_speed_10m[hourIndex]} ${formatUnit(data.hourly_units.wind_speed_10m)}</div>
         `;
@@ -745,7 +745,7 @@ function displayWeather(data) {
         dayItem.className = 'flex items-center justify-between bg-white/10 rounded-lg p-4 backdrop-blur-sm clickable';
         dayItem.innerHTML = `
             <div class="flex items-center gap-4">
-                <div class="text-3xl">${getWeatherIcon(data.daily.weather_code[dayIndex])}</div>
+                <div class="text-3xl">${getWeatherIcon(data.daily.weather_code[dayIndex], day, data.latitude, data.longitude)}</div>
                 <div>
                     <div class="text-white font-semibold text-lg">${day.toLocaleDateString('en-US', { weekday: weekdayFormat })}</div>
                     <div class="text-white/70 text-sm">${day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
@@ -905,9 +905,26 @@ function displayWeeklySnowTotals(data) {
     });
 }
 
-function getWeatherIcon(code) {
-    // WMO Weather interpretation codes
-    const icons = {
+function getWeatherIcon(code, date = new Date(), lat = null, lon = null) {
+    // Determine if it's nighttime using SunCalc
+    // Use provided lat/lon or fall back to stored/current location
+    const latitude = lat !== null ? lat : (currentLat || 40.7128);
+    const longitude = lon !== null ? lon : (currentLon || -74.0060);
+    
+    // Get sun position for the given time and location
+    const sunPosition = SunCalc.getPosition(date, latitude, longitude);
+    
+    // Sun is above horizon when altitude > 0
+    // SunCalc returns altitude in radians, convert to degrees
+    const sunAltitude = sunPosition.altitude * (180 / Math.PI);
+    const isNight = sunAltitude < -3; // Use -3° for civil twilight end as "night" threshold
+    
+    // Moon phase for this time
+    const moonPhaseValue = calculateMoonPhase(date);
+    const moonPhase = getMoonPhase(moonPhaseValue);
+    
+    // Day icons (sun-based)
+    const dayIcons = {
         0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
         45: '🌫️', 48: '🌫️',
         51: '🌦️', 53: '🌦️', 55: '🌦️',
@@ -920,7 +937,28 @@ function getWeatherIcon(code) {
         85: '🌨️', 86: '🌨️',
         95: '⛈️', 96: '⛈️', 99: '⛈️'
     };
-    return icons[code] || '☀️';
+    
+    // Night icons (moon-based with same weather conditions)
+    const nightIcons = {
+        0: moonPhase.emoji, 1: '🌙', 2: '🌙', 3: '☁️',
+        45: '🌫️', 48: '🌫️',
+        51: '🌧️', 53: '🌧️', 55: '🌧️',
+        56: '🌨️', 57: '🌨️',
+        61: '🌧️', 63: '🌧️', 65: '🌧️',
+        66: '🌨️', 67: '🌨️',
+        71: '❄️', 73: '❄️', 75: '❄️',
+        77: '❄️',
+        80: '🌧️', 81: '🌧️', 82: '🌧️',
+        85: '❄️', 86: '❄️',
+        95: '⛈️', 96: '⛈️', 99: '⛈️'
+    };
+    
+    // Use night icons if it's nighttime
+    if (isNight) {
+        return nightIcons[code] || nightIcons[0] || '🌙';
+    }
+    
+    return dayIcons[code] || '☀️';
 }
 
 function getWeatherDescription(code) {
@@ -2186,7 +2224,7 @@ function openHourlyModal(data) {
         detailItem.innerHTML = `
                 <div class="flex items-center justify-between mb-2">
                 <div class="text-white font-semibold">${hour.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ${formatTime12Hour(hour)}</div>
-                <div class="text-2xl">${getWeatherIcon(data.hourly.weather_code[idx])}</div>
+                <div class="text-2xl">${getWeatherIcon(data.hourly.weather_code[idx], hour, data.latitude, data.longitude)}</div>
             </div>
             <div class="grid grid-cols-2 gap-2 text-sm">
                 <div><span class="text-white/70">Temp:</span> <span class="text-white font-bold">${Math.round(temps[i])}${data.hourly_units.temperature_2m}</span></div>
@@ -2440,7 +2478,7 @@ function openDailyModal(data) {
                     <div class="text-white font-semibold text-lg">${day.toLocaleDateString('en-US', { weekday: 'long' })}</div>
                     <div class="text-white/70 text-sm">${day.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
                 </div>
-                <div class="text-4xl">${getWeatherIcon(data.daily.weather_code[dayIndex])}</div>
+                <div class="text-4xl">${getWeatherIcon(data.daily.weather_code[dayIndex], day, data.latitude, data.longitude)}</div>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div class="bg-white/10 rounded p-3">
