@@ -236,6 +236,18 @@ function medianEnsembleValue(values) {
     return (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+function medianFloorEnsembleValue(values) {
+    if (!Array.isArray(values) || values.length === 0) return null;
+    const sorted = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+    if (!sorted.length) return null;
+    const mid = Math.floor(sorted.length / 2);
+    // For even-length arrays, pick the lower-middle element instead of averaging.
+    // This is for categorical data (WMO weather codes) where averaging produces
+    // phantom codes (e.g. median of [51, 99] = 75 "heavy snow" instead of 51 "light drizzle").
+    if (sorted.length % 2 === 0) return sorted[mid - 1];
+    return sorted[mid];
+}
+
 function findEnsembleSeries(container, variable, options = {}) {
     if (!container || !variable) return [];
     const { excludeMember = false } = options;
@@ -282,6 +294,8 @@ function aggregateEnsembleSeries(seriesList, strategy = 'average', expectedLengt
             result[i] = modeEnsembleValue(memberValues, true);
         } else if (strategy === 'median') {
             result[i] = medianEnsembleValue(memberValues);
+        } else if (strategy === 'medianFloor') {
+            result[i] = medianFloorEnsembleValue(memberValues);
         } else if (strategy === 'binary') {
             const avg = averageEnsembleValues(memberValues);
             result[i] = avg === null ? null : (avg >= 0.5 ? 1 : 0);
@@ -397,12 +411,13 @@ function summarizeDailyFromHourly(hourly, dates) {
         if (mode === 'sum') return values.reduce((sum, value) => sum + value, 0);
         if (mode === 'mode') return modeEnsembleValue(values, true);
         if (mode === 'median') return medianEnsembleValue(values);
+        if (mode === 'medianFloor') return medianFloorEnsembleValue(values);
         return averageEnsembleValues(values);
     };
 
     for (const date of dates) {
         const indexes = dateIndexes.get(date) || [];
-        result.weather_code.push(aggregateDay(indexes, hourly.weather_code, 'median'));
+        result.weather_code.push(aggregateDay(indexes, hourly.weather_code, 'medianFloor'));
         result.temperature_2m_max.push(aggregateDay(indexes, hourly.temperature_2m, 'max'));
         result.temperature_2m_min.push(aggregateDay(indexes, hourly.temperature_2m, 'min'));
         result.apparent_temperature_max.push(aggregateDay(indexes, hourly.apparent_temperature, 'max'));
@@ -447,7 +462,7 @@ function normalizeEnsembleWeatherData(rawData, lat, lon) {
     const hourlyConfigs = [
         { source: 'temperature_2m', target: 'temperature_2m', strategy: 'average' },
         { source: 'relative_humidity_2m', target: 'relative_humidity_2m', strategy: 'average' },
-        { source: 'weather_code', target: 'weather_code', strategy: 'median', excludeMember: true },
+        { source: 'weather_code', target: 'weather_code', strategy: 'medianFloor', excludeMember: true },
         { source: 'wind_speed_10m', target: 'wind_speed_10m', strategy: 'average' },
         { source: 'precipitation_probability', target: 'precipitation_probability', strategy: 'average', excludeMember: true },
         { source: 'precipitation', target: 'precipitation', strategy: 'average' },
@@ -502,7 +517,7 @@ function normalizeEnsembleWeatherData(rawData, lat, lon) {
     normalized.daily.time = dailyTime;
 
     const dailyConfigs = [
-        { source: 'weather_code', target: 'weather_code', strategy: 'median', excludeMember: true },
+        { source: 'weather_code', target: 'weather_code', strategy: 'medianFloor', excludeMember: true },
         { source: 'temperature_2m_max', target: 'temperature_2m_max', strategy: 'average' },
         { source: 'temperature_2m_min', target: 'temperature_2m_min', strategy: 'average' },
         { source: 'apparent_temperature_max', target: 'apparent_temperature_max', strategy: 'average' },
