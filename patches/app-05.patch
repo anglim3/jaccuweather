@@ -1,3 +1,5 @@
+--- a/public/app.js
++++ b/public/app.js
 @@ -2249,31 +2322,7 @@
  
      // Find max precipitation for scaling bars
