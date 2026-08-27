@@ -5,3 +5,14 @@ compatibility_date = "2024-01-01"
 # Do not commit a personal account_id here.
 # After `npx wrangler login`, Wrangler uses your default account.
 # Or set: export CLOUDFLARE_ACCOUNT_ID=...
+
+# Fail-closed per-IP cap on /api/pollen billed Google/Tomorrow lookups.
+# namespace_id is an account-local integer string (not a secret).
+# Wrangler 4.36+ (this project pins ^4.54.0).
+[[ratelimits]]
+name = "POLLEN_RATE_LIMIT"
+namespace_id = "27082701"
+
+  [ratelimits.simple]
+  limit = 20
+  period = 60
