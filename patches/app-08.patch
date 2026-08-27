@@ -1,0 +1,10 @@
+--- a/public/app.js
++++ b/public/app.js
+@@ -2384,7 +2384,7 @@
+                 </svg>
+             </div>
+             <div class="text-white font-bold text-lg mt-1">${Math.round(windSpeed)}</div>
+-            <div class="text-white/60 text-xs mt-1">${UNITS.wind}${windGust !== null ? ' G' + Math.round(windGust) : ''}</div>
++            <div class="text-white/60 text-xs mt-1">${UNITS.wind}</div>
+         `;
+         windItem.addEventListener('click', () => openHourlyModal(data));
