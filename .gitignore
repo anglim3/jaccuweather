@@ -28,3 +28,6 @@ npm-debug.log*
 
 # Development/Testing
 testing/
+
+# Agent skills lockfiles (npx skills artifacts, not part of the app)
+skills-lock.json
