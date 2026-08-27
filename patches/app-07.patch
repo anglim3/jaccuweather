@@ -1,0 +1,101 @@
+--- a/public/app.js
++++ b/public/app.js
+@@ -4048,31 +4110,8 @@
+     });
+     hourlyChart = {};
+ 
+-    // Prepare data
+-    const now = new Date();
+-    const currentHour = now.getHours();
+-
+-    // Find today's data in the hourly forecast (skip past days due to past_days=2)
+-    const todayStart = new Date();
+-    todayStart.setHours(0, 0, 0, 0); // Set to start of today
+-
+-    let startIndex = 0;
+-    // Find the first hour of today
+-    for (let i = 0; i < data.hourly.time.length; i++) {
+-        const hourTime = new Date(data.hourly.time[i]);
+-        hourTime.setHours(0, 0, 0, 0); // Set to start of that day
+-        if (hourTime.getTime() >= todayStart.getTime()) {
+-            // Found today's data, now find the closest hour to current time
+-            for (let j = i; j < data.hourly.time.length; j++) {
+-                const currentHourTime = new Date(data.hourly.time[j]);
+-                if (currentHourTime.getHours() >= currentHour) {
+-                    startIndex = j;
+-                    break;
+-                }
+-            }
+-            if (startIndex > 0) break; // Found it
+-        }
+-    }
++    const utcOffsetSeconds = data.utc_offset_seconds || 0;
++    const startIndex = nearestTimeIndex(data.hourly.time, new Date(), utcOffsetSeconds);
+ 
+     const hours = [];
+     const temps = [];
+@@ -4089,8 +4128,10 @@
+ 
+     for (let i = 0; i < HOURLY_FORECAST_HOURS && (startIndex + i) < data.hourly.time.length; i++) {
+         const idx = startIndex + i;
+-        const hour = new Date(data.hourly.time[idx]);
+-        labels.push(formatTime12Hour(hour));
++        const iso = data.hourly.time[idx];
++        const datePart = String(iso).split('T')[0];
++        const hour = parseDateString(datePart);
++        labels.push(formatIsoLocalClock(iso));
+         hours.push(hour);
+         temps.push(Math.round(data.hourly.temperature_2m[idx]));
+         precip.push(data.hourly.precipitation ? data.hourly.precipitation[idx] : 0);
+@@ -4317,7 +4358,7 @@
+         detailItem.className = 'forecast-chip rounded-lg p-4 backdrop-blur-sm';
+         detailItem.innerHTML = `
+                 <div class="flex items-center justify-between mb-2">
+-                <div class="text-white font-semibold">${hour.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ${formatTime12Hour(hour)}</div>
++                <div class="text-white font-semibold">${hour.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ${formatIsoLocalClock(data.hourly.time[idx])}</div>
+                 <div class="text-2xl">${getWeatherIcon(data.hourly.weather_code[idx], data.hourly.is_day ? data.hourly.is_day[idx] !== 0 : true)}</div>
+             </div>
+             <div class="grid grid-cols-2 gap-2 text-sm">
+@@ -4868,8 +4909,8 @@
+ function buildVentuskyUrl(lat, lon) {
+     const isMobile = window.innerWidth <= 768;
+     const zoom = isMobile ? 7 : 8; // Lower zoom on mobile (more zoomed out)
+-    // Use root map URL because /precipitation-map currently 302-redirects upstream.
+-    return `/ventusky-proxy/?p=${lat};${lon};${zoom}&l=rain`;
++    // Load Ventusky from its own origin. Do not proxy their HTML through this Worker.
++    return `https://www.ventusky.com/?p=${lat};${lon};${zoom}&l=rain`;
+ }
+ 
+ function setRadarFallback(visible, lat, lon) {
+@@ -4894,23 +4935,18 @@
+         // Set handlers once to avoid listener pileups on repeated weather fetches
+         if (!ventuskyFrame.dataset.handlersAttached) {
+             ventuskyFrame.addEventListener('load', () => {
+-                // If we got a load event, hide fallback
+-                setRadarFallback(false, currentLat || lat, currentLon || lon);
+-                try {
+-                    // Try to access iframe content to prevent new tab opens
+-                    const iframeWindow = ventuskyFrame.contentWindow;
+-                    if (iframeWindow) {
+-                        iframeWindow.open = function() {
+-                            console.log('Blocked iframe window.open');
+-                            return null;
+-                        };
+-                    }
+-                } catch (e) {
+-                    // Cross-origin restrictions prevent this, expected
++                if (window.radarLoadTimeout) {
++                    clearTimeout(window.radarLoadTimeout);
++                    window.radarLoadTimeout = null;
+                 }
++                setRadarFallback(false, currentLat || lat, currentLon || lon);
+             });
+ 
+             ventuskyFrame.addEventListener('error', () => {
++                if (window.radarLoadTimeout) {
++                    clearTimeout(window.radarLoadTimeout);
++                    window.radarLoadTimeout = null;
++                }
+                 setRadarFallback(true, currentLat || lat, currentLon || lon);
+             });
+ 

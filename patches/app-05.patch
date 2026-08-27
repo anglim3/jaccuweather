@@ -1,0 +1,87 @@
+--- a/public/app.js
++++ b/public/app.js
+@@ -2249,31 +2322,7 @@
+ 
+     // Find max precipitation for scaling bars
+     let maxPrecip = 0;
+-
+-    const now = new Date();
+-    const currentHour = now.getHours();
+-
+-    // Find today's data in the hourly forecast (skip past days due to past_days=2)
+-    const todayStart = new Date();
+-    todayStart.setHours(0, 0, 0, 0); // Set to start of today
+-
+-    let startIndex = 0;
+-    // Find the first hour of today
+-    for (let i = 0; i < data.hourly.time.length; i++) {
+-        const hourTime = new Date(data.hourly.time[i]);
+-        hourTime.setHours(0, 0, 0, 0); // Set to start of that day
+-        if (hourTime.getTime() >= todayStart.getTime()) {
+-            // Found today's data, now find the closest hour to current time
+-            for (let j = i; j < data.hourly.time.length; j++) {
+-                const currentHourTime = new Date(data.hourly.time[j]);
+-                if (currentHourTime.getHours() >= currentHour) {
+-                    startIndex = j;
+-                    break;
+-                }
+-            }
+-            if (startIndex > 0) break; // Found it
+-        }
+-    }
++    const startIndex = nearestTimeIndex(data.hourly.time, new Date(), utcOffsetSeconds);
+ 
+     // First pass: find max precipitation for scaling
+     for (let i = 0; i < HOURLY_FORECAST_HOURS && (startIndex + i) < data.hourly.time.length; i++) {
+@@ -2286,13 +2335,13 @@
+ 
+     for (let i = 0; i < HOURLY_FORECAST_HOURS && (startIndex + i) < data.hourly.time.length; i++) {
+         const hourIndex = startIndex + i;
+-        const hour = new Date(data.hourly.time[hourIndex]);
++        const hourLabel = formatIsoLocalClock(data.hourly.time[hourIndex]);
+ 
+         // ── Conditions view (existing) ──
+         const hourItem = document.createElement('div');
+         hourItem.className = 'flex flex-col items-center forecast-chip hourly-chip rounded-lg p-3 backdrop-blur-sm clickable';
+         hourItem.innerHTML = `
+-            <div class="text-white/70 text-sm mb-1">${formatTime12Hour(hour)}</div>
++            <div class="text-white/70 text-sm mb-1">${hourLabel}</div>
+             <div class="text-2xl mb-2">${getWeatherIcon(data.hourly.weather_code[hourIndex], data.hourly.is_day ? data.hourly.is_day[hourIndex] !== 0 : true)}</div>
+             <div class="text-white font-bold text-lg">${Math.round(data.hourly.temperature_2m[hourIndex])}${UNITS.temperature}</div>
+             <div class="text-white/60 text-xs mt-1">${data.hourly.wind_speed_10m[hourIndex]} ${UNITS.wind}</div>
+@@ -2307,7 +2356,7 @@
+         const precipItem = document.createElement('div');
+         precipItem.className = 'flex flex-col items-center forecast-chip hourly-chip rounded-lg p-3 backdrop-blur-sm clickable';
+         precipItem.innerHTML = `
+-            <div class="text-white/70 text-sm mb-1">${formatTime12Hour(hour)}</div>
++            <div class="text-white/70 text-sm mb-1">${hourLabel}</div>
+             <div class="hourly-precip-bar-container">
+                 <div class="hourly-precip-bar ${precipVal === 0 ? 'zero' : ''}" style="height: ${barHeight}px"></div>
+             </div>
+@@ -2327,7 +2376,7 @@
+         const windItem = document.createElement('div');
+         windItem.className = 'flex flex-col items-center forecast-chip hourly-chip rounded-lg p-3 backdrop-blur-sm clickable';
+         windItem.innerHTML = `
+-            <div class="text-white/70 text-sm mb-1">${formatTime12Hour(hour)}</div>
++            <div class="text-white/70 text-sm mb-1">${hourLabel}</div>
+             <div class="wind-arrow" style="transform: rotate(${arrowRotation}deg)">
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                     <line x1="12" y1="19" x2="12" y2="5"/>
+@@ -2461,10 +2510,13 @@
+         requestAnimationFrame(() => requestAnimationFrame(placeSun));
+     }
+ 
+-    // Add click handlers to section headers
+-    if (currentWeatherData) {
+-        document.getElementById('hourlyHeader').addEventListener('click', () => openHourlyModal(currentWeatherData));
+-        document.getElementById('dailyHeader').addEventListener('click', () => openDailyModal(currentWeatherData));
++    const hourlyHeader = replaceElWithClone('hourlyHeader');
++    const dailyHeader = replaceElWithClone('dailyHeader');
++    if (currentWeatherData && hourlyHeader) {
++        hourlyHeader.addEventListener('click', () => openHourlyModal(currentWeatherData));
++    }
++    if (currentWeatherData && dailyHeader) {
++        dailyHeader.addEventListener('click', () => openDailyModal(currentWeatherData));
+     }
+ }
+ 

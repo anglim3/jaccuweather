@@ -1,0 +1,46 @@
+--- a/public/app.js
++++ b/public/app.js
+@@ -639,16 +664,19 @@
+         normalized.daily_units.weather_code = 'wmo code';
+     }
+ 
+-    const currentIndex = nearestTimeIndex(normalized.hourly.time, new Date());
++    const currentIndex = nearestTimeIndex(normalized.hourly.time, new Date(), normalized.utc_offset_seconds || 0);
+     normalized.current.time = normalized.hourly.time[currentIndex] || new Date().toISOString();
+     normalized.current.temperature_2m = normalized.hourly.temperature_2m?.[currentIndex];
+     normalized.current.relative_humidity_2m = normalized.hourly.relative_humidity_2m?.[currentIndex];
+     normalized.current.apparent_temperature = normalized.hourly.apparent_temperature?.[currentIndex];
+     normalized.current.wind_speed_10m = normalized.hourly.wind_speed_10m?.[currentIndex];
++    normalized.current.wind_direction_10m = normalized.hourly.wind_direction_10m?.[currentIndex];
++    normalized.current.wind_gusts_10m = normalized.hourly.wind_gusts_10m?.[currentIndex];
+     normalized.current.uv_index = normalized.hourly.uv_index?.[currentIndex];
+     normalized.current.weather_code = normalized.hourly.weather_code?.[currentIndex];
+     normalized.current.dewpoint_2m = normalized.hourly.dewpoint_2m?.[currentIndex];
+     normalized.current.surface_pressure = normalized.hourly.surface_pressure?.[currentIndex];
++    normalized.current.is_day = normalized.hourly.is_day?.[currentIndex];
+ 
+     normalized.current_units.temperature_2m = normalized.hourly_units.temperature_2m;
+     normalized.current_units.relative_humidity_2m = normalized.hourly_units.relative_humidity_2m;
+@@ -1404,13 +1432,18 @@
+                 currentLon = position.coords.longitude;
+                 fetchWeather(currentLat, currentLon);
+             },
+-            () => {
+-                // Default to London if geolocation fails
+-                fetchWeather(51.5074, -0.1278);
++            (err) => {
++                if (err && err.code === 1) {
++                    promptForLocation('Location blocked - enable in browser settings, or search for a city.');
++                } else if (err && err.code === 3) {
++                    promptForLocation('Location timed out - search for a city or try Locate again.');
++                } else {
++                    promptForLocation('Unable to get location. Search for a city to see the weather.');
++                }
+             }
+         );
+     } else {
+-        fetchWeather(51.5074, -0.1278);
++        promptForLocation('Geolocation not supported. Search for a city to see the weather.');
+     }
+ });
+ 
