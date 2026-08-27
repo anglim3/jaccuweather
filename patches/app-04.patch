@@ -1,0 +1,100 @@
+@@ -1899,24 +1957,25 @@
+             console.error('NOAA tide fetch failed:', tideError.message);
+         }
+ 
++        if (requestId !== activeWeatherRequestId) return;
++
+         currentWeatherData = weatherData; // Store for modals
+-        currentPollenData = null; // Clear previous location's pollen while new data loads
+-        currentNiceWeatherData = null; // Clear previous location's nice weather reasoning
+         displayWeather(weatherData);
+ 
+         // Initialize Ventusky radar
+         initializeVentuskyRadar(lat, lon);
+ 
+-        // Fetch weather alerts (for US locations)
+-        fetchWeatherAlerts(lat, lon);
++        // Fetch weather alerts (NWS /points/ 404 means outside US coverage)
++        fetchWeatherAlerts(lat, lon, requestId);
+ 
+         // Fetch air quality data
+-        fetchAirQuality(lat, lon);
++        fetchAirQuality(lat, lon, requestId);
+     } catch (error) {
++        if (error.name === 'AbortError' || requestId !== activeWeatherRequestId) return;
+         showError('Failed to fetch weather data. Please try again.');
+         console.error(error);
+     } finally {
+-        hideLoading();
++        if (requestId === activeWeatherRequestId) hideLoading();
+     }
+ }
+ 
+@@ -1978,6 +2037,23 @@
+     return asUtc - (Number(utcOffsetSeconds) || 0) * 1000;
+ }
+ 
++function locationDateString(utcOffsetSeconds, atMs = Date.now()) {
++    const offsetMs = (Number(utcOffsetSeconds) || 0) * 1000;
++    const local = new Date(atMs + offsetMs);
++    const y = local.getUTCFullYear();
++    const m = String(local.getUTCMonth() + 1).padStart(2, '0');
++    const d = String(local.getUTCDate()).padStart(2, '0');
++    return `${y}-${m}-${d}`;
++}
++
++function replaceElWithClone(id) {
++    const el = document.getElementById(id);
++    if (!el || !el.parentNode) return null;
++    const clone = el.cloneNode(true);
++    el.parentNode.replaceChild(clone, el);
++    return clone;
++}
++
+ // Format Open-Meteo local wall clock without shifting into the browser timezone
+ function formatIsoLocalClock(iso) {
+     const m = String(iso || '').match(/T(\d{2}):(\d{2})/);
+@@ -2102,7 +2178,9 @@
+ 
+     // Current weather
+     document.getElementById('currentLocation').textContent = location;
+-    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
++    const utcOffsetSeconds = data.utc_offset_seconds || 0;
++    const locationToday = parseDateString(locationDateString(utcOffsetSeconds));
++    document.getElementById('currentDate').textContent = locationToday.toLocaleDateString('en-US', {
+         weekday: 'long',
+         year: 'numeric',
+         month: 'long',
+@@ -2162,11 +2240,9 @@
+     const today = new Date();
+     const moonPhaseValue = calculateMoonPhase(today);
+     const moonPhase = getMoonPhase(moonPhaseValue);
++    const moonPhaseCard = replaceElWithClone('moonPhase');
+     document.getElementById('moonPhaseEmoji').textContent = moonPhase.emoji;
+     document.getElementById('moonPhaseName').textContent = moonPhase.name;
+-
+-    // Make moon phase card clickable
+-    const moonPhaseCard = document.getElementById('moonPhase');
+     if (moonPhaseCard) {
+         moonPhaseCard.style.cursor = 'pointer';
+         moonPhaseCard.addEventListener('click', () => openMoonDetailsModal(today));
+@@ -2174,14 +2250,11 @@
+ 
+     // Calculate and display symptom risks
+     if (data.hourly && data.hourly.surface_pressure) {
+-        // Get today's date and yesterday's date
+-        const todayDate = new Date();
+-        const yesterdayDate = new Date(todayDate);
+-        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+-
+-        // Calculate daily averages for today and yesterday
+-        const todayAvg = calculateDailyAverages(data.hourly, todayDate);
+-        const yesterdayAvg = calculateDailyAverages(data.hourly, yesterdayDate);
++        const todayDateStr = locationDateString(utcOffsetSeconds);
++        const yesterdayMs = Date.now() - 24 * 60 * 60 * 1000;
++        const yesterdayDateStr = locationDateString(utcOffsetSeconds, yesterdayMs);
++        const todayAvg = calculateDailyAveragesForDateString(data.hourly, todayDateStr);
++        const yesterdayAvg = calculateDailyAveragesForDateString(data.hourly, yesterdayDateStr);
+ 
+         if (todayAvg) {
+             // Calculate pressure change (today - yesterday)
