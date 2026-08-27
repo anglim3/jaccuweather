@@ -1,0 +1,14 @@
+--- a/public/index.html
++++ b/public/index.html
+@@ -1322,9 +1322,11 @@
+                 <div id="radarContainer" class="relative">
+                     <!-- Ventusky iframe -->
+                     <div id="ventuskyContainer" class="ventusky-iframe-container">
++                        <!-- Direct Ventusky origin; sandbox omits allow-top-navigation so their framebuster cannot navigate this app. -->
+                         <iframe
+                             id="ventuskyFrame"
+                             src=""
++                            title="Ventusky weather radar"
+                             style="border: none;"
+                             allowfullscreen
+                             loading="lazy"
