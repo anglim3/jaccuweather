@@ -1,0 +1,87 @@
+--- a/public/app.js
++++ b/public/app.js
+@@ -58,6 +58,8 @@
+ let selectedSuggestionIndex = -1;
+ let blurHideTimer = null;
+ let activeSuggestionRequestId = 0;
++let activeWeatherRequestId = 0;
++let activeWeatherAbort = null;
+ // Layer switching removed - Ventusky handles layers internally
+ 
+ const HOURLY_FORECAST_HOURS = 48;
+@@ -206,6 +208,21 @@
+     return numbers.reduce((sum, value) => sum + value, 0) / numbers.length;
+ }
+ 
++function circularMeanDegrees(values) {
++    if (!Array.isArray(values) || values.length === 0) return null;
++    const numbers = values.map(Number).filter((value) => Number.isFinite(value));
++    if (!numbers.length) return null;
++    let sinSum = 0;
++    let cosSum = 0;
++    for (const deg of numbers) {
++        const rad = (deg * Math.PI) / 180;
++        sinSum += Math.sin(rad);
++        cosSum += Math.cos(rad);
++    }
++    const mean = Math.atan2(sinSum / numbers.length, cosSum / numbers.length) * (180 / Math.PI);
++    return (mean + 360) % 360;
++}
++
+ function modeEnsembleValue(values, round = false) {
+     if (!Array.isArray(values) || values.length === 0) return null;
+     const counts = new Map();
+@@ -299,6 +316,8 @@
+         } else if (strategy === 'binary') {
+             const avg = averageEnsembleValues(memberValues);
+             result[i] = avg === null ? null : (avg >= 0.5 ? 1 : 0);
++        } else if (strategy === 'circularMean') {
++            result[i] = circularMeanDegrees(memberValues);
+         } else {
+             result[i] = averageEnsembleValues(memberValues);
+         }
+@@ -361,14 +380,14 @@
+     return probability;
+ }
+ 
+-function nearestTimeIndex(times, targetDate) {
++function nearestTimeIndex(times, targetDate, utcOffsetSeconds = 0) {
+     if (!Array.isArray(times) || !times.length) return 0;
+-    const targetMs = targetDate.getTime();
++    const targetMs = targetDate instanceof Date ? targetDate.getTime() : Number(targetDate);
+     let bestIndex = 0;
+     let bestDelta = Number.POSITIVE_INFINITY;
+ 
+     for (let i = 0; i < times.length; i++) {
+-        const timeMs = new Date(times[i]).getTime();
++        const timeMs = parseLocationLocalIso(times[i], utcOffsetSeconds);
+         if (!Number.isFinite(timeMs)) continue;
+         const delta = Math.abs(timeMs - targetMs);
+         if (delta < bestDelta) {
+@@ -464,6 +483,8 @@
+         { source: 'relative_humidity_2m', target: 'relative_humidity_2m', strategy: 'average' },
+         { source: 'weather_code', target: 'weather_code', strategy: 'medianFloor', excludeMember: true },
+         { source: 'wind_speed_10m', target: 'wind_speed_10m', strategy: 'average' },
++        { source: 'wind_direction_10m', target: 'wind_direction_10m', strategy: 'circularMean' },
++        { source: 'wind_gusts_10m', target: 'wind_gusts_10m', strategy: 'average' },
+         { source: 'precipitation_probability', target: 'precipitation_probability', strategy: 'average', excludeMember: true },
+         { source: 'precipitation', target: 'precipitation', strategy: 'average' },
+         { source: 'snowfall', target: 'snowfall', strategy: 'average' },
+@@ -482,6 +503,8 @@
+         temperature_2m: { decimals: 0 },
+         relative_humidity_2m: { decimals: 0 },
+         wind_speed_10m: { decimals: 1 },
++        wind_direction_10m: { decimals: 0 },
++        wind_gusts_10m: { decimals: 1 },
+         precipitation_probability: { decimals: 0 },
+         precipitation: { decimals: 2, clampAbsBelow: 0.01 },
+         snowfall: { decimals: 2, clampAbsBelow: 0.1 },
+@@ -617,6 +640,8 @@
+     if (!normalized.hourly_units.temperature_2m) normalized.hourly_units.temperature_2m = '°F';
+     if (!normalized.hourly_units.relative_humidity_2m) normalized.hourly_units.relative_humidity_2m = '%';
+     if (!normalized.hourly_units.wind_speed_10m) normalized.hourly_units.wind_speed_10m = 'mp/h';
++    if (!normalized.hourly_units.wind_direction_10m) normalized.hourly_units.wind_direction_10m = '°';
++    if (!normalized.hourly_units.wind_gusts_10m) normalized.hourly_units.wind_gusts_10m = 'mp/h';
+     if (!normalized.hourly_units.precipitation) normalized.hourly_units.precipitation = 'inch';
+     if (!normalized.hourly_units.snowfall) normalized.hourly_units.snowfall = 'inch';
+     if (!normalized.hourly_units.surface_pressure) normalized.hourly_units.surface_pressure = 'hPa';
