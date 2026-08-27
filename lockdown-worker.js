@@ -136,4 +136,134 @@ src = applyPatchToConst(src, 'HTML_CONTENT', 'patches/index.html.patch', 'Direct
 
 const jsonNeedle = "'Access-Control-Allow-Origin': '*',\n      ...extraHeaders,";
 const jsonReplacement = '...extraHeaders,';
-<REST_OF_FILE_PLACEHOLDER>
+if (!src.includes(jsonNeedle)) {
+  if (!src.includes('function isSameOriginRequest')) {
+    fail('jsonResponse ACAO * not found');
+  }
+} else {
+  src = src.replace(jsonNeedle, jsonReplacement);
+}
+
+const sameOriginFn = `function isSameOriginRequest(request, requestUrl) {
+  const allowedOrigin = requestUrl.origin;
+  const origin = request.headers.get('Origin');
+  if (origin) {
+    return origin === allowedOrigin;
+  }
+  const fetchSite = request.headers.get('Sec-Fetch-Site');
+  if (fetchSite) {
+    return fetchSite === 'same-origin';
+  }
+  const referer = request.headers.get('Referer');
+  if (referer) {
+    try {
+      return new URL(referer).origin === allowedOrigin;
+    } catch (error) {
+      return false;
+    }
+  }
+  return false;
+}
+
+`;
+
+if (!src.includes('function isSameOriginRequest')) {
+  const insertAt = src.indexOf('function hasNumericValue');
+  if (insertAt < 0) fail('hasNumericValue not found');
+  src = src.slice(0, insertAt) + sameOriginFn + src.slice(insertAt);
+}
+
+const pollenRateLimitFn = `async function pollenRateLimitDenied(request, env) {
+  const limiter = env && env.POLLEN_RATE_LIMIT;
+  if (!limiter || typeof limiter.limit !== 'function') {
+    return jsonResponse({ error: true, reason: 'Service Unavailable' }, 503);
+  }
+  const ip = request.headers.get('CF-Connecting-IP');
+  if (!ip) {
+    return jsonResponse({ error: true, reason: 'Forbidden' }, 403);
+  }
+  try {
+    const result = await limiter.limit({ key: ip });
+    if (!result || result.success !== true) {
+      return jsonResponse({ error: true, reason: 'Too Many Requests' }, 429);
+    }
+  } catch (error) {
+    return jsonResponse({ error: true, reason: 'Service Unavailable' }, 503);
+  }
+  return null;
+}
+
+`;
+
+if (!src.includes('async function pollenRateLimitDenied')) {
+  const insertAt = src.indexOf('function hasNumericValue');
+  if (insertAt < 0) fail('hasNumericValue not found');
+  src = src.slice(0, insertAt) + pollenRateLimitFn + src.slice(insertAt);
+}
+
+const pollenUnpatched = `if (apiPath.startsWith('pollen')) {
+        return handlePollenRequest(url, env);
+      }`;
+const pollenSameOriginOnly = `if (apiPath.startsWith('pollen')) {
+        if (!isSameOriginRequest(request, url)) {
+          return jsonResponse({ error: true, reason: 'Forbidden' }, 403);
+        }
+        return handlePollenRequest(url, env);
+      }`;
+const pollenNew = `if (apiPath.startsWith('pollen')) {
+        if (!isSameOriginRequest(request, url)) {
+          return jsonResponse({ error: true, reason: 'Forbidden' }, 403);
+        }
+        const pollenLimited = await pollenRateLimitDenied(request, env);
+        if (pollenLimited) {
+          return pollenLimited;
+        }
+        return handlePollenRequest(url, env);
+      }`;
+if (src.includes(pollenUnpatched)) {
+  src = src.replace(pollenUnpatched, pollenNew);
+} else if (src.includes(pollenSameOriginOnly)) {
+  src = src.replace(pollenSameOriginOnly, pollenNew);
+} else if (!src.includes('await pollenRateLimitDenied(request, env)')) {
+  fail('pollen handler not found');
+}
+
+const ventuskyStart = src.indexOf('// Proxy Ventusky');
+const notFound = src.indexOf("return new Response('Not Found'");
+if (ventuskyStart >= 0 && notFound > ventuskyStart) {
+  src = src.slice(0, ventuskyStart) + src.slice(notFound);
+} else if (src.includes('/ventusky-proxy')) {
+  fail('ventusky-proxy still present and block bounds not found');
+}
+
+if (src.includes('/ventusky-proxy')) {
+  fail('ventusky-proxy still present after strip');
+}
+
+if (!src.includes('activeWeatherRequestId')) {
+  fail('app.js patch did not land in JS_CONTENT');
+}
+if (!src.includes('www.ventusky.com')) {
+  fail('Ventusky direct URL missing from JS_CONTENT');
+}
+
+if (!src.includes('function isSameOriginRequest')) {
+  fail('same-origin gate missing after patch');
+}
+if (!src.includes('async function pollenRateLimitDenied')) {
+  fail('pollen rate limiter missing after patch');
+}
+if (!src.includes('await pollenRateLimitDenied(request, env)')) {
+  fail('pollen rate limiter not applied before billed handler');
+}
+if (!src.includes("return jsonResponse({ error: true, reason: 'Forbidden' }, 403)")) {
+  fail('pollen same-origin 403 missing after patch');
+}
+const pollenCallAt = src.indexOf('await pollenRateLimitDenied(request, env)');
+const billedCallAt = src.indexOf('return handlePollenRequest(url, env)');
+if (pollenCallAt < 0 || billedCallAt < 0 || pollenCallAt > billedCallAt) {
+  fail('rate limit must run before handlePollenRequest');
+}
+
+fs.writeFileSync(srcPath, src);
+console.log('lockdown-worker: pollen same-origin gate on; per-IP rate limit before billed pollen; Ventusky HTML proxy removed; client patches inlined');
