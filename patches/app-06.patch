@@ -1,0 +1,128 @@
+@@ -2883,18 +2935,7 @@
+     let trendText = 'Steady';
+ 
+     if (data.hourly && data.hourly.surface_pressure) {
+-        const now = new Date();
+-        const currentHour = now.getHours();
+-
+-        // Find current hour index
+-        let currentIdx = -1;
+-        for (let i = 0; i < data.hourly.time.length; i++) {
+-            const hourTime = new Date(data.hourly.time[i]);
+-            if (hourTime.getHours() === currentHour && hourTime.getDate() === now.getDate()) {
+-                currentIdx = i;
+-                break;
+-            }
+-        }
++        const currentIdx = nearestTimeIndex(data.hourly.time, new Date(), data.utc_offset_seconds || 0);
+ 
+         // Compare to 3 hours ago
+         if (currentIdx >= 3) {
+@@ -3093,23 +3134,37 @@
+     document.getElementById('errorMessage').classList.add('hidden');
+ }
+ 
+-// Weather alerts functionality
+-async function fetchWeatherAlerts(lat, lon) {
+-    // Only fetch alerts for US locations (rough check: lat 24-50, lon -125 to -66)
+-    if (lat < 24 || lat > 50 || lon < -125 || lon > -66) {
+-        return; // Not in US, skip alerts
++function promptForLocation(message) {
++    showError(message);
++    const input = document.getElementById('locationInput');
++    if (input) {
++        input.focus();
+     }
++}
++
++function hideWeatherAlerts() {
++    const alertsContainer = document.getElementById('weatherAlerts');
++    if (!alertsContainer) return;
++    alertsContainer.innerHTML = '';
++    alertsContainer.classList.add('hidden');
++}
++
++// Weather alerts functionality
++async function fetchWeatherAlerts(lat, lon, requestId = activeWeatherRequestId) {
++    hideWeatherAlerts();
+ 
+     try {
+-        // First, get the forecast zone for this point
++        // Prefer NWS /points/ 404 over a CONUS rectangle so AK/HI/PR still get alerts.
+         const pointResponse = await fetch(`/api/nws-points/${lat.toFixed(4)},${lon.toFixed(4)}`);
++        if (requestId !== activeWeatherRequestId) return;
+ 
+-        if (!pointResponse.ok) {
++        if (pointResponse.status === 404 || !pointResponse.ok) {
+             console.log('NWS points API not available:', pointResponse.status);
+-            return; // Silently fail if not available
++            return;
+         }
+ 
+         const pointData = await pointResponse.json();
++        if (requestId !== activeWeatherRequestId) return;
+ 
+         // Check if the response has an error
+         if (pointData.error) {
+@@ -3141,6 +3196,7 @@
+         }
+ 
+         const alertsData = await alertsResponse.json();
++        if (requestId !== activeWeatherRequestId) return;
+ 
+         // Check if the response has an error
+         if (alertsData.error) {
+@@ -3156,8 +3212,10 @@
+ 
+             if (activeAlerts.length > 0) {
+                 displayAlerts(activeAlerts);
++                return;
+             }
+         }
++        hideWeatherAlerts();
+     } catch (error) {
+         // Log error for debugging but don't break the app
+         console.error('Weather alerts error:', error.message);
+@@ -3319,12 +3377,13 @@
+     labelEl.className = `text-xs font-semibold ${niceLabel.colorClass}`;
+ }
+ 
+-async function fetchAirQuality(lat, lon) {
++async function fetchAirQuality(lat, lon, requestId = activeWeatherRequestId) {
+     try {
+         // Fetch pollen/air-quality data through the Worker. The Worker optionally
+         // uses Google Pollen API when GOOGLE_POLLEN_API_KEY is configured, then
+         // falls back to Open-Meteo while preserving null unavailable semantics.
+         const aqiResponse = await fetch(`/api/pollen?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
++        if (requestId !== activeWeatherRequestId) return;
+ 
+         if (!aqiResponse.ok) {
+             // Hide air quality and pollen sections if API is unavailable
+@@ -3336,6 +3395,7 @@
+         }
+ 
+         const aqiData = await aqiResponse.json();
++        if (requestId !== activeWeatherRequestId) return;
+ 
+         if (aqiData.error || !aqiData.current) {
+             document.getElementById('airQualitySection').classList.add('hidden');
+@@ -3358,6 +3418,7 @@
+         // Recalculate allergy risk with real pollen data
+         updateAllergyRiskWithPollenData();
+     } catch (error) {
++        if (requestId !== activeWeatherRequestId) return;
+         console.error('Error fetching air quality:', error);
+         document.getElementById('airQualitySection').classList.add('hidden');
+         document.getElementById('pollenSection').classList.add('hidden');
+@@ -3420,8 +3481,9 @@
+ }
+ 
+ // Calculate daily averages from hourly data for a specific date
+-function calculateDailyAverages(hourlyData, targetDate) {
+-    const targetDateStr = targetDate.toISOString().split('T')[0];
++function calculateDailyAverages(hourlyData, targetDate, utcOffsetSeconds = 0) {
++    const atMs = targetDate instanceof Date ? targetDate.getTime() : Date.now();
++    const targetDateStr = locationDateString(utcOffsetSeconds, atMs);
+     return calculateDailyAveragesForDateString(hourlyData, targetDateStr);
+ }
+ 
