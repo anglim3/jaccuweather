@@ -4,7 +4,7 @@
   "description": "A fully featured weather website using Open-Meteo API",
   "main": "src/index.js",
   "scripts": {
-    "build": "node build.js",
+    "build": "node build.js && node lockdown-worker.js",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },
