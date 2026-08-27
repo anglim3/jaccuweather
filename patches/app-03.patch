@@ -1,0 +1,72 @@
+@@ -1804,31 +1837,52 @@
+ }
+ 
+ async function fetchWeather(lat, lon) {
++    const requestId = ++activeWeatherRequestId;
++    if (activeWeatherAbort) {
++        activeWeatherAbort.abort();
++    }
++    const abortController = new AbortController();
++    activeWeatherAbort = abortController;
++
+     currentLat = lat;
+     currentLon = lon;
+     currentTideData = null;
++    currentPollenData = null;
++    currentNiceWeatherData = null;
++    hideWeatherAlerts();
++    const pollenSection = document.getElementById('pollenSection');
++    if (pollenSection) pollenSection.classList.add('hidden');
++    const aqiSection = document.getElementById('airQualitySection');
++    if (aqiSection) aqiSection.classList.add('hidden');
+     showLoading();
+     hideError();
+     hideContent();
+ 
+     try {
+         // Make direct request to Open-Meteo ensemble endpoint from browser (uses user's IP, not shared Cloudflare IP)
+-        const weatherResponse = await fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lon}&models=icon_seamless,gfs_seamless,ecmwf_ifs025&hourly=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,precipitation,snowfall,surface_pressure,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,shortwave_radiation,is_day,apparent_temperature,dew_point_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,wind_gusts_10m_max,precipitation_probability_max,snowfall_sum,sunrise,sunset&forecast_days=14&past_days=2&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch&timezone=auto`);
++        const weatherResponse = await fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lon}&models=icon_seamless,gfs_seamless,ecmwf_ifs025&hourly=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,precipitation,snowfall,surface_pressure,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,shortwave_radiation,is_day,apparent_temperature,dew_point_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,wind_gusts_10m_max,precipitation_probability_max,snowfall_sum,sunrise,sunset&forecast_days=14&past_days=2&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch&timezone=auto`, {
++            signal: abortController.signal
++        });
+ 
+         // Check for rate limiting before parsing JSON
++        if (requestId !== activeWeatherRequestId) return;
++
+         if (weatherResponse.status === 429) {
+             const errorData = await weatherResponse.json().catch(() => ({ error: true, reason: 'Rate limit exceeded' }));
++            if (requestId !== activeWeatherRequestId) return;
+             showError(errorData.reason || 'Rate limit exceeded. Please wait a moment and try again.');
+             return;
+         }
+ 
+         if (!weatherResponse.ok) {
+             const errorData = await weatherResponse.json().catch(() => ({ error: true, reason: 'Failed to fetch weather data' }));
++            if (requestId !== activeWeatherRequestId) return;
+             showError(errorData.reason || `Failed to fetch weather data (${weatherResponse.status})`);
+             return;
+         }
+ 
+         const weatherDataRaw = await weatherResponse.json();
++        if (requestId !== activeWeatherRequestId) return;
+ 
+         if (weatherDataRaw.error) {
+             showError(weatherDataRaw.reason || 'Failed to fetch weather data');
+@@ -1857,6 +1911,8 @@
+                 const data = await reverseGeoResponse.json();
+ 
+                 // BigDataCloud returns data directly - transform to match expected format
++                if (requestId !== activeWeatherRequestId) return;
++
+                 if (data) {
+                     // Try to get city name, fallback to town, village, or municipality
+                     const cityName = data.city || data.locality || data.town || data.village || data.municipality || data.county;
+@@ -1892,6 +1948,8 @@
+             }
+         }
+ 
++        if (requestId !== activeWeatherRequestId) return;
++
+         try {
+             currentTideData = await fetchTideDataForLocation(lat, lon, weatherData.elevation);
+         } catch (tideError) {
