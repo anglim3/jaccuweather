@@ -1,3 +1,5 @@
+--- a/public/app.js
++++ b/public/app.js
 @@ -2883,18 +2935,7 @@
      let trendText = 'Steady';
  
