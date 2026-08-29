@@ -132,6 +132,7 @@ function applyPatchToConst(source, constName, patchRelPath, alreadyMarker) {
 
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app.js.patch', 'activeWeatherRequestId');
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-08.patch');
+src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-09.patch');
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-10.patch');
 src = applyPatchToConst(src, 'HTML_CONTENT', 'patches/index.html.patch', 'Direct Ventusky origin');
 
@@ -186,7 +187,7 @@ const pollenRateLimitFn = `async function pollenRateLimitDenied(request, env) {
   try {
     const result = await limiter.limit({ key: ip });
     if (!result || result.success !== true) {
-      return jsonResponse({ error: true, reason: 'Too Many Requests' }, 429);
+      return jsonResponse({ error: true, reason: 'Too Many Requests' }, 429, { 'Retry-After': '60' });
     }
   } catch (error) {
     return jsonResponse({ error: true, reason: 'Service Unavailable' }, 503);
@@ -246,6 +247,12 @@ if (!src.includes('activeWeatherRequestId')) {
 }
 if (!src.includes('www.ventusky.com')) {
   fail('Ventusky direct URL missing from JS_CONTENT');
+}
+if (src.includes('data.daily.sunrise[i]') || src.includes('data.daily.sunset[i]')) {
+  fail('daily modal still indexes sunrise/sunset with loop i instead of dayIndex');
+}
+if (!src.includes('data.daily.sunrise[dayIndex]') || !src.includes('formatIsoLocalClock(data.daily.sunrise[dayIndex])')) {
+  fail('daily modal sun times patch did not land');
 }
 if (src.includes('startDate === nowDate + 1')) {
   fail('precip timing still uses getDate() + 1 for tomorrow');

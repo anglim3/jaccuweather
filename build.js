@@ -213,8 +213,9 @@ function normalizeGooglePollen(googleData) {
     noneDisplayHourly.push(noneDisplayFields);
 
     hourly.time.push(date + 'T12:00');
-    for (const field of POLLEN_HOURLY_PARAMS.split(',')) {
-      hourly[field].push(normalizedDay[field]);
+    for (const field of Object.keys(hourly)) {
+      if (field === 'time') continue;
+      hourly[field].push(normalizedDay[field] ?? null);
     }
   }
 
@@ -285,8 +286,9 @@ function normalizeTomorrowPollen(tomorrowData) {
     }
 
     hourly.time.push(interval.startTime || new Date().toISOString());
-    for (const field of POLLEN_HOURLY_PARAMS.split(',')) {
-      hourly[field].push(normalizedDay[field]);
+    for (const field of Object.keys(hourly)) {
+      if (field === 'time') continue;
+      hourly[field].push(normalizedDay[field] ?? null);
     }
   }
 
@@ -315,7 +317,11 @@ async function fetchTomorrowPollen(lat, lon, apiKey) {
   if (!timelinesResponse.ok) {
     throw new Error(\`Tomorrow.io pollen request failed with forecast status \${forecastResponse.status} and timelines status \${timelinesResponse.status}\`);
   }
-  return normalizeTomorrowPollen(await timelinesResponse.json());
+  const timelinesData = normalizeTomorrowPollen(await timelinesResponse.json());
+  if (!hasAnyUsablePollen(timelinesData)) {
+    return null;
+  }
+  return timelinesData;
 }
 
 function mergeMissingPollen(primary, fallback, fallbackSource) {
@@ -406,7 +412,7 @@ async function handlePollenRequest(url, env) {
   if (env.TOMORROW_API_KEY) {
     try {
       const tomorrowData = await fetchTomorrowPollen(lat, lon, env.TOMORROW_API_KEY);
-      if (tomorrowData?.current) {
+      if (tomorrowData?.current && hasAnyUsablePollen(tomorrowData)) {
         return jsonResponse(tomorrowData, 200, { 'X-Pollen-Source': tomorrowData.pollen_source || 'tomorrow' });
       }
     } catch (error) {
