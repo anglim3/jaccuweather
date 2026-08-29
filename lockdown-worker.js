@@ -185,7 +185,7 @@ const pollenRateLimitFn = `async function pollenRateLimitDenied(request, env) {
   try {
     const result = await limiter.limit({ key: ip });
     if (!result || result.success !== true) {
-      return jsonResponse({ error: true, reason: 'Too Many Requests' }, 429);
+      return jsonResponse({ error: true, reason: 'Too Many Requests' }, 429, { 'Retry-After': '60' });
     }
   } catch (error) {
     return jsonResponse({ error: true, reason: 'Service Unavailable' }, 503);
