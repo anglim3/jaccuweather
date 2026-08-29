@@ -115,7 +115,7 @@ function readPatch(patchRelPath) {
   const fileName = path.basename(patchRelPath);
   const prefix = fileName.replace(/\.js\.patch$/, '-').replace(/\.patch$/, '-');
   const parts = fs.readdirSync(dir)
-    .filter((f) => f.startsWith(prefix) && f.endsWith('.patch') && f !== 'app-08.patch')
+    .filter((f) => /^app-0[1-7]\.patch$/.test(f))
     .sort();
   if (!parts.length) fail('missing patch ' + patchRelPath);
   return parts.map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('');
@@ -132,6 +132,7 @@ function applyPatchToConst(source, constName, patchRelPath, alreadyMarker) {
 
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app.js.patch', 'activeWeatherRequestId');
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-08.patch');
+src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-09.patch');
 src = applyPatchToConst(src, 'HTML_CONTENT', 'patches/index.html.patch', 'Direct Ventusky origin');
 
 const jsonNeedle = "'Access-Control-Allow-Origin': '*',\n      ...extraHeaders,";
@@ -245,6 +246,12 @@ if (!src.includes('activeWeatherRequestId')) {
 }
 if (!src.includes('www.ventusky.com')) {
   fail('Ventusky direct URL missing from JS_CONTENT');
+}
+if (src.includes('data.daily.sunrise[i]') || src.includes('data.daily.sunset[i]')) {
+  fail('daily modal still indexes sunrise/sunset with loop i instead of dayIndex');
+}
+if (!src.includes('data.daily.sunrise[dayIndex]') || !src.includes('formatIsoLocalClock(data.daily.sunrise[dayIndex])')) {
+  fail('daily modal sun times patch did not land');
 }
 
 if (!src.includes('function isSameOriginRequest')) {
