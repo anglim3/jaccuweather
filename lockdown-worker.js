@@ -133,6 +133,7 @@ function applyPatchToConst(source, constName, patchRelPath, alreadyMarker) {
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app.js.patch', 'activeWeatherRequestId');
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-08.patch');
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-09.patch');
+src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-10.patch');
 src = applyPatchToConst(src, 'HTML_CONTENT', 'patches/index.html.patch', 'Direct Ventusky origin');
 
 const jsonNeedle = "'Access-Control-Allow-Origin': '*',\n      ...extraHeaders,";
@@ -252,6 +253,12 @@ if (src.includes('data.daily.sunrise[i]') || src.includes('data.daily.sunset[i]'
 }
 if (!src.includes('data.daily.sunrise[dayIndex]') || !src.includes('formatIsoLocalClock(data.daily.sunrise[dayIndex])')) {
   fail('daily modal sun times patch did not land');
+}
+if (src.includes('startDate === nowDate + 1')) {
+  fail('precip timing still uses getDate() + 1 for tomorrow');
+}
+if (!src.includes('formatIsoLocalClock(precipStartIso)')) {
+  fail('precip timing timezone patch did not land');
 }
 
 if (!src.includes('function isSameOriginRequest')) {
