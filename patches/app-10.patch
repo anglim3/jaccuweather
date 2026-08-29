@@ -1,0 +1,101 @@
+--- a/public/app.js
++++ b/public/app.js
+@@ -2973,73 +2973,48 @@
+         return;
+     }
+ 
+-    const now = new Date();
+-    const currentHour = now.getHours();
++    const utcOffsetSeconds = data.utc_offset_seconds || 0;
++    const startIndex = nearestTimeIndex(data.hourly.time, new Date(), utcOffsetSeconds);
++    const nowDateStr = locationDateString(utcOffsetSeconds);
+ 
+-    // Find current hour index
+-    let startIndex = 0;
+-    for (let i = 0; i < data.hourly.time.length; i++) {
+-        const hourTime = new Date(data.hourly.time[i]);
+-        if (hourTime.getHours() >= currentHour && hourTime.getDate() === now.getDate()) {
+-            startIndex = i;
+-            break;
+-        }
+-    }
+-
+-    // Look ahead 48 hours for precipitation
+-    let precipStartTime = null;
+-    let precipEndTime = null;
++    let precipStartIso = null;
+     let isSnow = false;
+-    let precipAmount = 0;
+ 
+     for (let i = startIndex; i < Math.min(startIndex + HOURLY_FORECAST_HOURS, data.hourly.time.length); i++) {
+         const precip = data.hourly.precipitation[i] || 0;
+         const snow = data.hourly.snowfall ? (data.hourly.snowfall[i] || 0) : 0;
+ 
+         if (precip > 0 || snow > 0) {
+-            if (!precipStartTime) {
+-                precipStartTime = new Date(data.hourly.time[i]);
+-                isSnow = snow > 0;
+-            }
+-            precipAmount += precip + snow;
+-            precipEndTime = new Date(data.hourly.time[i]);
+-        } else if (precipStartTime && !precipEndTime) {
+-            // Gap in precipitation - could end the period here
++            precipStartIso = data.hourly.time[i];
++            isSnow = snow > 0;
+             break;
+         }
+     }
+ 
+-    if (!precipStartTime) {
+-        // No precipitation expected
++    if (!precipStartIso) {
+         icon.textContent = '☀️';
+         timingText.textContent = `No precipitation expected in the next ${HOURLY_FORECAST_HOURS} hours`;
+         section.classList.remove('hidden');
++        return;
++    }
++
++    const startDateStr = String(precipStartIso).split('T')[0];
++    const precipType = isSnow ? 'Snow' : 'Rain';
++    icon.textContent = isSnow ? '❄️' : '🌧️';
++
++    if (precipStartIso === data.hourly.time[startIndex]) {
++        timingText.textContent = `${precipType} is currently falling`;
+     } else {
+-        const startHour = precipStartTime.getHours();
+-        const nowHour = now.getHours();
+-        const startDate = precipStartTime.getDate();
+-        const nowDate = now.getDate();
+-
+-        icon.textContent = isSnow ? '❄️' : '🌧️';
+-
+-        // Check if precipitation is happening now (within the current hour)
+-        if (startHour === nowHour && startDate === nowDate) {
+-            const precipType = isSnow ? 'Snow' : 'Rain';
+-            timingText.textContent = `${precipType} is currently falling`;
++        const timeStr = formatIsoLocalClock(precipStartIso);
++        const tomorrowDateStr = locationDateString(utcOffsetSeconds, Date.now() + 24 * 60 * 60 * 1000);
++        if (startDateStr === nowDateStr) {
++            timingText.textContent = `${precipType} expected around ${timeStr}`;
++        } else if (startDateStr === tomorrowDateStr) {
++            timingText.textContent = `${precipType} expected tomorrow around ${timeStr}`;
+         } else {
+-            const precipType = isSnow ? 'Snow' : 'Rain';
+-            const timeStr = formatTime12Hour(precipStartTime);
+-
+-            // Check if it's today or tomorrow
+-            if (startDate === nowDate) {
+-                timingText.textContent = `${precipType} expected around ${timeStr}`;
+-            } else if (startDate === nowDate + 1) {
+-                timingText.textContent = `${precipType} expected tomorrow around ${timeStr}`;
+-            } else {
+-                const dayName = precipStartTime.toLocaleDateString('en-US', { weekday: 'long' });
+-                timingText.textContent = `${precipType} expected ${dayName} around ${timeStr}`;
+-            }
++            const dayName = parseDateString(startDateStr).toLocaleDateString('en-US', { weekday: 'long' });
++            timingText.textContent = `${precipType} expected ${dayName} around ${timeStr}`;
+         }
+-        section.classList.remove('hidden');
+     }
++    section.classList.remove('hidden');
+ }

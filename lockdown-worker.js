@@ -115,7 +115,7 @@ function readPatch(patchRelPath) {
   const fileName = path.basename(patchRelPath);
   const prefix = fileName.replace(/\.js\.patch$/, '-').replace(/\.patch$/, '-');
   const parts = fs.readdirSync(dir)
-    .filter((f) => f.startsWith(prefix) && f.endsWith('.patch') && f !== 'app-08.patch')
+    .filter((f) => /^app-0[1-7]\.patch$/.test(f))
     .sort();
   if (!parts.length) fail('missing patch ' + patchRelPath);
   return parts.map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('');
@@ -132,6 +132,7 @@ function applyPatchToConst(source, constName, patchRelPath, alreadyMarker) {
 
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app.js.patch', 'activeWeatherRequestId');
 src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-08.patch');
+src = applyPatchToConst(src, 'JS_CONTENT', 'patches/app-10.patch');
 src = applyPatchToConst(src, 'HTML_CONTENT', 'patches/index.html.patch', 'Direct Ventusky origin');
 
 const jsonNeedle = "'Access-Control-Allow-Origin': '*',\n      ...extraHeaders,";
@@ -245,6 +246,12 @@ if (!src.includes('activeWeatherRequestId')) {
 }
 if (!src.includes('www.ventusky.com')) {
   fail('Ventusky direct URL missing from JS_CONTENT');
+}
+if (src.includes('startDate === nowDate + 1')) {
+  fail('precip timing still uses getDate() + 1 for tomorrow');
+}
+if (!src.includes('formatIsoLocalClock(precipStartIso)')) {
+  fail('precip timing timezone patch did not land');
 }
 
 if (!src.includes('function isSameOriginRequest')) {
