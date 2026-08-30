@@ -3998,40 +3998,40 @@ function initializeChartSelector(selectId) {
     const modal = select.closest('.modal');
     const chartContainers = modal.querySelectorAll('.chart-container');
 
-    // Set initial state to show temperature chart
-    select.value = 'temp';
-
     // Replace select with clone to remove stale event listeners
     const newSelect = select.cloneNode(true);
     select.parentNode.replaceChild(newSelect, select);
 
-    // cloneNode doesn't reliably preserve select.value — set it after insertion
-    newSelect.value = 'temp';
+    // cloneNode can leave .value as "all" while Temperature looks selected.
+    // Always force the default series on the live control after insertion.
+    newSelect.value = DEFAULT_CHART_SERIES;
 
-    // IMPORTANT: updateChartVisibility must reference newSelect (the live DOM element),
-    // not the original select (detached after clone). The closure captures `select`
-    // which is no longer in the DOM after replaceChild.
     function updateChartVisibility() {
         const selectedValue = newSelect.value;
-
-        chartContainers.forEach(container => {
-            if (container.dataset.featureHidden === 'true') {
-                container.style.display = 'none';
-                return;
-            }
-            if (selectedValue === 'all') {
-                container.style.display = 'block';
-            } else {
-                const chartType = container.getAttribute('data-chart-type');
-                container.style.display = chartType === selectedValue ? 'block' : 'none';
-            }
-        });
+        // Change events use the live value; first paint must not.
+        const drawn = paintChartSelector(chartContainers, selectedValue, false);
+        if (modal && modal.id === 'dailyModal') {
+            ensureDailyChartSeriesDrawn(selectedValue);
+        }
+        return drawn;
     }
 
-    // Apply initial visibility for the cloned select
-    updateChartVisibility();
+    // First paint: ignore select.value (may still be "all") and draw temperature only.
+    // Do not call updateChartVisibility() here — it reads newSelect.value.
+    paintChartSelector(chartContainers, newSelect.value, true);
+    if (modal && modal.id === 'dailyModal') {
+        ensureDailyChartSeriesDrawn(DEFAULT_CHART_SERIES);
+    }
     newSelect.addEventListener('change', updateChartVisibility);
 }
+
+// Line-padding: keep openHourlyModal at its original line so lockdown patches apply.
+//
+//
+//
+//
+//
+//
 
 // Modal functionality
 function openHourlyModal(data) {
@@ -4039,8 +4039,8 @@ function openHourlyModal(data) {
     modal.classList.add('active');
     setHourlyTidesVisibility(currentTideData);
 
-    // Show all chart containers so ApexCharts can measure width
-    modal.querySelectorAll('.chart-container').forEach(c => c.style.display = 'block');
+    // First paint: only the default series (temperature) is visible/drawn
+    applyChartSeriesVisibility(modal.querySelectorAll('.chart-container'), DEFAULT_CHART_SERIES);
 
     // Destroy existing charts if they exist
     Object.values(hourlyChart).forEach(chart => {
@@ -4344,14 +4344,14 @@ function openDailyModal(data) {
     modal.classList.add('active');
     setDailyTidesVisibility(currentTideData);
 
-    // Show all chart containers so ApexCharts can measure width
-    modal.querySelectorAll('.chart-container').forEach(c => c.style.display = 'block');
+    // First paint: only the default series (temperature) is visible/drawn
+    applyChartSeriesVisibility(modal.querySelectorAll('.chart-container'), DEFAULT_CHART_SERIES);
 
     // Destroy existing charts if they exist
     Object.values(dailyChart).forEach(chart => {
         if (chart) chart.destroy();
     });
-    dailyChart = {};
+    dailyChart = resetDailyChartState();
 
     // Prepare data
     const labels = [];
@@ -4543,7 +4543,7 @@ function openDailyModal(data) {
     });
 
     // Create charts
-    dailyChart = {};
+    dailyChart = resetDailyChartState();
 
     dailyChart.temp = new ApexCharts(document.getElementById('dailyTempChart'), baseChartOptions({
         series: [
@@ -4555,7 +4555,7 @@ function openDailyModal(data) {
         xaxis: { categories: labels },
         yaxis: { title: { text: "°F", style: { color: "#fff" } } }
     }));
-    dailyChart.temp.render();
+    maybeRenderDailyChart('temp');
 
     dailyChart.feelsLike = new ApexCharts(document.getElementById('dailyFeelsLikeChart'), baseChartOptions({
         series: [
@@ -4567,7 +4567,7 @@ function openDailyModal(data) {
         xaxis: { categories: labels },
         yaxis: { title: { text: "°F", style: { color: "#fff" } } }
     }));
-    dailyChart.feelsLike.render();
+    maybeRenderDailyChart('feelsLike');
 
     // Nice weather chart with custom point colors
     const niceWeatherPointColors = niceWeatherScores.map(score => {
@@ -4587,7 +4587,7 @@ function openDailyModal(data) {
         yaxis: { min: 0, max: 10, tickAmount: 5, title: { text: '/10', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}/10` } },
         tooltip: { y: { formatter: (val) => (val === null || val === undefined ? 'Nice Weather: unavailable' : `Nice Weather: ${val}/10`) } }
     }));
-    dailyChart.niceWeather.render();
+    maybeRenderDailyChart('niceWeather');
 
     dailyChart.precip = new ApexCharts(document.getElementById('dailyPrecipChart'), baseChartOptions({
         series: [{ name: `Precipitation (${UNITS.precipitation})`, data: precip }],
@@ -4596,7 +4596,7 @@ function openDailyModal(data) {
         xaxis: { categories: labels },
         yaxis: { title: { text: "inches", style: { color: "#fff" } } }
     }));
-    dailyChart.precip.render();
+    maybeRenderDailyChart('precip');
 
     dailyChart.wind = new ApexCharts(document.getElementById('dailyWindChart'), baseChartOptions({
         series: [{ name: `Wind Speed (${UNITS.wind})`, data: wind }],
@@ -4605,7 +4605,7 @@ function openDailyModal(data) {
         xaxis: { categories: labels },
         yaxis: { title: { text: "mph", style: { color: "#fff" } } }
     }));
-    dailyChart.wind.render();
+    maybeRenderDailyChart('wind');
 
     dailyChart.pressure = new ApexCharts(document.getElementById('dailyPressureChart'), baseChartOptions({
         series: [{ name: 'Pressure (inHg)', data: dailyPressure }],
@@ -4614,7 +4614,7 @@ function openDailyModal(data) {
         xaxis: { categories: labels },
         yaxis: { title: { text: "inHg", style: { color: "#fff" } } }
     }));
-    dailyChart.pressure.render();
+    maybeRenderDailyChart('pressure');
 
     dailyChart.snow = new ApexCharts(document.getElementById('dailySnowChart'), baseChartOptions({
         series: [{ name: `Snowfall (${UNITS.snowfall})`, data: snowfall }],
@@ -4624,7 +4624,7 @@ function openDailyModal(data) {
         xaxis: { categories: labels },
         yaxis: { title: { text: "inches", style: { color: "#fff" } } }
     }));
-    dailyChart.snow.render();
+    maybeRenderDailyChart('snow');
 
     dailyChart.cloud = new ApexCharts(document.getElementById('dailyCloudChart'), baseChartOptions({
         chart: { type: 'bar', stacked: true },
@@ -4639,7 +4639,7 @@ function openDailyModal(data) {
         xaxis: { categories: labels },
         yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } }
     }));
-    dailyChart.cloud.render();
+    maybeRenderDailyChart('cloud');
 
     dailyChart.brightness = new ApexCharts(document.getElementById('dailyBrightnessChart'), baseChartOptions({
         series: [{ name: 'Brightness (%)', data: dailyBrightnessData }],
@@ -4649,7 +4649,7 @@ function openDailyModal(data) {
         xaxis: { categories: labels },
         yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } }
     }));
-    dailyChart.brightness.render();
+    maybeRenderDailyChart('brightness');
 
     dailyChart.tides = (hasDailyTideData && dailyTideChartEl) ? new ApexCharts(dailyTideChartEl, baseChartOptions({
         chart: { type: 'line' },
@@ -4673,7 +4673,7 @@ function openDailyModal(data) {
         },
         annotations: { points: dailyTideAnnotations }
     })) : null;
-    if (dailyChart.tides) dailyChart.tides.render();
+    if (dailyChart.tides) maybeRenderDailyChart('tides');
 
     dailyChart.moonPhase = new ApexCharts(document.getElementById('dailyMoonPhaseChart'), baseChartOptions({
         series: [{ name: 'Moon Phase', data: moonPhases }],
@@ -4687,7 +4687,7 @@ function openDailyModal(data) {
         },
         tooltip: { y: { formatter: (val) => { const phase = getMoonPhase(val); return `Moon Phase: ${phase.emoji} ${phase.name} (${(val * 100).toFixed(1)}%)`; } } }
     }));
-    dailyChart.moonPhase.render();
+    maybeRenderDailyChart('moonPhase');
 
     // Hide/show charts based on rain and snow presence
     const snowChartContainer = document.getElementById('dailySnowChart').parentElement;
@@ -4697,16 +4697,16 @@ function openDailyModal(data) {
 
     // Show both charts if both rain and snow are present
     if (hasSnow && hasRain) {
-        snowChartContainer.style.display = 'block';
-        precipChartContainer.style.display = 'block';
+        snowChartContainer.dataset.featureHidden = 'false';
+        precipChartContainer.dataset.featureHidden = 'false';
     } else if (hasSnow) {
         // Only snow, show snow chart
-        snowChartContainer.style.display = 'block';
-        precipChartContainer.style.display = 'none';
+        snowChartContainer.dataset.featureHidden = 'false';
+        precipChartContainer.dataset.featureHidden = 'true';
     } else {
         // Only rain or neither, show precipitation chart
-        snowChartContainer.style.display = 'none';
-        precipChartContainer.style.display = 'block';
+        snowChartContainer.dataset.featureHidden = 'true';
+        precipChartContainer.dataset.featureHidden = 'false';
     }
 
     // Populate detailed daily items
@@ -4789,8 +4789,8 @@ function openDailyModal(data) {
         detailsContainer.appendChild(detailItem);
     }
 
-    // Temperature toggle: Actual vs Feels Like
-    // Reveal charts after modal slide-in animation completes (300ms)
+    applyChartSeriesVisibility(modal.querySelectorAll('.chart-container'), DEFAULT_CHART_SERIES);
+    // Selector after slide-in; first paint already filtered to temperature
     setTimeout(() => initializeChartSelector('dailyChartSelect'), 320);
 }
 
@@ -4980,4 +4980,114 @@ function updateVentuskyLocation(lat, lon) {
         setRadarFallback(false, lat, lon);
         ventuskyFrame.src = ventuskyUrl;
     }
+}
+
+// ─── 14-day / hourly expanded-view chart series ─────────
+// First paint must draw ONLY the default series (temperature), even when
+// the cloned <select> still reports value "all" while Temperature looks selected.
+const DEFAULT_CHART_SERIES = 'temp';
+const DAILY_CHART_TYPE_BY_KEY = {
+    temp: 'temp',
+    feelsLike: 'feelslike',
+    niceWeather: 'niceweather',
+    precip: 'precip',
+    wind: 'wind',
+    pressure: 'pressure',
+    snow: 'snow',
+    cloud: 'cloud',
+    brightness: 'brightness',
+    tides: 'tides',
+    moonPhase: 'moon'
+};
+
+let dailyModalSelectedSeries = DEFAULT_CHART_SERIES;
+let dailyChartsRendered = typeof Set === 'function' ? new Set() : { _s: {}, has(k) { return !!this._s[k]; }, add(k) { this._s[k] = 1; }, clear() { this._s = {}; } };
+
+function resetDailyChartState() {
+    dailyModalSelectedSeries = DEFAULT_CHART_SERIES;
+    if (dailyChartsRendered && typeof dailyChartsRendered.clear === 'function') dailyChartsRendered.clear();
+    return {};
+}
+
+function availableChartTypesFrom(containers) {
+    const types = [];
+    if (!containers) return types;
+    const each = typeof containers.forEach === 'function'
+        ? (fn) => containers.forEach(fn)
+        : (fn) => Array.from(containers).forEach(fn);
+    each((container) => {
+        if (!container) return;
+        if (container.dataset && container.dataset.featureHidden === 'true') return;
+        const chartType = typeof container.getAttribute === 'function'
+            ? container.getAttribute('data-chart-type')
+            : container.chartType;
+        if (chartType) types.push(chartType);
+    });
+    return types;
+}
+
+function applyChartSeriesVisibility(containers, selectedValue) {
+    const selected = selectedValue || DEFAULT_CHART_SERIES;
+    const shown = [];
+    if (!containers) return shown;
+    const each = typeof containers.forEach === 'function'
+        ? (fn) => containers.forEach(fn)
+        : (fn) => Array.from(containers).forEach(fn);
+    each((container) => {
+        if (!container || !container.style) return;
+        if (container.dataset && container.dataset.featureHidden === 'true') {
+            container.style.display = 'none';
+            return;
+        }
+        const chartType = typeof container.getAttribute === 'function'
+            ? container.getAttribute('data-chart-type')
+            : container.chartType;
+        const visible = selected === 'all' || chartType === selected;
+        container.style.display = visible ? 'block' : 'none';
+        if (visible && chartType) shown.push(chartType);
+    });
+    return shown;
+}
+
+function resolveDrawnChartSeries(selectedValue, availableTypes) {
+    const available = Array.isArray(availableTypes) ? availableTypes.filter(Boolean) : [];
+    const selected = selectedValue || DEFAULT_CHART_SERIES;
+    if (selected === 'all') return available.slice();
+    if (available.includes(selected)) return [selected];
+    return available.includes(DEFAULT_CHART_SERIES) ? [DEFAULT_CHART_SERIES] : [];
+}
+
+// First paint always uses DEFAULT_CHART_SERIES. Do not trust select.value here:
+// cloneNode + replaceChild can leave .value as "all" while Temperature is selected.
+function paintChartSelector(containers, selectValue, isFirstPaint) {
+    const series = isFirstPaint ? DEFAULT_CHART_SERIES : (selectValue || DEFAULT_CHART_SERIES);
+    applyChartSeriesVisibility(containers, series);
+    return resolveDrawnChartSeries(series, availableChartTypesFrom(containers));
+}
+
+function maybeRenderDailyChart(key) {
+    const type = DAILY_CHART_TYPE_BY_KEY[key] || key;
+    const selected = dailyModalSelectedSeries || DEFAULT_CHART_SERIES;
+    const containers = (typeof document !== 'undefined' && document.querySelectorAll)
+        ? document.querySelectorAll('#dailyModal .chart-container')
+        : [];
+    const drawn = resolveDrawnChartSeries(selected, availableChartTypesFrom(containers));
+    if (!drawn.includes(type)) return;
+    if (!dailyChart[key] || (dailyChartsRendered && dailyChartsRendered.has(key))) return;
+    dailyChart[key].render();
+    if (dailyChartsRendered && dailyChartsRendered.add) dailyChartsRendered.add(key);
+}
+
+function ensureDailyChartSeriesDrawn(selectedValue) {
+    dailyModalSelectedSeries = selectedValue || DEFAULT_CHART_SERIES;
+    const containers = (typeof document !== 'undefined' && document.querySelectorAll)
+        ? document.querySelectorAll('#dailyModal .chart-container')
+        : [];
+    applyChartSeriesVisibility(containers, dailyModalSelectedSeries);
+    const drawn = resolveDrawnChartSeries(dailyModalSelectedSeries, availableChartTypesFrom(containers));
+    drawn.forEach((type) => {
+        const key = Object.keys(DAILY_CHART_TYPE_BY_KEY).find((k) => DAILY_CHART_TYPE_BY_KEY[k] === type) || type;
+        maybeRenderDailyChart(key);
+    });
+    return drawn;
 }
