@@ -260,6 +260,12 @@ if (src.includes('startDate === nowDate + 1')) {
 if (!src.includes('formatIsoLocalClock(precipStartIso)')) {
   fail('precip timing timezone patch did not land');
 }
+if (src.includes('Show all chart containers so ApexCharts can measure width')) {
+  fail('expanded view still shows all chart containers on first paint');
+}
+if (!src.includes('function paintChartSelector') || !src.includes('maybeRenderDailyChart')) {
+  fail('14-day chart first-paint temperature default missing');
+}
 
 if (!src.includes('function isSameOriginRequest')) {
   fail('same-origin gate missing after patch');
