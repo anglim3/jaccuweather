@@ -129,7 +129,7 @@ test('first paint ignores a cloned select that still reports all', () => {
 test('openDailyModal no longer shows every chart container on first paint', () => {
   const js = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
   assert.equal(js.includes('Show all chart containers so ApexCharts can measure width'), false);
-  assert.equal(js.includes("applyChartSeriesVisibility(modal.querySelectorAll('.chart-container'), DEFAULT_CHART_SERIES)"), true);
+  assert.equal(js.includes("paintExpandedViewFirstPaint(modal.querySelectorAll('.chart-container[data-chart-type]'))"), true);
   assert.equal(js.includes("maybeRenderDailyChart('temp')"), true);
   assert.equal(js.includes('dailyChart.temp.render()'), false);
   assert.equal(js.includes('paintChartSelector(chartContainers, newSelect.value, true)'), true);

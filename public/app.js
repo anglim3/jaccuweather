@@ -3996,7 +3996,7 @@ function initializeChartSelector(selectId) {
     if (!select) return;
 
     const modal = select.closest('.modal');
-    const chartContainers = modal.querySelectorAll('.chart-container');
+    const chartContainers = modal.querySelectorAll('.chart-container[data-chart-type]');
 
     // Replace select with clone to remove stale event listeners
     const newSelect = select.cloneNode(true);
@@ -4040,7 +4040,7 @@ function openHourlyModal(data) {
     setHourlyTidesVisibility(currentTideData);
 
     // First paint: only the default series (temperature) is visible/drawn
-    applyChartSeriesVisibility(modal.querySelectorAll('.chart-container'), DEFAULT_CHART_SERIES);
+    paintExpandedViewFirstPaint(modal.querySelectorAll('.chart-container[data-chart-type]'));
 
     // Destroy existing charts if they exist
     Object.values(hourlyChart).forEach(chart => {
@@ -4296,15 +4296,15 @@ function openHourlyModal(data) {
     if (hourlyChart.tides) hourlyChart.tides.render();
 
     // Hide/show precipitation and snow charts based on data
-    const hourlyPrecipChartContainer = document.getElementById('hourlyPrecipChart').parentElement;
-    const hourlySnowChartContainer = document.getElementById('hourlySnowChart').parentElement;
+    const hourlyPrecipChartContainer = document.getElementById('hourlyPrecipChart') && document.getElementById('hourlyPrecipChart').closest('.chart-container');
+    const hourlySnowChartContainer = document.getElementById('hourlySnowChart') && document.getElementById('hourlySnowChart').closest('.chart-container');
 
     if (hasSnowHourly) {
-        hourlyPrecipChartContainer.style.display = 'none';
-        hourlySnowChartContainer.style.display = 'block';
+        if (hourlyPrecipChartContainer) hourlyPrecipChartContainer.style.display = 'none';
+        if (hourlySnowChartContainer) hourlySnowChartContainer.style.display = 'block';
     } else {
-        hourlyPrecipChartContainer.style.display = 'block';
-        hourlySnowChartContainer.style.display = 'none';
+        if (hourlyPrecipChartContainer) hourlyPrecipChartContainer.style.display = 'block';
+        if (hourlySnowChartContainer) hourlySnowChartContainer.style.display = 'none';
     }
 
     // Populate detailed hourly items
@@ -4345,7 +4345,7 @@ function openDailyModal(data) {
     setDailyTidesVisibility(currentTideData);
 
     // First paint: only the default series (temperature) is visible/drawn
-    applyChartSeriesVisibility(modal.querySelectorAll('.chart-container'), DEFAULT_CHART_SERIES);
+    paintExpandedViewFirstPaint(modal.querySelectorAll('.chart-container[data-chart-type]'));
 
     // Destroy existing charts if they exist
     Object.values(dailyChart).forEach(chart => {
@@ -4690,23 +4690,23 @@ function openDailyModal(data) {
     maybeRenderDailyChart('moonPhase');
 
     // Hide/show charts based on rain and snow presence
-    const snowChartContainer = document.getElementById('dailySnowChart').parentElement;
-    const precipChartContainer = document.getElementById('dailyPrecipChart').parentElement;
+    const snowChartContainer = document.getElementById('dailySnowChart') && document.getElementById('dailySnowChart').closest('.chart-container');
+    const precipChartContainer = document.getElementById('dailyPrecipChart') && document.getElementById('dailyPrecipChart').closest('.chart-container');
     const hasSnow = snowfall.some(val => val > 0);
     const hasRain = precip.some(val => val > 0);
 
     // Show both charts if both rain and snow are present
     if (hasSnow && hasRain) {
-        snowChartContainer.dataset.featureHidden = 'false';
-        precipChartContainer.dataset.featureHidden = 'false';
+        if (snowChartContainer) snowChartContainer.dataset.featureHidden = 'false';
+        if (precipChartContainer) precipChartContainer.dataset.featureHidden = 'false';
     } else if (hasSnow) {
         // Only snow, show snow chart
-        snowChartContainer.dataset.featureHidden = 'false';
-        precipChartContainer.dataset.featureHidden = 'true';
+        if (snowChartContainer) snowChartContainer.dataset.featureHidden = 'false';
+        if (precipChartContainer) precipChartContainer.dataset.featureHidden = 'true';
     } else {
         // Only rain or neither, show precipitation chart
-        snowChartContainer.dataset.featureHidden = 'true';
-        precipChartContainer.dataset.featureHidden = 'false';
+        if (snowChartContainer) snowChartContainer.dataset.featureHidden = 'true';
+        if (precipChartContainer) precipChartContainer.dataset.featureHidden = 'false';
     }
 
     // Populate detailed daily items
@@ -4786,10 +4786,10 @@ function openDailyModal(data) {
             });
         }
 
-        detailsContainer.appendChild(detailItem);
+        populateDailyDetailItems(detailsContainer, detailItem);
     }
 
-    applyChartSeriesVisibility(modal.querySelectorAll('.chart-container'), DEFAULT_CHART_SERIES);
+    paintExpandedViewFirstPaint(modal.querySelectorAll('.chart-container[data-chart-type]'));
     // Selector after slide-in; first paint already filtered to temperature
     setTimeout(() => initializeChartSelector('dailyChartSelect'), 320);
 }
@@ -5026,6 +5026,34 @@ function availableChartTypesFrom(containers) {
     return types;
 }
 
+function isDetailsStrip(container) {
+    if (!container) return false;
+    if (container.id === 'dailyDetails' || container.id === 'hourlyDetails') return true;
+    return typeof container.getAttribute === 'function' && container.getAttribute('data-details-strip') === 'true';
+}
+
+function ensureDailyDetailsVisible(detailsContainer) {
+    const el = detailsContainer || (typeof document !== 'undefined' && document.getElementById
+        ? document.getElementById('dailyDetails')
+        : null);
+    if (!el) return el;
+    if (el.dataset && el.dataset.featureHidden === 'true') el.dataset.featureHidden = 'false';
+    if (el.style && el.style.display === 'none') el.style.display = '';
+    return el;
+}
+
+function populateDailyDetailItems(detailsContainer, item) {
+    const el = ensureDailyDetailsVisible(detailsContainer);
+    if (el && item) el.appendChild(item);
+    return el;
+}
+
+function paintExpandedViewFirstPaint(containers) {
+    applyChartSeriesVisibility(containers, DEFAULT_CHART_SERIES);
+    ensureDailyDetailsVisible();
+    return resolveDrawnChartSeries(DEFAULT_CHART_SERIES, availableChartTypesFrom(containers));
+}
+
 function applyChartSeriesVisibility(containers, selectedValue) {
     const selected = selectedValue || DEFAULT_CHART_SERIES;
     const shown = [];
@@ -5035,17 +5063,24 @@ function applyChartSeriesVisibility(containers, selectedValue) {
         : (fn) => Array.from(containers).forEach(fn);
     each((container) => {
         if (!container || !container.style) return;
-        if (container.dataset && container.dataset.featureHidden === 'true') {
-            container.style.display = 'none';
+        if (isDetailsStrip(container)) {
+            ensureDailyDetailsVisible(container);
             return;
         }
         const chartType = typeof container.getAttribute === 'function'
             ? container.getAttribute('data-chart-type')
             : container.chartType;
+        // Never hide the per-day details strip or any non-series node.
+        if (!chartType) return;
+        if (container.dataset && container.dataset.featureHidden === 'true') {
+            container.style.display = 'none';
+            return;
+        }
         const visible = selected === 'all' || chartType === selected;
         container.style.display = visible ? 'block' : 'none';
         if (visible && chartType) shown.push(chartType);
     });
+    ensureDailyDetailsVisible();
     return shown;
 }
 
@@ -5069,7 +5104,7 @@ function maybeRenderDailyChart(key) {
     const type = DAILY_CHART_TYPE_BY_KEY[key] || key;
     const selected = dailyModalSelectedSeries || DEFAULT_CHART_SERIES;
     const containers = (typeof document !== 'undefined' && document.querySelectorAll)
-        ? document.querySelectorAll('#dailyModal .chart-container')
+        ? document.querySelectorAll('#dailyModal .chart-container[data-chart-type]')
         : [];
     const drawn = resolveDrawnChartSeries(selected, availableChartTypesFrom(containers));
     if (!drawn.includes(type)) return;
@@ -5081,7 +5116,7 @@ function maybeRenderDailyChart(key) {
 function ensureDailyChartSeriesDrawn(selectedValue) {
     dailyModalSelectedSeries = selectedValue || DEFAULT_CHART_SERIES;
     const containers = (typeof document !== 'undefined' && document.querySelectorAll)
-        ? document.querySelectorAll('#dailyModal .chart-container')
+        ? document.querySelectorAll('#dailyModal .chart-container[data-chart-type]')
         : [];
     applyChartSeriesVisibility(containers, dailyModalSelectedSeries);
     const drawn = resolveDrawnChartSeries(dailyModalSelectedSeries, availableChartTypesFrom(containers));
