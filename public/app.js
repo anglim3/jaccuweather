@@ -4291,7 +4291,7 @@ function openHourlyModal(data) {
         xaxis: { categories: tideLabels },
         yaxis: { min: tideYAxisBounds.min, max: tideYAxisBounds.max, title: { text: 'ft', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val} ft` } },
         tooltip: { y: { formatter: (val) => `${Number(val).toFixed(1)} ft` } },
-        annotations: { points: tideAnnotations }
+        annotations: { points: Object.values(tideAnnotations) }
     })) : null;
     if (hourlyChart.tides) hourlyChart.tides.render();
 
@@ -4671,7 +4671,7 @@ function openDailyModal(data) {
             }},
             y: { formatter: (val) => `${Number(val).toFixed(1)} ft` }
         },
-        annotations: { points: dailyTideAnnotations }
+        annotations: { points: Object.values(dailyTideAnnotations) }
     })) : null;
     if (dailyChart.tides) maybeRenderDailyChart('tides');
 
@@ -5024,6 +5024,10 @@ function availableChartTypesFrom(containers) {
         if (chartType) types.push(chartType);
     });
     return types;
+}
+
+function tideAnnotationPoints(keyedAnnotations) {
+    return Object.values(keyedAnnotations || {});
 }
 
 function isDetailsStrip(container) {

@@ -48,7 +48,8 @@ function loadFirstPaintHelpers(js) {
     this.paintExpandedViewFirstPaint = paintExpandedViewFirstPaint;
     this.ensureDailyDetailsVisible = ensureDailyDetailsVisible;
     this.populateDailyDetailItems = populateDailyDetailItems;
-    this.isDetailsStrip = isDetailsStrip;`, sandbox);
+    this.isDetailsStrip = isDetailsStrip;
+    this.tideAnnotationPoints = tideAnnotationPoints;`, sandbox);
   return sandbox;
 }
 
@@ -153,6 +154,84 @@ test('openDailyModal still runs the populate-details path after first-paint char
   assert.equal(html.includes('id="dailyDetails" class="space-y-3">'), false);
 });
 
+function keyedDailyTideAnnotations() {
+  // Same shape openDailyModal builds: keyed object, not an array.
+  const dailyTideAnnotations = {};
+  [
+    { index: 2, value: 4.2, text: 'H' },
+    { index: 5, value: 0.4, text: 'L' }
+  ].forEach((point) => {
+    dailyTideAnnotations[`dailyTideLabel_${point.index}_${point.text}`] = {
+      x: point.index,
+      y: point.value,
+      borderColor: 'transparent',
+      label: { text: point.text, position: 'top' }
+    };
+  });
+  return dailyTideAnnotations;
+}
+
+function mockApexChartsRequiringArrayPoints() {
+  const calls = [];
+  function ApexCharts(_el, opts) {
+    const points = opts && opts.annotations && opts.annotations.points;
+    if (!Array.isArray(points)) {
+      throw new Error('ApexCharts 4.7 annotations.points must be an array');
+    }
+    calls.push(points);
+    this.render = () => {};
+  }
+  return { ApexCharts, calls };
+}
+
+test('tides city first open: keyed dailyTideAnnotations become an array and details still populate', () => {
+  const js = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
+  assert.equal(js.includes('annotations: { points: Object.values(dailyTideAnnotations) }'), true);
+  assert.equal(js.includes('annotations: { points: Object.values(tideAnnotations) }'), true);
+  assert.equal(js.includes('annotations: { points: dailyTideAnnotations }'), false);
+  assert.equal(js.includes('annotations: { points: tideAnnotations }'), false);
+
+  const helpers = loadFirstPaintHelpers(js);
+  const keyed = keyedDailyTideAnnotations();
+  assert.equal(Array.isArray(keyed), false);
+  assert.equal(typeof keyed, 'object');
+
+  const { ApexCharts, calls } = mockApexChartsRequiringArrayPoints();
+  const details = mockDetailsContainer();
+  const charts = mockCityContainers(TIDES_CITY_TYPES);
+  let threwBeforePopulate = false;
+
+  try {
+    const drawn = fromVm(helpers.paintExpandedViewFirstPaint(charts.concat([details])));
+    assert.deepEqual(drawn, ['temp']);
+    // openDailyModal still constructs the tides series when NOAA data exists,
+    // even though first paint only renders temperature.
+    const points = helpers.tideAnnotationPoints(keyed);
+    new ApexCharts({ id: 'dailyTidesChart' }, { annotations: { points } });
+    helpers.populateDailyDetailItems(details, { className: 'forecast-chip', day: 'tide-city' });
+    assert.deepEqual(drawn, ['temp']);
+  } catch (err) {
+    threwBeforePopulate = true;
+    throw err;
+  }
+
+  assert.equal(threwBeforePopulate, false);
+  assert.equal(calls.length, 1);
+  assert.equal(Array.isArray(calls[0]), true);
+  assert.deepEqual(fromVm(calls[0]), fromVm(Object.values(keyed)));
+  assert.notEqual(details.style.display, 'none');
+  assert.equal(details.childElementCount, 1);
+});
+
+test('passing the keyed annotations object to ApexCharts still throws (documents the tides-city bug)', () => {
+  const keyed = keyedDailyTideAnnotations();
+  const { ApexCharts } = mockApexChartsRequiringArrayPoints();
+  assert.throws(
+    () => new ApexCharts({ id: 'dailyTidesChart' }, { annotations: { points: keyed } }),
+    /annotations\.points must be an array/
+  );
+});
+
 test('patched worker JS keeps temp-only first paint and still populates daily details', () => {
   const js = patchedAppJs();
   const viewTypes = TIDES_CITY_TYPES;
@@ -168,4 +247,6 @@ test('patched worker JS keeps temp-only first paint and still populates daily de
   assert.equal(js.includes('populateDailyDetailItems(detailsContainer, detailItem)'), true);
   assert.equal(js.includes('function paintChartSelector'), true);
   assert.equal(js.includes('data.daily.sunrise[dayIndex]'), true);
+  assert.equal(js.includes('annotations: { points: Object.values(dailyTideAnnotations) }'), true);
+  assert.equal(js.includes('annotations: { points: Object.values(tideAnnotations) }'), true);
 });
