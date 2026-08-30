@@ -145,3 +145,36 @@ test('patched worker JS keeps first-paint temperature default after app-08..10',
   assert.equal(js.includes('function paintChartSelector'), true);
   assert.equal(js.includes('data.daily.sunrise[dayIndex]'), true);
 });
+
+test('tides city first open calls render() only on the temperature chart', () => {
+  const js = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
+  const start = js.indexOf('// ─── 14-day / hourly expanded-view chart series');
+  const renders = [];
+  const containers = mockCityContainers(TIDES_CITY_TYPES);
+  const sandbox = {
+    console,
+    document: { querySelectorAll(sel) { return String(sel).includes('chart-container') ? containers : []; } },
+    dailyChart: {}
+  };
+  vm.runInNewContext(`${js.slice(start)}
+    this.resetDailyChartState = resetDailyChartState;
+    this.paintChartSelector = paintChartSelector;
+    this.ensureDailyChartSeriesDrawn = ensureDailyChartSeriesDrawn;
+    this.DEFAULT_CHART_SERIES = DEFAULT_CHART_SERIES;`, sandbox);
+
+  sandbox.dailyChart = sandbox.resetDailyChartState();
+  ['temp', 'feelsLike', 'niceWeather', 'precip', 'wind', 'pressure', 'snow', 'cloud', 'brightness', 'tides', 'moonPhase'].forEach((key) => {
+    sandbox.dailyChart[key] = { render() { renders.push(key); } };
+  });
+
+  sandbox.paintChartSelector(containers, 'all', true);
+  sandbox.ensureDailyChartSeriesDrawn(sandbox.DEFAULT_CHART_SERIES);
+  assert.deepEqual(renders, ['temp']);
+  assert.deepEqual(containers.filter((c) => c.style.display === 'block').map((c) => c.chartType), ['temp']);
+
+  sandbox.ensureDailyChartSeriesDrawn('tides');
+  assert.deepEqual(renders, ['temp', 'tides']);
+  sandbox.ensureDailyChartSeriesDrawn('temp');
+  assert.deepEqual(renders, ['temp', 'tides']);
+  assert.deepEqual(containers.filter((c) => c.style.display === 'block').map((c) => c.chartType), ['temp']);
+});
