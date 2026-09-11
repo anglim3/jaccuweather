@@ -1587,7 +1587,7 @@
 
             <!-- Current Values Section -->
             <div class="mb-6">
-                <h3 class="text-lg font-semibold text-white mb-3">Current Values</h3>
+                <h3 class="text-lg font-semibold text-white mb-3">Today</h3>
                 <div id="symptomCurrentValues" class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <!-- Populated by JavaScript -->
                 </div>
@@ -1596,126 +1596,72 @@
             <!-- Formula Section -->
             <div class="space-y-6">
                 <div id="sinusFormulaSection" class="hidden">
-                    <h3 class="text-lg font-semibold text-white mb-3"><i class="fas fa-head-side-cough text-blue-300 mr-2"></i>Sinus Risk Calculation</h3>
                     <div class="stat-card rounded-xl p-5 space-y-4">
                         <p class="text-gray-300 text-sm mb-4">
-                            Sinus symptoms are often triggered by rapid barometric pressure changes, high humidity, and temperature fluctuations.
-                            This index aggregates key meteorological factors associated with sinus discomfort.
+                            Falling pressure is the main driver. Humid or rainy conditions and large day-night temperature swings add to it.
                         </p>
-
-                        <div class="formula-container">
-                            <div class="text-white">
-                                \[ \text{Sinus Risk} = \sum \text{(Factors)} \]
-                            </div>
-                        </div>
-
-                        <h4 class="text-white font-semibold mt-4">Factor Scoring:</h4>
 
                         <div class="space-y-3">
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-blue-300 font-semibold mb-2"><i class="fas fa-tachometer-alt mr-2"></i>Pressure Change (inHg)</div>
-                                <div class="text-gray-300 text-sm mb-2">Day-over-day barometric pressure change:</div>
-                                <div class="formula-container">
-                                    \[ \Delta P = P_{\text{today}} - P_{\text{yesterday}} \]
-                                </div>
-                                <ul class="text-gray-400 text-sm mt-2 space-y-1">
-                                    <li>• \(\Delta P < -0.30\) inHg → <span class="text-red-400 font-semibold">+5 points</span> (severe drop)</li>
-                                    <li>• \(-0.30 \leq \Delta P < -0.18\) inHg → <span class="text-orange-400 font-semibold">+3 points</span></li>
-                                    <li>• \(-0.18 \leq \Delta P < -0.10\) inHg → <span class="text-yellow-400 font-semibold">+2 points</span></li>
+                                <div class="text-blue-300 font-semibold mb-1"><i class="fas fa-arrow-down mr-2"></i>Pressure</div>
+                                <ul class="text-gray-400 text-sm mt-1 space-y-1">
+                                    <li>• <span class="text-white">→ Steady</span></li>
+                                    <li>• <span class="text-white">↓ Falling</span></li>
+                                    <li>• <span class="text-white">↓ Falling fast</span></li>
                                 </ul>
                             </div>
 
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-blue-300 font-semibold mb-2"><i class="fas fa-tint mr-2"></i>Humidity</div>
+                                <div class="text-blue-300 font-semibold mb-1"><i class="fas fa-tint mr-2"></i>Humidity and temperature</div>
                                 <div class="text-gray-400 text-sm">
-                                    • Humidity \(> 70\%\) → <span class="text-yellow-400 font-semibold">+1 point</span>
-                                </div>
-                            </div>
-
-                            <div class="stat-card rounded-lg p-3">
-                                <div class="text-blue-300 font-semibold mb-2"><i class="fas fa-cloud-rain mr-2"></i>Precipitation</div>
-                                <div class="text-gray-400 text-sm">
-                                    • Precipitation \(> 0.1\) in → <span class="text-yellow-400 font-semibold">+1 point</span>
-                                </div>
-                            </div>
-
-                            <div class="stat-card rounded-lg p-3">
-                                <div class="text-blue-300 font-semibold mb-2"><i class="fas fa-thermometer-half mr-2"></i>Temperature Swing</div>
-                                <div class="text-gray-300 text-sm mb-2">Daily high-low difference:</div>
-                                <div class="formula-container">
-                                    \[ \Delta T = T_{\max} - T_{\min} \]
-                                </div>
-                                <div class="text-gray-400 text-sm mt-2">
-                                    • \(\Delta T > 20°F\) → <span class="text-yellow-400 font-semibold">+1 point</span>
+                                    Humid, rain, or a swing over 20°F.
                                 </div>
                             </div>
                         </div>
+
+                        <details class="stat-card rounded-lg p-3">
+                            <summary class="text-gray-300 text-sm font-semibold cursor-pointer">Scoring</summary>
+                            <div class="text-gray-400 text-sm mt-2 space-y-1">
+                                <div>Falling: +2. Falling fast: +3. Humid, rain, or swing over 20°F: +1.</div>
+                                <div>0–1 Low · 2 Elevated · 3–4 High.</div>
+                            </div>
+                        </details>
                     </div>
                 </div>
 
                 <div id="allergyFormulaSection" class="hidden">
-                    <h3 class="text-lg font-semibold text-white mb-3"><i class="fas fa-seedling text-green-300 mr-2"></i>Allergy Risk Calculation</h3>
                     <div class="stat-card rounded-xl p-5 space-y-4">
                         <p class="text-gray-300 text-sm mb-4">
-                            This calculation uses real pollen data from Open-Meteo, measuring actual pollen counts (grains/m³) for tree, grass, and weed pollen to provide accurate allergy risk assessment.
+                            Follows the highest pollen count: tree, grass, or weed.
                         </p>
 
-                        <div class="formula-container">
-                            <div class="text-white">
-                                \[ \text{Allergy Risk} = \sum \text{(Factors)} \]
-                            </div>
-                        </div>
-
-                        <h4 class="text-white font-semibold mt-4">Factor Scoring:</h4>
                         <div class="space-y-3 mt-3">
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-green-300 font-semibold mb-2"><i class="fas fa-leaf mr-2"></i>Pollen Count (max of Tree/Grass/Weed)</div>
+                                <div class="text-green-300 font-semibold mb-1"><i class="fas fa-leaf mr-2"></i>Pollen</div>
                                 <ul class="text-gray-400 text-sm space-y-1">
-                                    <li>• \(P > 200\) grains/m³ (Very High) → <span class="text-red-400 font-semibold">+5 points</span></li>
-                                    <li>• \(80 < P \leq 200\) grains/m³ (High) → <span class="text-orange-400 font-semibold">+4 points</span></li>
-                                    <li>• \(20 < P \leq 80\) grains/m³ (Moderate) → <span class="text-yellow-400 font-semibold">+2 points</span></li>
-                                    <li>• \(0 < P \leq 20\) grains/m³ (Low) → <span class="text-green-400 font-semibold">+1 point</span></li>
+                                    <li>• <span class="text-white">None / Low</span> → <span class="text-green-400 font-semibold">Low</span></li>
+                                    <li>• <span class="text-white">Moderate</span> → <span class="text-yellow-400 font-semibold">Elevated</span></li>
+                                    <li>• <span class="text-white">High / Very high</span> → <span class="text-orange-400 font-semibold">High</span></li>
                                 </ul>
                             </div>
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-green-300 font-semibold mb-2"><i class="fas fa-wind mr-2"></i>Wind (disperses pollen)</div>
-                                <div class="text-gray-400 text-sm">• Wind \(> 10\) mph → <span class="text-yellow-400 font-semibold">+2 points</span></div>
-                            </div>
-                            <div class="stat-card rounded-lg p-3">
-                                <div class="text-green-300 font-semibold mb-2"><i class="fas fa-cloud-rain mr-2"></i>Rain Washout</div>
-                                <div class="text-gray-400 text-sm">• Precipitation \(> 0.1\) in → <span class="text-green-400 font-semibold">−2 points</span></div>
+                                <div class="text-green-300 font-semibold mb-1"><i class="fas fa-wind mr-2"></i>Wind and rain</div>
+                                <div class="text-gray-400 text-sm">Wind spreads pollen. Rain washes it out. Neither changes the score.</div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Risk Level Legend -->
-                <div class="mt-6">
-                    <h3 class="text-lg font-semibold text-white mb-3">Risk Level Scale</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="stat-card rounded-lg p-3 text-center">
-                            <div class="text-green-400 font-bold text-xl">0-2</div>
-                            <div class="text-gray-400 text-sm">Low</div>
-                        </div>
-                        <div class="stat-card rounded-lg p-3 text-center">
-                            <div class="text-yellow-400 font-bold text-xl">3-4</div>
-                            <div class="text-gray-400 text-sm">Moderate</div>
-                        </div>
-                        <div class="stat-card rounded-lg p-3 text-center">
-                            <div class="text-orange-400 font-bold text-xl">5-7</div>
-                            <div class="text-gray-400 text-sm">High</div>
-                        </div>
-                        <div class="stat-card rounded-lg p-3 text-center">
-                            <div class="text-red-400 font-bold text-xl">8-10</div>
-                            <div class="text-gray-400 text-sm">Very High</div>
-                        </div>
+                        <details class="stat-card rounded-lg p-3">
+                            <summary class="text-gray-300 text-sm font-semibold cursor-pointer">Scoring</summary>
+                            <div class="text-gray-400 text-sm mt-2 space-y-1">
+                                <div>Grains/m³: 0–20 Low · 20–80 Moderate · 80–200 High · 200+ Very high.</div>
+                            </div>
+                        </details>
                     </div>
                 </div>
 
                 <p class="text-gray-500 text-xs mt-4 text-center">
                     <i class="fas fa-info-circle mr-1"></i>
-                    These indices are estimates based on meteorological data and general associations.
-                    Individual sensitivity may vary. Consult a healthcare provider for medical advice.
+                    Estimates only, not medical advice.
                 </p>
             </div>
         </div>
