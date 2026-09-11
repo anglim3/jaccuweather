@@ -56,7 +56,7 @@
  // Format Open-Meteo local wall clock without shifting into the browser timezone
  function formatIsoLocalClock(iso) {
      const m = String(iso || '').match(/T(\d{2}):(\d{2})/);
-@@ -2102,7 +2178,9 @@
+@@ -2118,7 +2194,9 @@
  
      // Current weather
      document.getElementById('currentLocation').textContent = location;
@@ -67,7 +67,7 @@
          weekday: 'long',
          year: 'numeric',
          month: 'long',
-@@ -2162,11 +2240,9 @@
+@@ -2178,11 +2256,9 @@
      const today = new Date();
      const moonPhaseValue = calculateMoonPhase(today);
      const moonPhase = getMoonPhase(moonPhaseValue);
@@ -80,7 +80,7 @@
      if (moonPhaseCard) {
          moonPhaseCard.style.cursor = 'pointer';
          moonPhaseCard.addEventListener('click', () => openMoonDetailsModal(today));
-@@ -2174,14 +2250,11 @@
+@@ -2190,14 +2266,11 @@
  
      // Calculate and display symptom risks
      if (data.hourly && data.hourly.surface_pressure) {
