@@ -1989,6 +1989,22 @@ function formatIsoLocalClock(iso) {
     return `${h}:${mi} ${ampm}`;
 }
 
+// Format a real UTC instant (SunCalc moonrise/moonset) in the selected
+// location's offset, not the browser timezone. SunCalc returns true instants,
+// so shift by utc_offset_seconds to get location wall-clock. Do NOT use
+// formatIsoLocalClock here: it reads naive Open-Meteo ISOs verbatim and would
+// misread a `...Z` ISO as if UTC were already local.
+function formatInstantInLocation(instant, utcOffsetSeconds = 0) {
+    const ms = instant instanceof Date ? instant.getTime() : new Date(instant).getTime();
+    if (!Number.isFinite(ms)) return 'N/A';
+    const shifted = new Date(ms + (Number(utcOffsetSeconds) || 0) * 1000);
+    let h = shifted.getUTCHours();
+    const mi = String(shifted.getUTCMinutes()).padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${mi} ${ampm}`;
+}
+
 function updateSunDot(sunriseIso, sunsetIso, utcOffsetSeconds = _sunArcUtcOffset) {
     const sunDot = document.getElementById('sunDot');
     const arcEl = sunDot && sunDot.parentElement;
@@ -2778,6 +2794,9 @@ function openMoonDetailsModal(date) {
 
     // Get moonrise/moonset using SunCalc
     const riseSet = calculateMoonRiseSet(date, lat, lon);
+    // SunCalc instants are real UTC times; print them in the selected
+    // location's offset so a Tokyo search from a US browser shows Tokyo clocks.
+    const moonClockOffset = (typeof currentWeatherData !== 'undefined' && currentWeatherData && currentWeatherData.utc_offset_seconds) || 0;
 
     // Get next full/new moon
     const nextFull = getNextFullMoon(date);
@@ -2800,7 +2819,7 @@ function openMoonDetailsModal(date) {
     } else if (riseSet.alwaysDown) {
         document.getElementById('moonRise').textContent = 'Always down';
     } else if (riseSet.rise) {
-        document.getElementById('moonRise').textContent = formatTime12Hour(riseSet.rise);
+        document.getElementById('moonRise').textContent = formatInstantInLocation(riseSet.rise, moonClockOffset);
     } else {
         document.getElementById('moonRise').textContent = 'N/A';
     }
@@ -2810,7 +2829,7 @@ function openMoonDetailsModal(date) {
     } else if (riseSet.alwaysDown) {
         document.getElementById('moonSet').textContent = 'Always down';
     } else if (riseSet.set) {
-        document.getElementById('moonSet').textContent = formatTime12Hour(riseSet.set);
+        document.getElementById('moonSet').textContent = formatInstantInLocation(riseSet.set, moonClockOffset);
     } else {
         document.getElementById('moonSet').textContent = 'N/A';
     }
