@@ -139,3 +139,49 @@ test('pollen section appears after weather radar in page order', () => {
   assert.ok(pollenIndex > -1, 'pollen forecast section exists');
   assert.ok(pollenIndex > radarIndex, 'pollen section should be after weather radar');
 });
+
+test('Google TREE index is not copied onto unreported alder/olive plants', () => {
+  const { normalizeGooglePollen, hasAnyUsablePollen } = loadBuildFunctions();
+  const normalized = normalizeGooglePollen({
+    dailyInfo: [{
+      date: { year: 2026, month: 6, day: 1 },
+      pollenTypeInfo: [
+        { code: 'TREE', indexInfo: { value: 4 } }
+      ],
+      plantInfo: [
+        { code: 'BIRCH', indexInfo: { value: 2 } }
+      ]
+    }]
+  });
+
+  // Reported plant keeps its own value; unreported tree plants stay null.
+  assert.equal(normalized.current.birch_pollen, 100);
+  assert.equal(normalized.current.alder_pollen, null);
+  assert.equal(normalized.current.olive_pollen, null);
+  // TREE-only category data keeps a category-level home instead of painting species.
+  assert.equal(normalized.current.tree_pollen, 200);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.hourly.tree_pollen)), [200]);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.hourly.birch_pollen)), [100]);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.hourly.alder_pollen)), [null]);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.hourly.olive_pollen)), [null]);
+  assert.equal(hasAnyUsablePollen(normalized), true);
+});
+
+test('Google TREE-only day keeps the category value without inventing species', () => {
+  const { normalizeGooglePollen, hasAnyUsablePollen } = loadBuildFunctions();
+  const normalized = normalizeGooglePollen({
+    dailyInfo: [{
+      date: { year: 2026, month: 6, day: 1 },
+      pollenTypeInfo: [
+        { code: 'TREE', indexInfo: { value: 3 } }
+      ],
+      plantInfo: []
+    }]
+  });
+
+  assert.equal(normalized.current.tree_pollen, 150);
+  assert.equal(normalized.current.alder_pollen, null);
+  assert.equal(normalized.current.birch_pollen, null);
+  assert.equal(normalized.current.olive_pollen, null);
+  assert.equal(hasAnyUsablePollen(normalized), true);
+});
