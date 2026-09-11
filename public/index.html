@@ -1587,7 +1587,7 @@
 
             <!-- Current Values Section -->
             <div class="mb-6">
-                <h3 class="text-lg font-semibold text-white mb-3">Today's snapshot</h3>
+                <h3 class="text-lg font-semibold text-white mb-3">Today</h3>
                 <div id="symptomCurrentValues" class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <!-- Populated by JavaScript -->
                 </div>
@@ -1596,55 +1596,48 @@
             <!-- Formula Section -->
             <div class="space-y-6">
                 <div id="sinusFormulaSection" class="hidden">
-                    <h3 class="text-lg font-semibold text-white mb-3"><i class="fas fa-head-side-cough text-blue-300 mr-2"></i>How sinus risk works</h3>
                     <div class="stat-card rounded-xl p-5 space-y-4">
                         <p class="text-gray-300 text-sm mb-4">
-                            Sinus pressure is mostly about <span class="text-white font-semibold">falling air pressure</span>.
-                            Damp air or a big day-night temperature swing can add a little extra.
-                            General estimate, not medical advice.
+                            Falling pressure is the main driver. Humid or rainy conditions and large day-night temperature swings add to it.
                         </p>
 
                         <div class="space-y-3">
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-blue-300 font-semibold mb-1"><i class="fas fa-arrow-down mr-2"></i>Pressure trend (matters most)</div>
+                                <div class="text-blue-300 font-semibold mb-1"><i class="fas fa-arrow-down mr-2"></i>Pressure</div>
                                 <ul class="text-gray-400 text-sm mt-1 space-y-1">
-                                    <li>• <span class="text-white">→ Steady</span> — no extra risk</li>
-                                    <li>• <span class="text-white">↓ Falling</span> — elevated</li>
-                                    <li>• <span class="text-white">↓ Falling fast</span> — high</li>
+                                    <li>• <span class="text-white">→ Steady</span></li>
+                                    <li>• <span class="text-white">↓ Falling</span></li>
+                                    <li>• <span class="text-white">↓ Falling fast</span></li>
                                 </ul>
                             </div>
 
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-blue-300 font-semibold mb-1"><i class="fas fa-tint mr-2"></i>Damp or swingy? (+1 at most)</div>
+                                <div class="text-blue-300 font-semibold mb-1"><i class="fas fa-tint mr-2"></i>Humidity and temperature</div>
                                 <div class="text-gray-400 text-sm">
-                                    Humid, rainy, or a swing over ~20°F adds a little. Dry and steady days stay Low.
+                                    Humid, rain, or a swing over 20°F.
                                 </div>
                             </div>
                         </div>
 
                         <details class="stat-card rounded-lg p-3">
-                            <summary class="text-gray-300 text-sm font-semibold cursor-pointer">Details for the curious</summary>
+                            <summary class="text-gray-300 text-sm font-semibold cursor-pointer">Scoring</summary>
                             <div class="text-gray-400 text-sm mt-2 space-y-1">
-                                <div>Score is 0–4: pressure falling = +2, falling fast = +3, damp/swingy = +1.</div>
-                                <div>0–1 → Low · 2 → Elevated · 3–4 → High.</div>
+                                <div>Falling: +2. Falling fast: +3. Humid, rain, or swing over 20°F: +1.</div>
+                                <div>0–1 Low · 2 Elevated · 3–4 High.</div>
                             </div>
                         </details>
                     </div>
                 </div>
 
                 <div id="allergyFormulaSection" class="hidden">
-                    <h3 class="text-lg font-semibold text-white mb-3"><i class="fas fa-seedling text-green-300 mr-2"></i>How allergy risk works</h3>
                     <div class="stat-card rounded-xl p-5 space-y-4">
                         <p class="text-gray-300 text-sm mb-4">
-                            Allergy risk follows the <span class="text-white font-semibold">worst pollen level</span> right now
-                            (tree, grass, or weed — whichever is highest).
-                            Wind and rain don't change the score; they're shown as hints.
-                            General estimate, not medical advice.
+                            Follows the highest pollen count: tree, grass, or weed.
                         </p>
 
                         <div class="space-y-3 mt-3">
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-green-300 font-semibold mb-1"><i class="fas fa-leaf mr-2"></i>Pollen level → risk</div>
+                                <div class="text-green-300 font-semibold mb-1"><i class="fas fa-leaf mr-2"></i>Pollen</div>
                                 <ul class="text-gray-400 text-sm space-y-1">
                                     <li>• <span class="text-white">None / Low</span> → <span class="text-green-400 font-semibold">Low</span></li>
                                     <li>• <span class="text-white">Moderate</span> → <span class="text-yellow-400 font-semibold">Elevated</span></li>
@@ -1652,44 +1645,23 @@
                                 </ul>
                             </div>
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-green-300 font-semibold mb-1"><i class="fas fa-wind mr-2"></i>Helpful hints (not scored)</div>
-                                <div class="text-gray-400 text-sm">• Windy → “Boosted by wind” (spreads pollen)<br>• Rainy → “Eased by rain” (washes pollen away)</div>
+                                <div class="text-green-300 font-semibold mb-1"><i class="fas fa-wind mr-2"></i>Wind and rain</div>
+                                <div class="text-gray-400 text-sm">Wind spreads pollen. Rain washes it out. Neither changes the score.</div>
                             </div>
                         </div>
 
                         <details class="stat-card rounded-lg p-3">
-                            <summary class="text-gray-300 text-sm font-semibold cursor-pointer">Details for the curious</summary>
+                            <summary class="text-gray-300 text-sm font-semibold cursor-pointer">Scoring</summary>
                             <div class="text-gray-400 text-sm mt-2 space-y-1">
-                                <div>Pollen bands (grains/m³): 0–20 Low · 20–80 Moderate · 80–200 High · 200+ Very high.</div>
-                                <div>Score is 0–3: Low pollen = 1, Moderate = 2, High/Very high = 3.</div>
+                                <div>Grains/m³: 0–20 Low · 20–80 Moderate · 80–200 High · 200+ Very high.</div>
                             </div>
                         </details>
                     </div>
                 </div>
 
-                <!-- Risk Level Legend -->
-                <div class="mt-6">
-                    <h3 class="text-lg font-semibold text-white mb-3">What the levels mean</h3>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="stat-card rounded-lg p-3 text-center">
-                            <div class="text-green-400 font-bold text-xl">Low</div>
-                            <div class="text-gray-400 text-sm">Usual day</div>
-                        </div>
-                        <div class="stat-card rounded-lg p-3 text-center">
-                            <div class="text-yellow-400 font-bold text-xl">Elevated</div>
-                            <div class="text-gray-400 text-sm">Take it easy</div>
-                        </div>
-                        <div class="stat-card rounded-lg p-3 text-center">
-                            <div class="text-orange-400 font-bold text-xl">High</div>
-                            <div class="text-gray-400 text-sm">Plan around it</div>
-                        </div>
-                    </div>
-                </div>
-
                 <p class="text-gray-500 text-xs mt-4 text-center">
                     <i class="fas fa-info-circle mr-1"></i>
-                    General estimates from weather and pollen data — individual sensitivity varies.
-                    Not medical advice.
+                    Estimates only, not medical advice.
                 </p>
             </div>
         </div>
