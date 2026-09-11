@@ -3506,7 +3506,9 @@ function getPressureTrend(pressureChange) {
 function getSinusDrivers(pressureChange, humidity, precipitation, tempSwing) {
     const drivers = [];
     const trend = getPressureTrend(pressureChange);
-    if (trend.label !== 'Steady') {
+    if (trend.label === 'Falling fast') {
+        drivers.push('Falling fast');
+    } else if (trend.label === 'Falling') {
         drivers.push('Falling pressure');
     }
     if (precipitation > 0.1) {
@@ -3953,11 +3955,12 @@ function openSymptomRiskModal(type) {
                 data.pressureChange, data.humidity,
                 data.precipitation, data.tempSwing
             );
+            const sinusExtra = sinusDrivers.filter(d => d !== 'Falling pressure' && d !== 'Falling fast' && d !== 'Steady pressure');
             currentValuesContainer.innerHTML = `
                 <div class="stat-card rounded-lg p-3 text-center col-span-2 md:col-span-4">
                     <div class="text-gray-400 text-xs mb-1">Today</div>
                     <div class="text-xl font-bold ${sinusLabel.colorClass}">${sinusLabel.label}</div>
-                    <div class="text-gray-400 text-xs mt-1">${trend.arrow} ${trend.label} pressure · ${sinusDrivers.join(' · ')}</div>
+                    <div class="text-gray-400 text-xs mt-1">${trend.arrow} ${trend.label} pressure${sinusExtra.length ? ' · ' + sinusExtra.join(' · ') : ''}</div>
                 </div>
                 <div class="stat-card rounded-lg p-3 text-center">
                     <div class="text-gray-400 text-xs mb-1">Pressure</div>

@@ -1,6 +1,6 @@
 --- a/public/app.js
 +++ b/public/app.js
-@@ -4898,4 +4898,4 @@
+@@ -4901,4 +4901,4 @@
 -                        <span class="text-yellow-400 text-xs">↑</span> <span class="text-sm font-semibold">${data.daily.sunrise && data.daily.sunrise[i] ? formatTime12Hour(new Date(data.daily.sunrise[i])) : 'N/A'}</span>
 +                        <span class="text-yellow-400 text-xs">↑</span> <span class="text-sm font-semibold">${data.daily.sunrise && data.daily.sunrise[dayIndex] ? formatIsoLocalClock(data.daily.sunrise[dayIndex]) : 'N/A'}</span>
                      </div>
