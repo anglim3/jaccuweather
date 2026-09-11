@@ -2125,8 +2125,8 @@ function displayWeather(data) {
         day: 'numeric'
     });
 
-    // Last updated timestamp
-    document.getElementById('lastUpdated').textContent = `Updated ${formatLastUpdated(new Date())}`;
+    // Last updated timestamp (recorded; reticked live while visible — see stale-refresh section)
+    recordWeatherFetchTime(Date.now()); updateLastUpdatedLabel();
 
     document.getElementById('currentTemp').textContent = `${Math.round(data.current.temperature_2m)}${data.current_units.temperature_2m}`;
     const currentIconEl = document.getElementById('currentIcon');
@@ -5148,4 +5148,109 @@ function ensureDailyChartSeriesDrawn(selectedValue) {
         maybeRenderDailyChart(key);
     });
     return drawn;
+}
+
+// ─── Stale-refresh after tab sleep (issue #10) ─────────────────────────────
+// Problem: the relative "Updated …" label was computed once in displayWeather
+// and never recomputed, and nothing refetched after the tab slept — while the
+// sun-arc marker kept ticking, so the page looked live with hours-old data.
+//
+// Contract:
+// - displayWeather records the last successful fetch via recordWeatherFetchTime
+//   and paints the label via updateLastUpdatedLabel (call site above).
+// - A 30s interval reticks the label while the tab is visible (no refetch).
+// - visibilitychange (visible) / pageshow retick immediately, and refetch via
+//   the existing fetchWeather path only when data is older than 15 minutes.
+// - An in-flight fetch is never duplicated: every fetchWeather call (user or
+//   automatic) is tracked, and the automatic refetch composes with the
+//   requestId/abort cancellation already in the fetch path.
+const STALE_REFETCH_AFTER_MS = 15 * 60 * 1000;
+const LAST_UPDATED_TICK_MS = 30 * 1000;
+let lastWeatherFetchTimeMs = 0;
+let staleRefreshFetchInFlight = false;
+
+// Pure: relative label from explicit timestamps. Mirrors formatLastUpdated so
+// the reticked label reads exactly like the initial one; kept separate so it
+// can be unit tested without mocking the clock.
+function formatLastUpdatedBetween(nowMs, fetchTimeMs) {
+    if (!Number.isFinite(nowMs) || !Number.isFinite(fetchTimeMs)) return 'just now';
+    const diffMins = Math.floor(Math.max(0, nowMs - fetchTimeMs) / 60000);
+    if (diffMins < 1) return 'just now';
+    if (diffMins === 1) return '1 minute ago';
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+}
+
+// Pure: refetch only when we have a recorded fetch older than the threshold.
+// Short hidden/focus flickers under the threshold never trigger a fetch.
+function shouldRefetchStaleForecast(nowMs, lastFetchMs, staleAfterMs = STALE_REFETCH_AFTER_MS) {
+    if (!Number.isFinite(nowMs) || !Number.isFinite(lastFetchMs) || lastFetchMs <= 0) return false;
+    if (!Number.isFinite(staleAfterMs) || staleAfterMs < 0) return false;
+    return (nowMs - lastFetchMs) >= staleAfterMs;
+}
+
+function recordWeatherFetchTime(timestampMs = Date.now()) {
+    if (Number.isFinite(timestampMs)) lastWeatherFetchTimeMs = timestampMs;
+    return lastWeatherFetchTimeMs;
+}
+
+function updateLastUpdatedLabel(nowMs = Date.now()) {
+    if (!Number.isFinite(lastWeatherFetchTimeMs) || lastWeatherFetchTimeMs <= 0) return '';
+    const text = `Updated ${formatLastUpdatedBetween(nowMs, lastWeatherFetchTimeMs)}`;
+    if (typeof document !== 'undefined' && document.getElementById) {
+        const el = document.getElementById('lastUpdated');
+        if (el) el.textContent = text;
+    }
+    return text;
+}
+
+function handleStaleRefreshVisible() {
+    updateLastUpdatedLabel();
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (staleRefreshFetchInFlight) return;
+    if (!shouldRefetchStaleForecast(Date.now(), lastWeatherFetchTimeMs)) return;
+    if (typeof currentLat === 'undefined' || typeof currentLon === 'undefined') return;
+    if (currentLat === null || currentLat === undefined) return;
+    if (currentLon === null || currentLon === undefined) return;
+    if (typeof fetchWeather !== 'function') return;
+    // fetchWeather is wrapped below to track in-flight state; the call itself
+    // reuses the existing path (including its requestId/abort cancellation).
+    try {
+        const result = fetchWeather(currentLat, currentLon);
+        if (result && typeof result.catch === 'function') {
+            result.catch((error) => console.error('Stale-refresh refetch failed:', error));
+        }
+    } catch (error) {
+        console.error('Stale-refresh refetch failed:', error);
+    }
+}
+
+// Track every fetchWeather call so the automatic refetch never stamps a
+// second request on top of a user-initiated (or previous automatic) one.
+if (typeof fetchWeather === 'function') {
+    const baseFetchWeather = fetchWeather;
+    fetchWeather = async function trackedFetchWeather(lat, lon) {
+        staleRefreshFetchInFlight = true;
+        try {
+            return await baseFetchWeather(lat, lon);
+        } finally {
+            staleRefreshFetchInFlight = false;
+        }
+    };
+}
+
+if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+    if (document.addEventListener) {
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) handleStaleRefreshVisible();
+        });
+        window.addEventListener('pageshow', handleStaleRefreshVisible);
+    }
+    if (typeof setInterval === 'function') {
+        setInterval(() => {
+            if (document.hidden) return;
+            updateLastUpdatedLabel();
+        }, LAST_UPDATED_TICK_MS);
+    }
 }
