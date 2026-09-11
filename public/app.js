@@ -2218,11 +2218,18 @@ function displayWeather(data) {
                 currentPollenData
             );
 
-            // Display sinus risk
-            const sinusLabel = getRiskLabel(sinusRisk);
-            document.getElementById('sinusRiskValue').textContent = `${sinusRisk}/10`;
-            document.getElementById('sinusRiskLabel').textContent = sinusLabel.label;
-            document.getElementById('sinusRiskLabel').className = `text-xs font-semibold ${sinusLabel.colorClass}`;
+            // Display sinus risk (simple word + top driver, no X/10)
+            const sinusLabel = getSimpleRiskLabel(sinusRisk);
+            const sinusDrivers = getSinusDrivers(
+                pressureChange,
+                todayAvg.avgHumidity,
+                todayAvg.precipSum,
+                tempSwing
+            );
+            document.getElementById('sinusRiskValue').textContent = sinusLabel.label;
+            document.getElementById('sinusRiskValue').className = `text-2xl font-bold ${sinusLabel.colorClass}`;
+            document.getElementById('sinusRiskLabel').textContent = sinusDrivers.join(' · ');
+            document.getElementById('sinusRiskLabel').className = 'text-xs mt-1 text-gray-400';
 
             // Display allergy risk
             updateAllergyRiskDisplay(allergyRisk);
@@ -3288,16 +3295,23 @@ function updateAllergyRiskDisplay(risk) {
     const labelEl = document.getElementById('allergyRiskLabel');
 
     if (risk === null || risk === undefined) {
-        valueEl.textContent = '0/10';
-        labelEl.textContent = 'None';
-        labelEl.className = 'text-xs font-semibold text-gray-400';
+        valueEl.textContent = 'No data';
+        valueEl.className = 'text-2xl font-bold text-gray-400';
+        labelEl.textContent = 'Pollen unavailable';
+        labelEl.className = 'text-xs mt-1 text-gray-400';
         return;
     }
 
-    const allergyLabel = getRiskLabel(risk);
-    valueEl.textContent = `${risk}/10`;
-    labelEl.textContent = allergyLabel.label;
-    labelEl.className = `text-xs font-semibold ${allergyLabel.colorClass}`;
+    const allergyLabel = getSimpleRiskLabel(risk);
+    const drivers = getAllergyDrivers(
+        currentPollenData,
+        currentSymptomData ? currentSymptomData.windMax : 0,
+        currentSymptomData ? currentSymptomData.precipitation : 0
+    );
+    valueEl.textContent = allergyLabel.label;
+    valueEl.className = `text-2xl font-bold ${allergyLabel.colorClass}`;
+    labelEl.textContent = drivers.join(' · ');
+    labelEl.className = 'text-xs mt-1 text-gray-400';
 }
 
 function updateNiceWeatherDisplay(index) {
@@ -3454,46 +3468,81 @@ function calculateDailyAveragesForDateString(hourlyData, targetDateStr) {
     };
 }
 
-// Calculate sinus risk score (0-10)
+// Simplified sinus risk score (0-4): pressure-led, plain language.
+// Pressure does most of the work; damp air or a big temp swing adds at most +1.
+// 0-1 = Low, 2 = Elevated, 3-4 = High.
 function calculateSinusRisk(pressureChange, humidity, precipitation, tempSwing) {
     let risk = 0;
 
-    // Pressure drop scoring
-    if (pressureChange < -0.30) {
-        risk += 5;
-    } else if (pressureChange >= -0.30 && pressureChange < -0.18) {
-        risk += 3;
-    } else if (pressureChange >= -0.18 && pressureChange < -0.10) {
-        risk += 2;
+    // Pressure trend (day-over-day change, inHg)
+    if (pressureChange < -0.25) {
+        risk += 3; // Falling fast
+    } else if (pressureChange < -0.10) {
+        risk += 2; // Falling
     }
 
-    // High humidity
-    if (humidity > 70) {
+    // Damp or swingy days add a little (capped at +1 total)
+    const isDamp = humidity > 70 || precipitation > 0.1;
+    const isSwingy = tempSwing > 20;
+    if (isDamp || isSwingy) {
         risk += 1;
     }
 
-    // Precipitation
-    if (precipitation > 0.1) {
-        risk += 1;
-    }
-
-    // Temperature swing
-    if (tempSwing > 20) {
-        risk += 1;
-    }
-
-    // Clip to 0-10
-    return Math.max(0, Math.min(10, risk));
+    // Clip to 0-4
+    return Math.max(0, Math.min(4, risk));
 }
 
-// Calculate allergy risk score (0-10) - requires pollen data
+// Plain-language pressure trend for display (no inHg decimals for users)
+function getPressureTrend(pressureChange) {
+    if (pressureChange < -0.25) {
+        return { label: 'Falling fast', arrow: '↓' };
+    } else if (pressureChange < -0.10) {
+        return { label: 'Falling', arrow: '↓' };
+    }
+    return { label: 'Steady', arrow: '→' };
+}
+
+// Short driver phrases for the sinus card (max 2, plain language)
+function getSinusDrivers(pressureChange, humidity, precipitation, tempSwing) {
+    const drivers = [];
+    const trend = getPressureTrend(pressureChange);
+    if (trend.label !== 'Steady') {
+        drivers.push(`${trend.label} pressure`);
+    }
+    if (humidity > 70 || precipitation > 0.1) {
+        drivers.push('Damp air');
+    } else if (tempSwing > 20) {
+        drivers.push('Big temp swing');
+    }
+    if (drivers.length === 0) {
+        drivers.push('Steady conditions');
+    }
+    return drivers.slice(0, 2);
+}
+
+// Simple 3-level label shared by sinus + allergy: Low / Elevated / High
+function getSimpleRiskLabel(score) {
+    if (score === null || score === undefined) {
+        return { label: 'No data', colorClass: 'text-gray-400' };
+    }
+    if (score <= 1) {
+        return { label: 'Low', colorClass: 'text-green-400' };
+    } else if (score <= 2) {
+        return { label: 'Elevated', colorClass: 'text-yellow-400' };
+    }
+    return { label: 'High', colorClass: 'text-orange-400' };
+}
+
+// Simplified allergy risk score (0-3): driven by pollen level only.
+// Wind/rain don't change the score; they're shown as helper notes
+// ("Boosted by wind" / "Eased by rain") so the math stays explainable.
+// 0-1 = Low, 2 = Elevated, 3 = High.
 function calculateAllergyRisk(windMax, precipitation, pollenData = null) {
     // Requires actual pollen values. Null/undefined means unavailable, not zero.
     if (!pollenData || !hasAnyPollenData(pollenData.current)) {
         return null;
     }
 
-    let risk = 0;
     const current = pollenData.current;
 
     // Get max pollen levels
@@ -3511,29 +3560,50 @@ function calculateAllergyRisk(windMax, precipitation, pollenData = null) {
     ]);
     const maxPollen = maxAvailablePollen([treePollen, grassPollen, weedPollen]);
 
-    // Score based on actual pollen levels (grains/m³)
-    if (maxPollen > 200) {
-        risk += 5;  // Very High pollen
-    } else if (maxPollen > 80) {
-        risk += 4;  // High pollen
-    } else if (maxPollen > 20) {
-        risk += 2;  // Moderate pollen
-    } else if (maxPollen > 0) {
-        risk += 1;  // Low pollen
+    // Map the worst pollen category straight to risk (grains/m³ bands
+    // match getPollenLevel so the tile and the pollen section agree)
+    if (maxPollen === null || maxPollen === undefined || maxPollen <= 20) {
+        return 1; // None/Low pollen -> Low
+    } else if (maxPollen <= 80) {
+        return 2; // Moderate pollen -> Elevated
     }
+    return 3; // High/Very High pollen -> High
+}
 
-    // Wind disperses pollen
+// Dominant pollen type + wind/rain helper notes for the allergy card
+function getAllergyDrivers(pollenData, windMax, precipitation) {
+    const drivers = [];
+    if (pollenData && pollenData.current) {
+        const current = pollenData.current;
+        const treePollen = maxAvailablePollen([
+            current.tree_pollen, current.alder_pollen,
+            current.birch_pollen, current.olive_pollen
+        ]);
+        const grassPollen = maxAvailablePollen([current.grass_pollen]);
+        const weedPollen = maxAvailablePollen([
+            current.weed_pollen, current.mugwort_pollen,
+            current.ragweed_pollen
+        ]);
+        const ranked = [
+            { name: 'Tree pollen', value: treePollen },
+            { name: 'Grass pollen', value: grassPollen },
+            { name: 'Weed pollen', value: weedPollen }
+        ].filter(p => p.value !== null && p.value !== undefined && p.value > 0)
+         .sort((a, b) => b.value - a.value);
+        if (ranked.length > 0) {
+            drivers.push(ranked[0].name);
+        }
+    }
     if (windMax > 10) {
-        risk += 2;
+        drivers.push('Boosted by wind');
     }
-
-    // Wet day reduces risk (rain washes pollen away)
     if (precipitation > 0.1) {
-        risk -= 2;
+        drivers.push('Eased by rain');
     }
-
-    // Clip to 0-10
-    return Math.max(0, Math.min(10, risk));
+    if (drivers.length === 0) {
+        drivers.push('Low pollen');
+    }
+    return drivers.slice(0, 2);
 }
 
 function calculateNiceWeatherIndex(data, todayAvg, todayIndex) {
@@ -3866,27 +3936,40 @@ function openSymptomRiskModal(type) {
         allergySection.classList.remove('hidden');
     }
 
-    // Populate current values if available
+    // Populate current values if available (plain language first, numbers second)
     if (currentSymptomData) {
         const data = currentSymptomData;
 
         if (type === 'sinus') {
+            const trend = getPressureTrend(data.pressureChange);
+            const sinusScore = calculateSinusRisk(
+                data.pressureChange, data.humidity,
+                data.precipitation, data.tempSwing
+            );
+            const sinusLabel = getSimpleRiskLabel(sinusScore);
+            const dampNote = (data.humidity > 70 || data.precipitation > 0.1)
+                ? 'Damp air' : 'Dry air';
             currentValuesContainer.innerHTML = `
+                <div class="stat-card rounded-lg p-3 text-center col-span-2 md:col-span-4">
+                    <div class="text-gray-400 text-xs mb-1">Today</div>
+                    <div class="text-xl font-bold ${sinusLabel.colorClass}">${sinusLabel.label} · ${trend.label} pressure ${trend.arrow}</div>
+                    <div class="text-gray-400 text-xs mt-1">${dampNote} · ${data.tempSwing.toFixed(0)}°F swing</div>
+                </div>
                 <div class="stat-card rounded-lg p-3 text-center">
-                    <div class="text-gray-400 text-xs mb-1">Pressure Change</div>
-                    <div class="text-white font-bold">${data.pressureChange >= 0 ? '+' : ''}${data.pressureChange.toFixed(2)} inHg</div>
+                    <div class="text-gray-400 text-xs mb-1">Pressure trend</div>
+                    <div class="text-white font-bold">${trend.arrow} ${trend.label}</div>
                 </div>
                 <div class="stat-card rounded-lg p-3 text-center">
                     <div class="text-gray-400 text-xs mb-1">Humidity</div>
                     <div class="text-white font-bold">${data.humidity.toFixed(0)}%</div>
                 </div>
                 <div class="stat-card rounded-lg p-3 text-center">
-                    <div class="text-gray-400 text-xs mb-1">Precipitation</div>
-                    <div class="text-white font-bold">${data.precipitation.toFixed(2)} in</div>
+                    <div class="text-gray-400 text-xs mb-1">Rain today</div>
+                    <div class="text-white font-bold">${data.precipitation > 0.1 ? 'Yes' : 'No'}</div>
                 </div>
                 <div class="stat-card rounded-lg p-3 text-center">
-                    <div class="text-gray-400 text-xs mb-1">Temp Swing</div>
-                    <div class="text-white font-bold">${data.tempSwing.toFixed(1)}°F</div>
+                    <div class="text-gray-400 text-xs mb-1">Temp swing</div>
+                    <div class="text-white font-bold">${data.tempSwing.toFixed(0)}°F</div>
                 </div>
             `;
         } else {
@@ -3923,12 +4006,12 @@ function openSymptomRiskModal(type) {
             currentValuesContainer.innerHTML = `
                 ${pollenHtml}
                 <div class="stat-card rounded-lg p-3 text-center">
-                    <div class="text-gray-400 text-xs mb-1">Max Wind</div>
-                    <div class="text-white font-bold">${data.windMax.toFixed(1)} mph</div>
+                    <div class="text-gray-400 text-xs mb-1">Wind effect</div>
+                    <div class="text-white font-bold">${data.windMax > 10 ? 'Spreading pollen' : 'Calm'}</div>
                 </div>
                 <div class="stat-card rounded-lg p-3 text-center">
-                    <div class="text-gray-400 text-xs mb-1">Precipitation</div>
-                    <div class="text-white font-bold">${data.precipitation.toFixed(2)} in</div>
+                    <div class="text-gray-400 text-xs mb-1">Rain effect</div>
+                    <div class="text-white font-bold">${data.precipitation > 0.1 ? 'Washing pollen away' : 'No washout'}</div>
                 </div>
             `;
         }
