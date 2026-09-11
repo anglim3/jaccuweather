@@ -1,6 +1,6 @@
 --- a/public/app.js
 +++ b/public/app.js
-@@ -2391,7 +2391,7 @@
+@@ -2407,7 +2407,7 @@
                  </svg>
              </div>
              <div class="text-white font-bold text-lg mt-1">${Math.round(windSpeed)}</div>

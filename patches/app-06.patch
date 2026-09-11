@@ -1,6 +1,6 @@
 --- a/public/app.js
 +++ b/public/app.js
-@@ -2890,18 +2942,7 @@
+@@ -2909,18 +2961,7 @@
      let trendText = 'Steady';
  
      if (data.hourly && data.hourly.surface_pressure) {
@@ -20,7 +20,7 @@
  
          // Compare to 3 hours ago
          if (currentIdx >= 3) {
-@@ -3100,23 +3141,37 @@
+@@ -3119,23 +3160,37 @@
      document.getElementById('errorMessage').classList.add('hidden');
  }
  
@@ -66,7 +66,7 @@
  
          // Check if the response has an error
          if (pointData.error) {
-@@ -3148,6 +3203,7 @@
+@@ -3167,6 +3222,7 @@
          }
  
          const alertsData = await alertsResponse.json();
@@ -74,7 +74,7 @@
  
          // Check if the response has an error
          if (alertsData.error) {
-@@ -3163,8 +3219,10 @@
+@@ -3182,8 +3238,10 @@
  
              if (activeAlerts.length > 0) {
                  displayAlerts(activeAlerts);
@@ -85,7 +85,7 @@
      } catch (error) {
          // Log error for debugging but don't break the app
          console.error('Weather alerts error:', error.message);
-@@ -3333,12 +3391,13 @@
+@@ -3352,12 +3410,13 @@
      labelEl.className = `text-xs font-semibold ${niceLabel.colorClass}`;
  }
  
@@ -100,7 +100,7 @@
  
          if (!aqiResponse.ok) {
              // Hide air quality and pollen sections if API is unavailable
-@@ -3350,6 +3409,7 @@
+@@ -3369,6 +3428,7 @@
          }
  
          const aqiData = await aqiResponse.json();
@@ -108,7 +108,7 @@
  
          if (aqiData.error || !aqiData.current) {
              document.getElementById('airQualitySection').classList.add('hidden');
-@@ -3372,6 +3432,7 @@
+@@ -3391,6 +3451,7 @@
          // Recalculate allergy risk with real pollen data
          updateAllergyRiskWithPollenData();
      } catch (error) {
@@ -116,7 +116,7 @@
          console.error('Error fetching air quality:', error);
          document.getElementById('airQualitySection').classList.add('hidden');
          document.getElementById('pollenSection').classList.add('hidden');
-@@ -3434,8 +3495,9 @@
+@@ -3453,8 +3514,9 @@
  }
  
  // Calculate daily averages from hourly data for a specific date

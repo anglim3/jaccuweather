@@ -59,7 +59,7 @@ function hasNumericValue(value) {
 
 function hasAnyUsablePollen(data) {
   if (!data?.current) return false;
-  const pollenFields = ['alder_pollen','birch_pollen','olive_pollen','grass_pollen','weed_pollen','mugwort_pollen','ragweed_pollen'];
+  const pollenFields = ['tree_pollen','alder_pollen','birch_pollen','olive_pollen','grass_pollen','weed_pollen','mugwort_pollen','ragweed_pollen'];
   return pollenFields.some(f => hasNumericValue(data.current[f]));
 }
 
@@ -125,6 +125,7 @@ function normalizeGooglePollen(googleData) {
 
   const hourly = {
     time: [],
+    tree_pollen: [],
     alder_pollen: [],
     birch_pollen: [],
     olive_pollen: [],
@@ -183,9 +184,10 @@ function normalizeGooglePollen(googleData) {
     plantValues.weed_pollen = categoryValues.weed;
 
     const normalizedDay = {
-      alder_pollen: plantValues.alder_pollen ?? categoryValues.tree,
-      birch_pollen: plantValues.birch_pollen ?? categoryValues.tree,
-      olive_pollen: plantValues.olive_pollen ?? categoryValues.tree,
+      tree_pollen: categoryValues.tree,
+      alder_pollen: plantValues.alder_pollen,
+      birch_pollen: plantValues.birch_pollen,
+      olive_pollen: plantValues.olive_pollen,
       grass_pollen: plantValues.grass_pollen ?? categoryValues.grass,
       weed_pollen: plantValues.weed_pollen,
       mugwort_pollen: plantValues.mugwort_pollen,
@@ -250,6 +252,7 @@ function normalizeTomorrowPollen(tomorrowData) {
 
   const hourly = {
     time: [],
+    tree_pollen: [],
     alder_pollen: [],
     birch_pollen: [],
     olive_pollen: [],
@@ -263,6 +266,7 @@ function normalizeTomorrowPollen(tomorrowData) {
   for (const interval of intervals.slice(0, 5)) {
     const values = interval.values || {};
     const normalizedDay = {
+      tree_pollen: null,
       alder_pollen: null,
       birch_pollen: null,
       olive_pollen: null,
