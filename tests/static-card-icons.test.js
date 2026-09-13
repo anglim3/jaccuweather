@@ -108,8 +108,9 @@ test('card headers use vendored static Meteocons fill icons', () => {
 
 test('card header icons read larger than the label text', () => {
   const css = html.slice(html.indexOf('.card-icon {'), html.indexOf('.card-icon {') + 200);
-  assert.match(css, /width:\s*1\.5em/);
-  assert.match(css, /height:\s*1\.5em/);
+  assert.match(css, /width:\s*2em/);
+  assert.match(css, /height:\s*2em/);
+  assert.match(html, /#symptomRiskModalIcon \.card-icon \{\s*width:\s*1em/);
 });
 
 test('pollen UI uses the official static pollen-category icons', () => {

@@ -1,6 +1,6 @@
 --- a/public/index.html
 +++ b/public/index.html
-@@ -1213,12 +1213,4 @@
+@@ -1219,12 +1219,4 @@
                      <div class="col-span-2 md:col-span-3 lg:col-span-4 mt-2 mb-1">
                          <span class="section-title">Atmosphere</span>
                      </div>
@@ -14,7 +14,7 @@
 -                        </div>
 -                    </div>
                      <div class="stat-card rounded-xl p-4">
-@@ -1350,9 +1332,11 @@
+@@ -1356,9 +1338,11 @@
                  <div id="radarContainer" class="relative">
                      <!-- Ventusky iframe -->
                      <div id="ventuskyContainer" class="ventusky-iframe-container">

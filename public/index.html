@@ -961,14 +961,20 @@
             height: 1.1em;
         }
         /* Vendored Meteocons static fill card header icons (non-animated SVG,
-           served by the Worker). em-based sizing so icons match the existing
-           text-xs header slot. */
+           served by the Worker). Sized near the card value text so the
+           glyphs read as icons, not dots, in the existing header row. */
         .card-icon {
-            width: 1.5em;
-            height: 1.5em;
+            width: 2em;
+            height: 2em;
             display: inline-block;
-            vertical-align: -0.32em;
+            vertical-align: -0.42em;
             flex-shrink: 0;
+        }
+        /* Modal title slot keeps its own proportion (text-3xl). */
+        #symptomRiskModalIcon .card-icon {
+            width: 1em;
+            height: 1em;
+            vertical-align: -0.15em;
         }
         .daily-forecast-icon .wx-icon {
             width: 1.2em;
