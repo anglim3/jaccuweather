@@ -178,6 +178,7 @@ node --check public/app.js && node --check build.js && npm run build && node --c
 | Charts | [ApexCharts](https://apexcharts.com/) |
 | Math in methodology modals | [MathJax](https://www.mathjax.org/) |
 | Icons | [Font Awesome](https://fontawesome.com/) |
+| Weather icons (fill, vendored) | [Meteocons](https://github.com/basmilius/meteocons) by Bas Milius (MIT) |
 | CSS utilities | [Tailwind CSS](https://tailwindcss.com/) |
 | Reverse geocode | [BigDataCloud](https://www.bigdatacloud.com/) |
 | Fonts | [DM Sans](https://fonts.google.com/specimen/DM+Sans), [Lora](https://fonts.google.com/specimen/Lora) |

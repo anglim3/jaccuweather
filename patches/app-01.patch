@@ -9,7 +9,7 @@
  // Layer switching removed - Ventusky handles layers internally
  
  const HOURLY_FORECAST_HOURS = 48;
-@@ -206,6 +208,21 @@
+@@ -208,6 +210,21 @@
      return numbers.reduce((sum, value) => sum + value, 0) / numbers.length;
  }
  
@@ -31,7 +31,7 @@
  function modeEnsembleValue(values, round = false) {
      if (!Array.isArray(values) || values.length === 0) return null;
      const counts = new Map();
-@@ -299,6 +316,8 @@
+@@ -301,6 +318,8 @@
          } else if (strategy === 'binary') {
              const avg = averageEnsembleValues(memberValues);
              result[i] = avg === null ? null : (avg >= 0.5 ? 1 : 0);
@@ -40,7 +40,7 @@
          } else {
              result[i] = averageEnsembleValues(memberValues);
          }
-@@ -361,14 +380,14 @@
+@@ -363,14 +382,14 @@
      return probability;
  }
  
@@ -58,7 +58,7 @@
          if (!Number.isFinite(timeMs)) continue;
          const delta = Math.abs(timeMs - targetMs);
          if (delta < bestDelta) {
-@@ -466,6 +485,8 @@
+@@ -468,6 +487,8 @@
          { source: 'relative_humidity_2m', target: 'relative_humidity_2m', strategy: 'average' },
          { source: 'weather_code', target: 'weather_code', strategy: 'medianFloor', excludeMember: true },
          { source: 'wind_speed_10m', target: 'wind_speed_10m', strategy: 'average' },
@@ -67,7 +67,7 @@
          { source: 'precipitation_probability', target: 'precipitation_probability', strategy: 'average', excludeMember: true },
          { source: 'precipitation', target: 'precipitation', strategy: 'average' },
          { source: 'snowfall', target: 'snowfall', strategy: 'average' },
-@@ -484,6 +505,8 @@
+@@ -486,6 +507,8 @@
          temperature_2m: { decimals: 0 },
          relative_humidity_2m: { decimals: 0 },
          wind_speed_10m: { decimals: 1 },
@@ -76,7 +76,7 @@
          precipitation_probability: { decimals: 0 },
          precipitation: { decimals: 2, clampAbsBelow: 0.01 },
          snowfall: { decimals: 2, clampAbsBelow: 0.1 },
-@@ -622,6 +645,8 @@
+@@ -624,6 +647,8 @@
      if (!normalized.hourly_units.temperature_2m) normalized.hourly_units.temperature_2m = '°F';
      if (!normalized.hourly_units.relative_humidity_2m) normalized.hourly_units.relative_humidity_2m = '%';
      if (!normalized.hourly_units.wind_speed_10m) normalized.hourly_units.wind_speed_10m = 'mp/h';

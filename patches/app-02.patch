@@ -1,6 +1,6 @@
 --- a/public/app.js
 +++ b/public/app.js
-@@ -647,16 +672,19 @@
+@@ -649,16 +674,19 @@
          normalized.daily_units.weather_code = 'wmo code';
      }
  
@@ -21,7 +21,7 @@
  
      normalized.current_units.temperature_2m = normalized.hourly_units.temperature_2m;
      normalized.current_units.relative_humidity_2m = normalized.hourly_units.relative_humidity_2m;
-@@ -1412,13 +1440,18 @@
+@@ -1414,13 +1442,18 @@
                  currentLon = position.coords.longitude;
                  fetchWeather(currentLat, currentLon);
              },
