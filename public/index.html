@@ -964,10 +964,10 @@
            served by the Worker). em-based sizing so icons match the existing
            text-xs header slot. */
         .card-icon {
-            width: 1.15em;
-            height: 1.15em;
+            width: 1.5em;
+            height: 1.5em;
             display: inline-block;
-            vertical-align: -0.2em;
+            vertical-align: -0.32em;
             flex-shrink: 0;
         }
         .daily-forecast-icon .wx-icon {
@@ -1377,17 +1377,17 @@
                     <h4 class="text-sm font-semibold text-gray-400 mb-3">Current Levels</h4>
                     <div class="grid grid-cols-3 gap-3">
                         <div class="stat-card rounded-xl p-4 text-center">
-                            <div class="text-gray-400 text-xs mb-1"><i class="fas fa-tree text-green-400 mr-1"></i>Tree</div>
+                            <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-tree.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Tree</div>
                             <div id="pollenTreeValue" class="text-xl font-bold text-white"></div>
                             <div id="pollenTreeLabel" class="text-xs mt-1"></div>
                         </div>
                         <div class="stat-card rounded-xl p-4 text-center">
-                            <div class="text-gray-400 text-xs mb-1"><i class="fas fa-leaf text-lime-400 mr-1"></i>Grass</div>
+                            <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-grass.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Grass</div>
                             <div id="pollenGrassValue" class="text-xl font-bold text-white"></div>
                             <div id="pollenGrassLabel" class="text-xs mt-1"></div>
                         </div>
                         <div class="stat-card rounded-xl p-4 text-center">
-                            <div class="text-gray-400 text-xs mb-1"><i class="fas fa-seedling text-amber-400 mr-1"></i>Weed</div>
+                            <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-weed.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Weed</div>
                             <div id="pollenWeedValue" class="text-xl font-bold text-white"></div>
                             <div id="pollenWeedLabel" class="text-xs mt-1"></div>
                         </div>
@@ -1405,9 +1405,9 @@
                 <!-- Pollen Types Legend -->
                 <div class="mt-4 pt-4 border-t border-gray-600/30">
                     <p class="text-gray-500 text-xs">
-                        <i class="fas fa-tree text-green-400 mr-1"></i><strong>Tree:</strong> Alder, Birch, Olive &nbsp;|&nbsp;
-                        <i class="fas fa-leaf text-lime-400 mr-1"></i><strong>Grass:</strong> General &nbsp;|&nbsp;
-                        <i class="fas fa-seedling text-amber-400 mr-1"></i><strong>Weed:</strong> Mugwort, Ragweed
+                        <img src="/icons/cards/pollen-tree.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false"><strong>Tree:</strong> Alder, Birch, Olive &nbsp;|&nbsp;
+                        <img src="/icons/cards/pollen-grass.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false"><strong>Grass:</strong> General &nbsp;|&nbsp;
+                        <img src="/icons/cards/pollen-weed.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false"><strong>Weed:</strong> Mugwort, Ragweed
                     </p>
                 </div>
             </section>
@@ -1673,7 +1673,7 @@
 
                         <div class="space-y-3 mt-3">
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-green-300 font-semibold mb-1"><i class="fas fa-leaf mr-2"></i>Pollen</div>
+                                <div class="text-green-300 font-semibold mb-1"><img src="/icons/cards/pollen.svg" alt="" class="card-icon mr-2" loading="lazy" draggable="false">Pollen</div>
                                 <ul class="text-gray-400 text-sm space-y-1">
                                     <li>• <span class="text-white">None / Low</span> → <span class="text-green-400 font-semibold">Low</span></li>
                                     <li>• <span class="text-white">Moderate</span> → <span class="text-yellow-400 font-semibold">Elevated</span></li>

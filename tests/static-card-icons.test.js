@@ -24,6 +24,43 @@ const CARD_ICON_MAPPING = [
   ['Nice Weather', 'clear-day.svg'],
 ];
 
+// Pollen UI (Tree / Grass / Weed cards, legend, methodology factor row,
+// symptom-modal current values, allergy modal title) and the official
+// static pollen-category icon each one uses.
+const POLLEN_UI_MAPPING = [
+  ['Tree</div>', 'pollen-tree.svg'],
+  ['Grass</div>', 'pollen-grass.svg'],
+  ['Weed</div>', 'pollen-weed.svg'],
+  ['<strong>Tree:</strong>', 'pollen-tree.svg'],
+  ['<strong>Grass:</strong>', 'pollen-grass.svg'],
+  ['<strong>Weed:</strong>', 'pollen-weed.svg'],
+  ['Tree pollen</div>', 'pollen-tree.svg'],
+  ['Grass pollen</div>', 'pollen-grass.svg'],
+  ['Weed pollen</div>', 'pollen-weed.svg'],
+];
+
+// The full official static pollen category vendored into public/icons/cards/.
+const POLLEN_CATEGORY = [
+  'pollen.svg',
+  'pollen-flower.svg',
+  'pollen-grass.svg',
+  'pollen-grass-high.svg',
+  'pollen-grass-low.svg',
+  'pollen-grass-moderate.svg',
+  'pollen-grass-very-high.svg',
+  'pollen-tree.svg',
+  'pollen-tree-fir.svg',
+  'pollen-tree-high.svg',
+  'pollen-tree-low.svg',
+  'pollen-tree-moderate.svg',
+  'pollen-tree-very-high.svg',
+  'pollen-weed.svg',
+  'pollen-weed-high.svg',
+  'pollen-weed-low.svg',
+  'pollen-weed-moderate.svg',
+  'pollen-weed-very-high.svg',
+];
+
 // Exact Font Awesome header markup these cards used before the swap.
 const RETIRED_HEADERS = [
   '<i class="fas fa-thermometer-half text-orange-400 mr-1"></i>Feels Like',
@@ -36,6 +73,14 @@ const RETIRED_HEADERS = [
   '<i class="fas fa-lungs text-green-400 mr-1"></i>Air Quality',
   '<i class="fas fa-seedling text-green-300 mr-1"></i>Allergy',
   '<i class="fas fa-face-smile-beam text-yellow-300 mr-1"></i>Nice Weather',
+  '<i class="fas fa-tree text-green-400 mr-1"></i>Tree',
+  '<i class="fas fa-leaf text-lime-400 mr-1"></i>Grass',
+  '<i class="fas fa-seedling text-amber-400 mr-1"></i>Weed',
+  '<i class="fas fa-leaf mr-2"></i>Pollen',
+  '<i class="fas fa-tree text-green-400 mr-1"></i>Tree pollen',
+  '<i class="fas fa-leaf text-lime-400 mr-1"></i>Grass pollen',
+  '<i class="fas fa-seedling text-amber-400 mr-1"></i>Weed pollen',
+  '<i class="fas fa-seedling text-green-300"></i>',
 ];
 
 function loadPatchApplier() {
@@ -47,32 +92,61 @@ function loadPatchApplier() {
   return sandbox.applyUnifiedDiff;
 }
 
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 test('card headers use vendored static Meteocons fill icons', () => {
   for (const [label, file] of CARD_ICON_MAPPING) {
     assert.match(
       html,
-      new RegExp(`<img src="/icons/cards/${file.replace('.', '\\.')}"[^>]*class="card-icon[^"]*"[^>]*>${label}`),
+      new RegExp(`<img src="/icons/cards/${escapeRegExp(file)}"[^>]*class="card-icon[^"]*"[^>]*>${escapeRegExp(label)}`),
       `expected ${label} header to use /icons/cards/${file}`
     );
   }
 });
 
+test('card header icons read larger than the label text', () => {
+  const css = html.slice(html.indexOf('.card-icon {'), html.indexOf('.card-icon {') + 200);
+  assert.match(css, /width:\s*1\.5em/);
+  assert.match(css, /height:\s*1\.5em/);
+});
+
+test('pollen UI uses the official static pollen-category icons', () => {
+  const sources = [html, appJs];
+  for (const [label, file] of POLLEN_UI_MAPPING) {
+    const found = sources.some((src) =>
+      src.includes(`<img src="/icons/cards/${file}"`) && src.includes(label)
+    );
+    assert.equal(found, true, `expected ${label} to use /icons/cards/${file}`);
+  }
+  // Allergy card header and allergy modal title use the generic pollen icon.
+  assert.match(html, /<img src="\/icons\/cards\/pollen\.svg"[^>]*>Allergy/);
+  assert.match(appJs, /titleIcon\.innerHTML = '<img src="\/icons\/cards\/pollen\.svg"/);
+});
+
 test('retired Font Awesome card headers are gone', () => {
   for (const retired of RETIRED_HEADERS) {
-    assert.equal(html.includes(retired), false, `expected retired header to be gone: ${retired}`);
+    const present = html.includes(retired) || appJs.includes(retired);
+    assert.equal(present, false, `expected retired header to be gone: ${retired}`);
   }
 });
 
 test('Sinus keeps its existing icon (no honest Meteocons match)', () => {
   assert.match(html, /fa-head-side-cough[^<]*<\/i>Sinus/);
+  assert.match(appJs, /fa-head-side-cough/);
   const dir = path.join(root, 'public', 'icons', 'cards');
   const vendored = fs.readdirSync(dir).filter((f) => f.endsWith('.svg')).sort();
-  assert.deepEqual(vendored, CARD_ICON_MAPPING.map(([, file]) => file).sort());
+  const expected = [...new Set([
+    ...CARD_ICON_MAPPING.map(([, file]) => file),
+    ...POLLEN_CATEGORY,
+  ])].sort();
+  assert.deepEqual(vendored, expected);
 });
 
-test('every referenced card icon exists on disk and has no SMIL animation', () => {
+test('every vendored card icon exists on disk and has no SMIL animation', () => {
   const dir = path.join(root, 'public', 'icons', 'cards');
-  for (const [, file] of CARD_ICON_MAPPING) {
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.svg'))) {
     const svg = fs.readFileSync(path.join(dir, file), 'utf8');
     assert.equal(svg.includes('animate'), false, `${file} must be static (no SMIL)`);
     assert.equal(svg.includes('<set'), false, `${file} must be static (no <set>)`);
@@ -98,7 +172,7 @@ test('build.js embeds and serves both icon sets same-origin', () => {
   assert.match(buildJs, /url\.pathname\.startsWith\('\/icons\/weather\/'\)/);
   assert.equal(buildJs.includes('hotlink'), true);
   // No CDN or third-party icon host may be introduced for card icons.
-  for (const [, file] of CARD_ICON_MAPPING) {
+  for (const [, file] of [...CARD_ICON_MAPPING, ...POLLEN_UI_MAPPING]) {
     assert.equal(buildJs.includes(file), false, `build.js must not hardcode ${file}`);
   }
 });
