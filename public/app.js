@@ -3970,7 +3970,7 @@ function openSymptomRiskModal(type) {
         allergySection.classList.add('hidden');
     } else {
         titleText.textContent = 'Allergy';
-        titleIcon.innerHTML = '<i class="fas fa-seedling text-green-300"></i>';
+        titleIcon.innerHTML = '<img src="/icons/cards/pollen.svg" alt="" class="card-icon" loading="lazy" draggable="false">';
         sinusSection.classList.add('hidden');
         allergySection.classList.remove('hidden');
     }
@@ -4028,17 +4028,17 @@ function openSymptomRiskModal(type) {
 
                 pollenHtml = `
                     <div class="stat-card rounded-lg p-3 text-center">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-tree text-green-400 mr-1"></i>Tree pollen</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-tree.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Tree pollen</div>
                         <div class="text-white font-bold">${hasPollenValue(treePollen) ? formatPollenValue(treePollen) : '—'}</div>
                         <div class="text-xs ${hasPollenValue(treePollen) ? treeLevel.colorClass : 'text-gray-400'}">${hasPollenValue(treePollen) ? treeLevel.label : 'Unavailable'}</div>
                     </div>
                     <div class="stat-card rounded-lg p-3 text-center">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-leaf text-lime-400 mr-1"></i>Grass pollen</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-grass.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Grass pollen</div>
                         <div class="text-white font-bold">${hasPollenValue(grassPollen) ? formatPollenValue(grassPollen) : '—'}</div>
                         <div class="text-xs ${hasPollenValue(grassPollen) ? grassLevel.colorClass : 'text-gray-400'}">${hasPollenValue(grassPollen) ? grassLevel.label : 'Unavailable'}</div>
                     </div>
                     <div class="stat-card rounded-lg p-3 text-center">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-seedling text-amber-400 mr-1"></i>Weed pollen</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-weed.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Weed pollen</div>
                         <div class="text-white font-bold">${hasPollenValue(weedPollen) ? formatPollenValue(weedPollen) : '—'}</div>
                         <div class="text-xs ${hasPollenValue(weedPollen) ? weedLevel.colorClass : 'text-gray-400'}">${hasPollenValue(weedPollen) ? weedLevel.label : 'Unavailable'}</div>
                     </div>

@@ -1,11 +1,11 @@
 --- a/public/index.html
 +++ b/public/index.html
-@@ -1203,13 +1203,4 @@
+@@ -1219,12 +1219,4 @@
                      <div class="col-span-2 md:col-span-3 lg:col-span-4 mt-2 mb-1">
                          <span class="section-title">Atmosphere</span>
                      </div>
 -                    <div class="stat-card rounded-xl p-4">
--                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-sun text-yellow-500 mr-1"></i>Sun</div>
+-                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/sunrise.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Sun</div>
 -                        <div class="text-white">
 -                            <span class="text-yellow-400 text-xs">↑</span> <span id="sunrise" class="text-sm font-semibold">--</span>
 -                        </div>
@@ -14,7 +14,7 @@
 -                        </div>
 -                    </div>
                      <div class="stat-card rounded-xl p-4">
-@@ -1340,9 +1331,11 @@
+@@ -1356,9 +1338,11 @@
                  <div id="radarContainer" class="relative">
                      <!-- Ventusky iframe -->
                      <div id="ventuskyContainer" class="ventusky-iframe-container">

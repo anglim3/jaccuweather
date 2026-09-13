@@ -960,6 +960,22 @@
             width: 1.1em;
             height: 1.1em;
         }
+        /* Vendored Meteocons static fill card header icons (non-animated SVG,
+           served by the Worker). Sized near the card value text so the
+           glyphs read as icons, not dots, in the existing header row. */
+        .card-icon {
+            width: 2em;
+            height: 2em;
+            display: inline-block;
+            vertical-align: -0.42em;
+            flex-shrink: 0;
+        }
+        /* Modal title slot keeps its own proportion (text-3xl). */
+        #symptomRiskModalIcon .card-icon {
+            width: 1em;
+            height: 1em;
+            vertical-align: -0.15em;
+        }
         .daily-forecast-icon .wx-icon {
             width: 1.2em;
             height: 1.2em;
@@ -1183,20 +1199,20 @@
                         <span class="section-title">Conditions</span>
                     </div>
                     <div class="stat-card rounded-xl p-4">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-thermometer-half text-orange-400 mr-1"></i>Feels Like</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/thermometer.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Feels Like</div>
                         <div id="feelsLike" class="text-xl font-bold text-white"></div>
                     </div>
                     <div class="stat-card rounded-xl p-4">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-tint text-blue-400 mr-1"></i>Humidity</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/humidity.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Humidity</div>
                         <div id="humidity" class="text-xl font-bold text-white"></div>
                         <div class="text-gray-500 text-xs mt-1">Dew: <span id="dewPoint" class="text-gray-300">--</span></div>
                     </div>
                     <div class="stat-card rounded-xl p-4">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-wind text-cyan-400 mr-1"></i>Wind</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/wind.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Wind</div>
                         <div id="windSpeed" class="text-xl font-bold text-white"></div>
                     </div>
                     <div class="stat-card rounded-xl p-4">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-sun text-yellow-400 mr-1"></i>UV Index</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/uv-index.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">UV Index</div>
                         <div id="uvIndex" class="text-xl font-bold text-white"></div>
                     </div>
                     <!-- Atmosphere group -->
@@ -1204,7 +1220,7 @@
                         <span class="section-title">Atmosphere</span>
                     </div>
                     <div class="stat-card rounded-xl p-4">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-sun text-yellow-500 mr-1"></i>Sun</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/sunrise.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Sun</div>
                         <div class="text-white">
                             <span class="text-yellow-400 text-xs">↑</span> <span id="sunrise" class="text-sm font-semibold">--</span>
                         </div>
@@ -1213,7 +1229,7 @@
                         </div>
                     </div>
                     <div class="stat-card rounded-xl p-4">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-gauge text-green-400 mr-1"></i>Pressure</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/barometer.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Pressure</div>
                         <div class="flex items-center gap-1">
                             <span id="pressure" class="text-xl font-bold text-white">--</span>
                             <span id="pressureTrend" class="text-sm"></span>
@@ -1221,14 +1237,14 @@
                         <div id="pressureStatus" class="text-gray-500 text-xs"></div>
                     </div>
                     <div class="stat-card rounded-xl p-4">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-moon text-purple-400 mr-1"></i>Moon <i class="fas fa-info-circle text-xs ml-1"></i></div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/starry-night.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Moon <i class="fas fa-info-circle text-xs ml-1"></i></div>
                         <div id="moonPhase" class="flex items-center gap-2">
                             <span id="moonPhaseEmoji" class="text-xl"></span>
                             <span id="moonPhaseName" class="text-xs font-semibold text-white"></span>
                         </div>
                     </div>
                     <div id="airQualitySection" class="stat-card rounded-xl p-4 hidden">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-lungs text-green-400 mr-1"></i>Air Quality</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/smoke.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Air Quality</div>
                         <div id="aqiValue" class="text-xl font-bold text-white"></div>
                         <div id="aqiStatus" class="text-gray-500 text-xs"></div>
                     </div>
@@ -1242,12 +1258,12 @@
                         <div id="sinusRiskLabel" class="text-xs mt-1"></div>
                     </div>
                     <div id="allergyRiskSection" class="stat-card rounded-xl p-4 cursor-pointer transition-colors" onclick="openSymptomRiskModal('allergy')">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-seedling text-green-300 mr-1"></i>Allergy <i class="fas fa-info-circle text-xs ml-1"></i></div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Allergy <i class="fas fa-info-circle text-xs ml-1"></i></div>
                         <div id="allergyRiskValue" class="text-2xl font-bold text-white"></div>
                         <div id="allergyRiskLabel" class="text-xs mt-1"></div>
                     </div>
                     <div id="niceWeatherSection" class="stat-card rounded-xl p-4 cursor-pointer transition-colors" onclick="openNiceWeatherModal()" role="button" tabindex="0" aria-label="Open Nice Weather methodology">
-                        <div class="text-gray-400 text-xs mb-1"><i class="fas fa-face-smile-beam text-yellow-300 mr-1"></i>Nice Weather <i class="fas fa-info-circle text-xs ml-1"></i></div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/clear-day.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Nice Weather <i class="fas fa-info-circle text-xs ml-1"></i></div>
                         <div id="niceWeatherValue" class="text-2xl font-bold text-white"></div>
                         <div id="niceWeatherLabel" class="text-xs mt-1"></div>
                     </div>
@@ -1367,17 +1383,17 @@
                     <h4 class="text-sm font-semibold text-gray-400 mb-3">Current Levels</h4>
                     <div class="grid grid-cols-3 gap-3">
                         <div class="stat-card rounded-xl p-4 text-center">
-                            <div class="text-gray-400 text-xs mb-1"><i class="fas fa-tree text-green-400 mr-1"></i>Tree</div>
+                            <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-tree.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Tree</div>
                             <div id="pollenTreeValue" class="text-xl font-bold text-white"></div>
                             <div id="pollenTreeLabel" class="text-xs mt-1"></div>
                         </div>
                         <div class="stat-card rounded-xl p-4 text-center">
-                            <div class="text-gray-400 text-xs mb-1"><i class="fas fa-leaf text-lime-400 mr-1"></i>Grass</div>
+                            <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-grass.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Grass</div>
                             <div id="pollenGrassValue" class="text-xl font-bold text-white"></div>
                             <div id="pollenGrassLabel" class="text-xs mt-1"></div>
                         </div>
                         <div class="stat-card rounded-xl p-4 text-center">
-                            <div class="text-gray-400 text-xs mb-1"><i class="fas fa-seedling text-amber-400 mr-1"></i>Weed</div>
+                            <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-weed.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Weed</div>
                             <div id="pollenWeedValue" class="text-xl font-bold text-white"></div>
                             <div id="pollenWeedLabel" class="text-xs mt-1"></div>
                         </div>
@@ -1395,9 +1411,9 @@
                 <!-- Pollen Types Legend -->
                 <div class="mt-4 pt-4 border-t border-gray-600/30">
                     <p class="text-gray-500 text-xs">
-                        <i class="fas fa-tree text-green-400 mr-1"></i><strong>Tree:</strong> Alder, Birch, Olive &nbsp;|&nbsp;
-                        <i class="fas fa-leaf text-lime-400 mr-1"></i><strong>Grass:</strong> General &nbsp;|&nbsp;
-                        <i class="fas fa-seedling text-amber-400 mr-1"></i><strong>Weed:</strong> Mugwort, Ragweed
+                        <img src="/icons/cards/pollen-tree.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false"><strong>Tree:</strong> Alder, Birch, Olive &nbsp;|&nbsp;
+                        <img src="/icons/cards/pollen-grass.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false"><strong>Grass:</strong> General &nbsp;|&nbsp;
+                        <img src="/icons/cards/pollen-weed.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false"><strong>Weed:</strong> Mugwort, Ragweed
                     </p>
                 </div>
             </section>
@@ -1663,7 +1679,7 @@
 
                         <div class="space-y-3 mt-3">
                             <div class="stat-card rounded-lg p-3">
-                                <div class="text-green-300 font-semibold mb-1"><i class="fas fa-leaf mr-2"></i>Pollen</div>
+                                <div class="text-green-300 font-semibold mb-1"><img src="/icons/cards/pollen.svg" alt="" class="card-icon mr-2" loading="lazy" draggable="false">Pollen</div>
                                 <ul class="text-gray-400 text-sm space-y-1">
                                     <li>• <span class="text-white">None / Low</span> → <span class="text-green-400 font-semibold">Low</span></li>
                                     <li>• <span class="text-white">Moderate</span> → <span class="text-yellow-400 font-semibold">Elevated</span></li>
