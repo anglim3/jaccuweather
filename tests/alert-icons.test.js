@@ -182,12 +182,12 @@ test('the FA triangle is gone from the event glyph; chevrons and clocks stay', (
   assert.ok(!appJs.includes('cdn.meteocons.com'), 'client must not hotlink the Meteocons CDN');
 });
 
-test('alert header icons are sized to replace the text-2xl triangle', () => {
+test('alert header icons are sized up from the old text-2xl triangle', () => {
   const start = html.indexOf('.alert-icon {');
   assert.ok(start > -1, 'expected an .alert-icon rule in public/index.html');
   const rule = html.slice(start, start + 200);
-  assert.match(rule, /width:\s*2em/);
-  assert.match(rule, /height:\s*2em/);
+  assert.match(rule, /width:\s*3em/);
+  assert.match(rule, /height:\s*3em/);
 });
 
 test('build.js embeds and serves the alert icon set same-origin', () => {
