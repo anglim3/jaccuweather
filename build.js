@@ -45,9 +45,11 @@ if (fs.existsSync(weatherIconsDir)) {
   }
 }
 
-// Read vendored Meteocons static fill card header icons (MIT, Bas Milius).
+// Read vendored Meteocons static card header icons (MIT, Bas Milius).
 // Non-animated counterparts of the fill set above, used only for the small
 // Conditions / Atmosphere / Health card headers (see public/icons/cards/).
+// Every header uses the fill variant except Humidity, which uses the
+// monochrome variant (currentColor).
 // Served by the Worker at /icons/cards/<name>.svg so the single-Worker
 // app never hotlinks a third-party icon CDN at runtime.
 const cardIconsDir = path.join(__dirname, 'public', 'icons', 'cards');

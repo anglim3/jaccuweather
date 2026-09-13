@@ -10,7 +10,9 @@ const appJs = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
 const buildJs = fs.readFileSync(path.join(root, 'build.js'), 'utf8');
 
 // Conditions / Atmosphere / Health card headers and the static Meteocons
-// fill icon (@meteocons/svg-static) each one uses.
+// icon (@meteocons/svg-static) each one uses. Every header uses the fill
+// variant except Humidity, which uses the monochrome variant so the glyph
+// renders in the header text color (currentColor).
 const CARD_ICON_MAPPING = [
   ['Feels Like', 'thermometer.svg'],
   ['Humidity', 'humidity.svg'],
@@ -96,13 +98,31 @@ function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-test('card headers use vendored static Meteocons fill icons', () => {
+test('card headers use vendored static Meteocons icons (humidity is monochrome)', () => {
   for (const [label, file] of CARD_ICON_MAPPING) {
     assert.match(
       html,
       new RegExp(`<img src="/icons/cards/${escapeRegExp(file)}"[^>]*class="card-icon[^"]*"[^>]*>${escapeRegExp(label)}`),
       `expected ${label} header to use /icons/cards/${file}`
     );
+  }
+});
+
+test('humidity header uses the monochrome variant, other headers stay fill', () => {
+  const dir = path.join(root, 'public', 'icons', 'cards');
+  const humidity = fs.readFileSync(path.join(dir, 'humidity.svg'), 'utf8');
+  // Monochrome glyph: raindrop inherits the header text color.
+  assert.equal(humidity.includes('currentColor'), true, 'humidity.svg must use currentColor (monochrome)');
+  // Monochrome file has no fill gradient/defs and no blue fill leftovers.
+  assert.equal(humidity.includes('linearGradient'), false, 'humidity.svg must not carry the fill gradient');
+  assert.equal(humidity.includes('paint0_linear'), false, 'humidity.svg must not reference the fill gradient');
+  assert.equal(humidity.includes('#1D4ED8'), false, 'humidity.svg must not carry the fill blue stroke');
+  assert.equal(humidity.includes('#2563EB'), false, 'humidity.svg must not carry the fill blue stop');
+  // Only humidity swaps: every other card header icon stays on the fill set.
+  for (const [, file] of CARD_ICON_MAPPING) {
+    if (file === 'humidity.svg') continue;
+    const svg = fs.readFileSync(path.join(dir, file), 'utf8');
+    assert.equal(svg.includes('currentColor'), false, `${file} must stay on the fill set (no currentColor)`);
   }
 });
 
