@@ -3206,6 +3206,44 @@ async function fetchWeatherAlerts(lat, lon) {
     }
 }
 
+// Base path for vendored Meteocons fill alarm icons served by the Worker.
+const ALERT_ICON_BASE = '/icons/alerts/';
+
+// Maps an NWS alert event name to the closest official Meteocons fill
+// alarm icon vendored under public/icons/alerts/. Only filenames that
+// exist on disk are returned; weather-alarm.svg (from the official
+// alarms category) is the honest generic fallback when no event
+// keyword matches, so the header never falls back to clip-art.
+function getAlertIconFile(eventType) {
+    const event = String(eventType || '').toLowerCase();
+    const has = (...needles) => needles.some((needle) => event.includes(needle));
+
+    // Marine hurricane-force winds fly their own warning flag, so check
+    // before the generic hurricane glyph below.
+    if (has('hurricane force')) return 'flag-hurricane-warning.svg';
+    if (has('tornado')) return 'tornado.svg';
+    if (has('hurricane', 'tropical storm', 'typhoon')) return 'hurricane.svg';
+    if (has('thunderstorm', 'severe weather', 'lightning')) return 'thunderstorms.svg';
+    if (has('flood', 'storm surge', 'tsunami', 'rip current', 'beach hazard', 'lakeshore', 'hydrologic')) return 'water.svg';
+    if (has('red flag', 'fire weather', 'fire warning', 'wildfire', 'smoke', 'air quality')) return 'smoke.svg';
+    if (has('avalanche')) return 'alert-avalanche-danger.svg';
+    if (has('fog')) return 'fog.svg';
+    if (has('dust')) return 'dust.svg';
+    if (has('heat')) return 'sun-hot.svg';
+    if (has('winter storm', 'winter weather', 'blizzard', 'ice storm', 'freezing rain', 'freezing drizzle', 'sleet', 'lake effect', 'snow squall', 'snow')) return 'snowflake.svg';
+    if (has('freeze', 'frost', 'cold', 'wind chill')) return 'flag-cold-wave.svg';
+    if (has('small craft')) return 'flag-small-craft-advisory.svg';
+    if (has('high wind', 'wind advisory', 'wind warning', 'wind watch', 'gale', 'lake wind', 'extreme wind', 'strong wind')) return 'flag-gale-warning.svg';
+    if (has('storm warning', 'storm watch', 'special marine')) return 'flag-storm-warning.svg';
+    return 'weather-alarm.svg';
+}
+
+function getAlertIcon(eventType) {
+    const file = getAlertIconFile(eventType);
+    const label = String(eventType || 'Weather Alert');
+    return `<img src="${ALERT_ICON_BASE}${file}" alt="" aria-hidden="true" class="alert-icon" loading="lazy" draggable="false">`;
+}
+
 function displayAlerts(alerts) {
     const alertsContainer = document.getElementById('weatherAlerts');
     alertsContainer.innerHTML = '';
@@ -3243,7 +3281,7 @@ function displayAlerts(alerts) {
             <div class="cursor-pointer" id="${headerId}">
                 <div class="flex items-center justify-between p-4">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <i class="fas fa-exclamation-triangle text-2xl text-white flex-shrink-0"></i>
+                        ${getAlertIcon(props.event)}
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <h3 class="text-xl font-bold text-white">${eventType}</h3>
