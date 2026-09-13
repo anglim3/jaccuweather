@@ -1,6 +1,6 @@
 --- a/public/app.js
 +++ b/public/app.js
-@@ -1899,24 +1957,25 @@
+@@ -1907,24 +1965,25 @@
              console.error('NOAA tide fetch failed:', tideError.message);
          }
  
@@ -32,7 +32,7 @@
      }
  }
  
-@@ -1978,6 +2037,23 @@
+@@ -1986,6 +2045,23 @@
      return asUtc - (Number(utcOffsetSeconds) || 0) * 1000;
  }
  
@@ -56,7 +56,7 @@
  // Format Open-Meteo local wall clock without shifting into the browser timezone
  function formatIsoLocalClock(iso) {
      const m = String(iso || '').match(/T(\d{2}):(\d{2})/);
-@@ -2118,7 +2194,9 @@
+@@ -2126,7 +2202,9 @@
  
      // Current weather
      document.getElementById('currentLocation').textContent = location;
@@ -67,7 +67,7 @@
          weekday: 'long',
          year: 'numeric',
          month: 'long',
-@@ -2178,11 +2256,9 @@
+@@ -2186,11 +2264,9 @@
      const today = new Date();
      const moonPhaseValue = calculateMoonPhase(today);
      const moonPhase = getMoonPhase(moonPhaseValue);
@@ -80,7 +80,7 @@
      if (moonPhaseCard) {
          moonPhaseCard.style.cursor = 'pointer';
          moonPhaseCard.addEventListener('click', () => openMoonDetailsModal(today));
-@@ -2190,14 +2266,11 @@
+@@ -2198,14 +2274,11 @@
  
      // Calculate and display symptom risks
      if (data.hourly && data.hourly.surface_pressure) {
