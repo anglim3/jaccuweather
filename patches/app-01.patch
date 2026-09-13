@@ -58,7 +58,7 @@
          if (!Number.isFinite(timeMs)) continue;
          const delta = Math.abs(timeMs - targetMs);
          if (delta < bestDelta) {
-@@ -464,6 +483,8 @@
+@@ -466,6 +485,8 @@
          { source: 'relative_humidity_2m', target: 'relative_humidity_2m', strategy: 'average' },
          { source: 'weather_code', target: 'weather_code', strategy: 'medianFloor', excludeMember: true },
          { source: 'wind_speed_10m', target: 'wind_speed_10m', strategy: 'average' },
@@ -67,7 +67,7 @@
          { source: 'precipitation_probability', target: 'precipitation_probability', strategy: 'average', excludeMember: true },
          { source: 'precipitation', target: 'precipitation', strategy: 'average' },
          { source: 'snowfall', target: 'snowfall', strategy: 'average' },
-@@ -482,6 +503,8 @@
+@@ -484,6 +505,8 @@
          temperature_2m: { decimals: 0 },
          relative_humidity_2m: { decimals: 0 },
          wind_speed_10m: { decimals: 1 },
@@ -76,7 +76,7 @@
          precipitation_probability: { decimals: 0 },
          precipitation: { decimals: 2, clampAbsBelow: 0.01 },
          snowfall: { decimals: 2, clampAbsBelow: 0.1 },
-@@ -617,6 +640,8 @@
+@@ -622,6 +645,8 @@
      if (!normalized.hourly_units.temperature_2m) normalized.hourly_units.temperature_2m = '°F';
      if (!normalized.hourly_units.relative_humidity_2m) normalized.hourly_units.relative_humidity_2m = '%';
      if (!normalized.hourly_units.wind_speed_10m) normalized.hourly_units.wind_speed_10m = 'mp/h';

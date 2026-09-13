@@ -399,7 +399,8 @@ function summarizeDailyFromHourly(hourly, dates) {
         precipitation_sum: [],
         wind_speed_10m_max: [],
         precipitation_probability_max: [],
-        snowfall_sum: []
+        snowfall_sum: [],
+        uv_index_max: []
     };
 
     const aggregateDay = (indexes, series, mode) => {
@@ -426,6 +427,7 @@ function summarizeDailyFromHourly(hourly, dates) {
         result.wind_speed_10m_max.push(aggregateDay(indexes, hourly.wind_speed_10m, 'max'));
         result.precipitation_probability_max.push(aggregateDay(indexes, hourly.precipitation_probability, 'max'));
         result.snowfall_sum.push(aggregateDay(indexes, hourly.snowfall, 'sum'));
+        result.uv_index_max.push(aggregateDay(indexes, hourly.uv_index, 'max'));
     }
 
     return result;
@@ -525,7 +527,8 @@ function normalizeEnsembleWeatherData(rawData, lat, lon) {
         { source: 'precipitation_sum', target: 'precipitation_sum', strategy: 'average' },
         { source: 'wind_speed_10m_max', target: 'wind_speed_10m_max', strategy: 'average' },
         { source: 'precipitation_probability_max', target: 'precipitation_probability_max', strategy: 'average', excludeMember: true },
-        { source: 'snowfall_sum', target: 'snowfall_sum', strategy: 'average' }
+        { source: 'snowfall_sum', target: 'snowfall_sum', strategy: 'average' },
+        { source: 'uv_index_max', target: 'uv_index_max', strategy: 'average' }
     ];
     const dailyPostProcess = {
         temperature_2m_max: { decimals: 0 },
@@ -535,7 +538,8 @@ function normalizeEnsembleWeatherData(rawData, lat, lon) {
         precipitation_sum: { decimals: 2, clampAbsBelow: 0.01 },
         wind_speed_10m_max: { decimals: 1 },
         precipitation_probability_max: { decimals: 0 },
-        snowfall_sum: { decimals: 2, clampAbsBelow: 0.1 }
+        snowfall_sum: { decimals: 2, clampAbsBelow: 0.1 },
+        uv_index_max: { decimals: 1 }
     };
 
     for (const config of dailyConfigs) {
@@ -580,7 +584,8 @@ function normalizeEnsembleWeatherData(rawData, lat, lon) {
         'precipitation_sum',
         'wind_speed_10m_max',
         'precipitation_probability_max',
-        'snowfall_sum'
+        'snowfall_sum',
+        'uv_index_max'
     ].filter((field) => !normalized.daily[field]);
 
     if (missingDailyFields.length && normalized.hourly.time.length) {
@@ -634,6 +639,9 @@ function normalizeEnsembleWeatherData(rawData, lat, lon) {
     }
     if (!normalized.daily_units.precipitation_probability_max) {
         normalized.daily_units.precipitation_probability_max = '%';
+    }
+    if (!normalized.daily_units.uv_index_max) {
+        normalized.daily_units.uv_index_max = '';
     }
     if (!normalized.daily_units.weather_code) {
         normalized.daily_units.weather_code = 'wmo code';
@@ -1813,7 +1821,7 @@ async function fetchWeather(lat, lon) {
 
     try {
         // Make direct request to Open-Meteo ensemble endpoint from browser (uses user's IP, not shared Cloudflare IP)
-        const weatherResponse = await fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lon}&models=icon_seamless,gfs_seamless,ecmwf_ifs025&hourly=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,precipitation,snowfall,surface_pressure,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,shortwave_radiation,is_day,apparent_temperature,dew_point_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,wind_gusts_10m_max,precipitation_probability_max,snowfall_sum,sunrise,sunset&forecast_days=14&past_days=2&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch&timezone=auto`);
+        const weatherResponse = await fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lon}&models=icon_seamless,gfs_seamless,ecmwf_ifs025&hourly=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,precipitation,snowfall,surface_pressure,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,shortwave_radiation,is_day,apparent_temperature,dew_point_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,wind_gusts_10m_max,precipitation_probability_max,snowfall_sum,uv_index_max,sunrise,sunset&forecast_days=14&past_days=2&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch&timezone=auto`);
 
         // Check for rate limiting before parsing JSON
         if (weatherResponse.status === 429) {
@@ -4188,6 +4196,7 @@ function openHourlyModal(data) {
     const precip = [];
     const snow = [];
     const wind = [];
+    const uv = [];
     const humidity = [];
     const pressure = [];
     const cloudLow = [];
@@ -4205,6 +4214,7 @@ function openHourlyModal(data) {
         precip.push(data.hourly.precipitation ? data.hourly.precipitation[idx] : 0);
         snow.push(data.hourly.snowfall ? data.hourly.snowfall[idx] : 0);
         wind.push(data.hourly.wind_speed_10m[idx]);
+        uv.push(data.hourly.uv_index && data.hourly.uv_index[idx] !== null && data.hourly.uv_index[idx] !== undefined ? Math.round(data.hourly.uv_index[idx] * 10) / 10 : 0);
         humidity.push(data.hourly.relative_humidity_2m[idx]);
         // Convert hPa to inHg (1 hPa = 0.02953 inHg)
         pressure.push(data.hourly.surface_pressure ? (data.hourly.surface_pressure[idx] * 0.02953).toFixed(2) : null);
@@ -4333,6 +4343,17 @@ function openHourlyModal(data) {
     }));
     hourlyChart.wind.render();
 
+    hourlyChart.uv = new ApexCharts(document.getElementById('hourlyUvChart'), baseChartOptions({
+        series: [{ name: 'UV index', data: uv }],
+        colors: ['rgb(168, 85, 247)'],
+        
+        
+        xaxis: { categories: labels },
+        yaxis: { min: 0, title: { text: "UV index", style: { color: "#fff" } } },
+        tooltip: { y: { formatter: (val) => (val === null || val === undefined ? 'UV index: unavailable' : `UV index: ${val} (${uvCategoryLabel(val)})`) } }
+    }));
+    hourlyChart.uv.render();
+
     hourlyChart.humidity = new ApexCharts(document.getElementById('hourlyHumidityChart'), baseChartOptions({
         series: [{ name: `Humidity (${UNITS.humidity})`, data: humidity }],
         colors: ['rgb(75, 192, 192)'],
@@ -4434,6 +4455,7 @@ function openHourlyModal(data) {
                 <div><span class="text-white/70">Condition:</span> <span class="text-white">${getWeatherDescription(data.hourly.weather_code[idx])}</span></div>
                 <div><span class="text-white/70">Wind:</span> <span class="text-white">${wind[i]} ${UNITS.wind}</span></div>
                 <div><span class="text-white/70">Humidity:</span> <span class="text-white">${humidity[i]}${UNITS.humidity}</span></div>
+                <div><span class="text-white/70">UV:</span> <span class="text-white">${uv[i]} (${uvCategoryLabel(uv[i])})</span></div>
                 ${pressure[i] ? `<div><span class="text-white/70">Pressure:</span> <span class="text-white">${pressure[i]}" inHg</span></div>` : ''}
                 ${data.hourly.snowfall && snow[i] > 0 ? '' : (data.hourly.precipitation ? `<div><span class="text-white/70">Precip:</span> <span class="text-white">${precip[i]} ${UNITS.precipitation}</span>${data.hourly.precipitation_probability && data.hourly.precipitation_probability[idx] !== null && data.hourly.precipitation_probability[idx] !== undefined ? ` <span class="text-white/60">(${data.hourly.precipitation_probability[idx]}%)</span>` : ''}</div>` : '')}
                 ${data.hourly.snowfall && snow[i] > 0 ? `<div><span class="text-white/70">Snow:</span> <span class="text-white">${snow[i]} ${UNITS.snowfall}</span>${data.hourly.precipitation_probability && data.hourly.precipitation_probability[idx] !== null && data.hourly.precipitation_probability[idx] !== undefined ? ` <span class="text-white/60">(${data.hourly.precipitation_probability[idx]}%)</span>` : ''}</div>` : ''}
@@ -4471,6 +4493,7 @@ function openDailyModal(data) {
     const precip = [];
     const snowfall = [];
     const wind = [];
+    const dailyUv = [];
     const precipProb = [];
     const moonPhases = [];
     const niceWeatherScores = [];
@@ -4501,6 +4524,8 @@ function openDailyModal(data) {
         precip.push(data.daily.precipitation_sum[dayIndex] || 0);
         snowfall.push(data.daily.snowfall_sum ? data.daily.snowfall_sum[dayIndex] || 0 : 0);
         wind.push(data.daily.wind_speed_10m_max[dayIndex]);
+        const uvMaxRaw = data.daily.uv_index_max ? data.daily.uv_index_max[dayIndex] : null;
+        dailyUv.push(uvMaxRaw !== null && uvMaxRaw !== undefined ? Math.round(uvMaxRaw * 10) / 10 : maxHourlyUvForDateString(data.hourly, data.daily.time[dayIndex]));
         precipProb.push(data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[dayIndex] : 0);
         moonPhases.push(calculateMoonPhase(day));
         const dayAvg = calculateDailyAveragesForDateString(data.hourly, data.daily.time[dayIndex]);
@@ -4716,6 +4741,17 @@ function openDailyModal(data) {
     }));
     maybeRenderDailyChart('wind');
 
+    dailyChart.uv = new ApexCharts(document.getElementById('dailyUvChart'), baseChartOptions({
+        series: [{ name: 'UV index', data: dailyUv }],
+        colors: ['rgb(168, 85, 247)'],
+        
+        
+        xaxis: { categories: labels },
+        yaxis: { min: 0, title: { text: 'UV index', style: { color: '#fff' } } },
+        tooltip: { y: { formatter: (val) => (val === null || val === undefined ? 'UV index: unavailable' : `UV index: ${val} (${uvCategoryLabel(val)})`) } }
+    }));
+    maybeRenderDailyChart('uv');
+
     dailyChart.pressure = new ApexCharts(document.getElementById('dailyPressureChart'), baseChartOptions({
         series: [{ name: 'Pressure (inHg)', data: dailyPressure }],
         colors: ['rgb(34, 197, 94)'],
@@ -4860,6 +4896,12 @@ function openDailyModal(data) {
                     <div class="text-white/70 text-xs mb-1">Wind Speed</div>
                     <div class="text-white font-bold">${wind[i]} ${UNITS.wind}</div>
                 </div>
+                ${dailyUv[i] !== null && dailyUv[i] !== undefined ? `
+                <div class="bg-white/10 rounded p-3">
+                    <div class="text-white/70 text-xs mb-1">UV index</div>
+                    <div class="text-white font-bold">${dailyUv[i]} (${uvCategoryLabel(dailyUv[i])})</div>
+                </div>
+                ` : ''}
                 ${dailyPressure[i] ? `
                 <div class="bg-white/10 rounded p-3">
                     <div class="text-white/70 text-xs mb-1"><i class="fas fa-gauge mr-1"></i>Pressure</div>
@@ -5091,6 +5133,30 @@ function updateVentuskyLocation(lat, lon) {
     }
 }
 
+// ── UV index bands (WHO scale) ──
+function uvCategoryLabel(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return 'Low';
+    if (num < 3) return 'Low';
+    if (num < 6) return 'Moderate';
+    if (num < 8) return 'High';
+    if (num < 11) return 'Very high';
+    return 'Extreme';
+}
+
+// Daily UV max from hourly values when daily uv_index_max is unavailable.
+function maxHourlyUvForDateString(hourly, dateStr) {
+    if (!hourly || !Array.isArray(hourly.time) || !Array.isArray(hourly.uv_index) || !dateStr) return null;
+    let max = null;
+    for (let h = 0; h < hourly.time.length; h++) {
+        if (String(hourly.time[h]).split('T')[0] !== dateStr) continue;
+        const value = hourly.uv_index[h];
+        if (!Number.isFinite(value)) continue;
+        if (max === null || value > max) max = value;
+    }
+    return max === null ? null : Math.round(max * 10) / 10;
+}
+
 // ─── 14-day / hourly expanded-view chart series ─────────
 // First paint must draw ONLY the default series (temperature), even when
 // the cloned <select> still reports value "all" while Temperature looks selected.
@@ -5101,6 +5167,7 @@ const DAILY_CHART_TYPE_BY_KEY = {
     niceWeather: 'niceweather',
     precip: 'precip',
     wind: 'wind',
+    uv: 'uv',
     pressure: 'pressure',
     snow: 'snow',
     cloud: 'cloud',
