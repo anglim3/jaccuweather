@@ -56,7 +56,6 @@ function loadUvHelpers(js) {
     'medianFloorEnsembleValue',
     'summarizeDailyFromHourly',
     'uvCategoryLabel',
-    'uvColorForValue',
     'maxHourlyUvForDateString'
   ];
   const sandbox = { console };
@@ -64,7 +63,6 @@ function loadUvHelpers(js) {
   vm.runInNewContext(`${src};
     this.summarizeDailyFromHourly = summarizeDailyFromHourly;
     this.uvCategoryLabel = uvCategoryLabel;
-    this.uvColorForValue = uvColorForValue;
     this.maxHourlyUvForDateString = maxHourlyUvForDateString;`, sandbox);
   return sandbox;
 }
@@ -159,13 +157,16 @@ test('WHO bands label boundary values', () => {
   assert.equal(h.uvCategoryLabel(null), 'Low');
 });
 
-test('UV point colors change at the same band edges', () => {
-  const h = loadUvHelpers(appJs());
-  assert.equal(h.uvColorForValue(1), 'rgb(34, 197, 94)');
-  assert.equal(h.uvColorForValue(4), 'rgb(250, 204, 21)');
-  assert.equal(h.uvColorForValue(6.5), 'rgb(251, 146, 60)');
-  assert.equal(h.uvColorForValue(9), 'rgb(239, 68, 68)');
-  assert.equal(h.uvColorForValue(12), 'rgb(168, 85, 247)');
+test('UV charts render as curves without point markers', () => {
+  const js = appJs();
+  const hourlyStart = js.indexOf("hourlyChart.uv = new ApexCharts");
+  assert.ok(hourlyStart > -1, 'expected hourly UV chart');
+  const hourlyBlock = js.slice(hourlyStart, js.indexOf('hourlyChart.uv.render()', hourlyStart));
+  assert.equal(hourlyBlock.includes('markers:'), false, 'hourly UV chart must not set markers');
+  const dailyStart = js.indexOf('dailyChart.uv = new ApexCharts');
+  assert.ok(dailyStart > -1, 'expected daily UV chart');
+  const dailyBlock = js.slice(dailyStart, js.indexOf("maybeRenderDailyChart('uv')", dailyStart));
+  assert.equal(dailyBlock.includes('markers:'), false, 'daily UV chart must not set markers');
 });
 
 test('daily UV max derives from hourly values when daily is missing', () => {

@@ -4343,13 +4343,11 @@ function openHourlyModal(data) {
     }));
     hourlyChart.wind.render();
 
-    const hourlyUvPointColors = uv.map((value) => uvColorForValue(value));
     hourlyChart.uv = new ApexCharts(document.getElementById('hourlyUvChart'), baseChartOptions({
         series: [{ name: 'UV index', data: uv }],
         colors: ['rgb(168, 85, 247)'],
         
         
-        markers: { size: 3, colors: hourlyUvPointColors, strokeColors: '#fff', strokeWidth: 1 },
         xaxis: { categories: labels },
         yaxis: { min: 0, title: { text: "UV index", style: { color: "#fff" } } },
         tooltip: { y: { formatter: (val) => (val === null || val === undefined ? 'UV index: unavailable' : `UV index: ${val} (${uvCategoryLabel(val)})`) } }
@@ -4743,13 +4741,11 @@ function openDailyModal(data) {
     }));
     maybeRenderDailyChart('wind');
 
-    const dailyUvPointColors = dailyUv.map((value) => uvColorForValue(value));
     dailyChart.uv = new ApexCharts(document.getElementById('dailyUvChart'), baseChartOptions({
         series: [{ name: 'UV index', data: dailyUv }],
         colors: ['rgb(168, 85, 247)'],
         
         
-        markers: { size: 4, colors: dailyUvPointColors, strokeColors: '#fff', strokeWidth: 1 },
         xaxis: { categories: labels },
         yaxis: { min: 0, title: { text: 'UV index', style: { color: '#fff' } } },
         tooltip: { y: { formatter: (val) => (val === null || val === undefined ? 'UV index: unavailable' : `UV index: ${val} (${uvCategoryLabel(val)})`) } }
@@ -5146,16 +5142,6 @@ function uvCategoryLabel(value) {
     if (num < 8) return 'High';
     if (num < 11) return 'Very high';
     return 'Extreme';
-}
-
-function uvColorForValue(value) {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return 'rgba(148, 163, 184, 0.9)';
-    if (num < 3) return 'rgb(34, 197, 94)';
-    if (num < 6) return 'rgb(250, 204, 21)';
-    if (num < 8) return 'rgb(251, 146, 60)';
-    if (num < 11) return 'rgb(239, 68, 68)';
-    return 'rgb(168, 85, 247)';
 }
 
 // Daily UV max from hourly values when daily uv_index_max is unavailable.

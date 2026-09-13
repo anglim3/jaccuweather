@@ -47,7 +47,7 @@
          hours.push(hour);
          temps.push(Math.round(data.hourly.temperature_2m[idx]));
          precip.push(data.hourly.precipitation ? data.hourly.precipitation[idx] : 0);
-@@ -4449,7 +4490,7 @@
+@@ -4447,7 +4488,7 @@
          detailItem.className = 'forecast-chip rounded-lg p-4 backdrop-blur-sm';
          detailItem.innerHTML = `
                  <div class="flex items-center justify-between mb-2">
@@ -56,7 +56,7 @@
                  <div class="text-2xl">${getWeatherIcon(data.hourly.weather_code[idx], data.hourly.is_day ? data.hourly.is_day[idx] !== 0 : true)}</div>
              </div>
              <div class="grid grid-cols-2 gap-2 text-sm">
-@@ -5023,8 +5064,8 @@
+@@ -5019,8 +5060,8 @@
  function buildVentuskyUrl(lat, lon) {
      const isMobile = window.innerWidth <= 768;
      const zoom = isMobile ? 7 : 8; // Lower zoom on mobile (more zoomed out)
@@ -67,7 +67,7 @@
  }
  
  function setRadarFallback(visible, lat, lon) {
-@@ -5049,23 +5090,18 @@
+@@ -5045,23 +5086,18 @@
          // Set handlers once to avoid listener pileups on repeated weather fetches
          if (!ventuskyFrame.dataset.handlersAttached) {
              ventuskyFrame.addEventListener('load', () => {
