@@ -1,6 +1,6 @@
 --- a/public/app.js
 +++ b/public/app.js
-@@ -3007,73 +3007,48 @@
+@@ -3015,73 +3015,48 @@
          return;
      }
  
@@ -49,7 +49,7 @@
 -    if (!precipStartTime) {
 -        // No precipitation expected
 +    if (!precipStartIso) {
-         icon.textContent = '☀️';
+         icon.innerHTML = getWeatherIcon(0, true);
          timingText.textContent = `No precipitation expected in the next ${HOURLY_FORECAST_HOURS} hours`;
          section.classList.remove('hidden');
 +        return;
@@ -57,7 +57,7 @@
 +
 +    const startDateStr = String(precipStartIso).split('T')[0];
 +    const precipType = isSnow ? 'Snow' : 'Rain';
-+    icon.textContent = isSnow ? '❄️' : '🌧️';
++    icon.innerHTML = getWeatherIcon(isSnow ? 71 : 63, true);
 +
 +    if (precipStartIso === data.hourly.time[startIndex]) {
 +        timingText.textContent = `${precipType} is currently falling`;
@@ -67,7 +67,7 @@
 -        const startDate = precipStartTime.getDate();
 -        const nowDate = now.getDate();
 -
--        icon.textContent = isSnow ? '❄️' : '🌧️';
+-        icon.innerHTML = getWeatherIcon(isSnow ? 71 : 63, true);
 -
 -        // Check if precipitation is happening now (within the current hour)
 -        if (startHour === nowHour && startDate === nowDate) {

@@ -61,6 +61,8 @@ let activeSuggestionRequestId = 0;
 // Layer switching removed - Ventusky handles layers internally
 
 const HOURLY_FORECAST_HOURS = 48;
+// Base path for vendored Meteocons fill weather icons served by the Worker.
+const WEATHER_ICON_BASE = '/icons/weather/';
 const UNITS = {
     temperature: '\u00b0F',
     wind: 'mph',
@@ -2139,7 +2141,7 @@ function displayWeather(data) {
     document.getElementById('currentTemp').textContent = `${Math.round(data.current.temperature_2m)}${data.current_units.temperature_2m}`;
     const currentIconEl = document.getElementById('currentIcon');
     if (currentIconEl) {
-        currentIconEl.textContent = getWeatherIcon(data.current.weather_code, data.current.is_day !== 0);
+        currentIconEl.innerHTML = getWeatherIcon(data.current.weather_code, data.current.is_day !== 0);
         currentIconEl.setAttribute('aria-hidden', 'true');
     }
 
@@ -2634,7 +2636,7 @@ async function displayWeeklySnowTotals(data) {
     }
 }
 
-function getWeatherIcon(code, isDay = true, precipProbability = null) {
+function getWeatherIconFile(code, isDay = true, precipProbability = null) {
     // Suppress rain/drizzle icons when precipitation probability is low (<= 30%)
     // Downgrade to partly cloudy instead
     if (precipProbability !== null && precipProbability <= 30) {
@@ -2643,38 +2645,44 @@ function getWeatherIcon(code, isDay = true, precipProbability = null) {
             code = 2; // Partly cloudy
         }
     }
-    // WMO Weather interpretation codes
-    // Night variants for clear/partly cloudy conditions
+    // WMO Weather interpretation codes mapped to vendored Meteocons fill icons
+    // (MIT, Bas Milius) served by the Worker at /icons/weather/<file>.
     if (!isDay) {
-        const nightIcons = {
-            0: '🌙', 1: '🌙', 2: '☁️', 3: '☁️',
-            45: '🌫️', 48: '🌫️',
-            51: '🌧️', 53: '🌧️', 55: '🌧️',
-            56: '🌨️', 57: '🌨️',
-            61: '🌧️', 63: '🌧️', 65: '🌧️',
-            66: '🌨️', 67: '🌨️',
-            71: '❄️', 73: '❄️', 75: '❄️',
-            77: '❄️',
-            80: '🌧️', 81: '🌧️', 82: '🌧️',
-            85: '🌨️', 86: '🌨️',
-            95: '⛈️', 96: '⛈️', 99: '⛈️'
+        const nightFiles = {
+            0: 'clear-night.svg', 1: 'mostly-clear-night.svg', 2: 'partly-cloudy-night.svg', 3: 'overcast-night.svg',
+            45: 'fog-night.svg', 48: 'fog-night.svg',
+            51: 'partly-cloudy-night-drizzle.svg', 53: 'partly-cloudy-night-drizzle.svg', 55: 'partly-cloudy-night-drizzle.svg',
+            56: 'partly-cloudy-night-sleet.svg', 57: 'partly-cloudy-night-sleet.svg',
+            61: 'partly-cloudy-night-rain.svg', 63: 'overcast-night-rain.svg', 65: 'extreme-night-rain.svg',
+            66: 'partly-cloudy-night-sleet.svg', 67: 'overcast-night-sleet.svg',
+            71: 'partly-cloudy-night-snow.svg', 73: 'overcast-night-snow.svg', 75: 'extreme-night-snow.svg',
+            77: 'overcast-night-snow.svg',
+            80: 'partly-cloudy-night-rain.svg', 81: 'overcast-night-rain.svg', 82: 'extreme-night-rain.svg',
+            85: 'partly-cloudy-night-snow.svg', 86: 'overcast-night-snow.svg',
+            95: 'thunderstorms-night-rain.svg', 96: 'thunderstorms-night-hail.svg', 99: 'thunderstorms-night-hail.svg'
         };
-        return nightIcons[code] || '🌙';
+        return nightFiles[code] || 'clear-night.svg';
     }
-    const icons = {
-        0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
-        45: '🌫️', 48: '🌫️',
-        51: '🌦️', 53: '🌦️', 55: '🌦️',
-        56: '🌨️', 57: '🌨️',
-        61: '🌧️', 63: '🌧️', 65: '🌧️',
-        66: '🌨️', 67: '🌨️',
-        71: '❄️', 73: '❄️', 75: '❄️',
-        77: '❄️',
-        80: '🌦️', 81: '🌦️', 82: '🌦️',
-        85: '🌨️', 86: '🌨️',
-        95: '⛈️', 96: '⛈️', 99: '⛈️'
+    const dayFiles = {
+        0: 'clear-day.svg', 1: 'mostly-clear-day.svg', 2: 'partly-cloudy-day.svg', 3: 'overcast-day.svg',
+        45: 'fog-day.svg', 48: 'fog-day.svg',
+        51: 'partly-cloudy-day-drizzle.svg', 53: 'partly-cloudy-day-drizzle.svg', 55: 'partly-cloudy-day-drizzle.svg',
+        56: 'partly-cloudy-day-sleet.svg', 57: 'partly-cloudy-day-sleet.svg',
+        61: 'partly-cloudy-day-rain.svg', 63: 'overcast-day-rain.svg', 65: 'extreme-day-rain.svg',
+        66: 'partly-cloudy-day-sleet.svg', 67: 'overcast-day-sleet.svg',
+        71: 'partly-cloudy-day-snow.svg', 73: 'overcast-day-snow.svg', 75: 'extreme-day-snow.svg',
+        77: 'overcast-day-snow.svg',
+        80: 'partly-cloudy-day-rain.svg', 81: 'overcast-day-rain.svg', 82: 'extreme-day-rain.svg',
+        85: 'partly-cloudy-day-snow.svg', 86: 'overcast-day-snow.svg',
+        95: 'thunderstorms-day-rain.svg', 96: 'thunderstorms-day-hail.svg', 99: 'thunderstorms-day-hail.svg'
     };
-    return icons[code] || '☀️';
+    return dayFiles[code] || 'clear-day.svg';
+}
+
+function getWeatherIcon(code, isDay = true, precipProbability = null) {
+    const file = getWeatherIconFile(code, isDay, precipProbability);
+    const label = getWeatherDescription(code);
+    return `<img src="${WEATHER_ICON_BASE}${file}" alt="${label}" class="wx-icon" loading="lazy" draggable="false">`;
 }
 
 function getWeatherDescription(code) {
@@ -3004,7 +3012,7 @@ function displayPrecipitationTiming(data) {
 
     if (!precipStartTime) {
         // No precipitation expected
-        icon.textContent = '☀️';
+        icon.innerHTML = getWeatherIcon(0, true);
         timingText.textContent = `No precipitation expected in the next ${HOURLY_FORECAST_HOURS} hours`;
         section.classList.remove('hidden');
     } else {
@@ -3013,7 +3021,7 @@ function displayPrecipitationTiming(data) {
         const startDate = precipStartTime.getDate();
         const nowDate = now.getDate();
 
-        icon.textContent = isSnow ? '❄️' : '🌧️';
+        icon.innerHTML = getWeatherIcon(isSnow ? 71 : 63, true);
 
         // Check if precipitation is happening now (within the current hour)
         if (startHour === nowHour && startDate === nowDate) {

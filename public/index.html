@@ -946,6 +946,24 @@
         html {
             scroll-behavior: smooth;
         }
+
+        /* Vendored Meteocons fill weather icons (animated SVG, served by the Worker).
+           em-based sizing so icons scale with the existing text-2xl/3xl/4xl slots. */
+        .wx-icon {
+            width: 1em;
+            height: 1em;
+            display: inline-block;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+        #currentIcon .wx-icon {
+            width: 1.1em;
+            height: 1.1em;
+        }
+        .daily-forecast-icon .wx-icon {
+            width: 1.2em;
+            height: 1.2em;
+        }
     </style>
 </head>
 <body class="text-white p-3 sm:p-4 md:p-8 selection:bg-sky-300/30 selection:text-white">
@@ -1240,7 +1258,7 @@
             <div id="precipTimingSection" class="hidden mb-6">
                 <div class="card p-4 md:p-6">
                     <div class="flex items-center gap-3">
-                        <span class="text-2xl" id="precipIcon">🌧️</span>
+                        <span class="text-2xl inline-flex items-center" id="precipIcon"><img src="/icons/weather/overcast-day-rain.svg" alt="Rain" class="wx-icon" loading="lazy"></span>
                         <p id="precipTiming" class="text-white font-medium"></p>
                     </div>
                 </div>

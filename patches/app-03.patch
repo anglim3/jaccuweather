@@ -1,6 +1,6 @@
 --- a/public/app.js
 +++ b/public/app.js
-@@ -1812,31 +1845,52 @@
+@@ -1814,31 +1847,52 @@
  }
  
  async function fetchWeather(lat, lon) {
@@ -54,7 +54,7 @@
  
          if (weatherDataRaw.error) {
              showError(weatherDataRaw.reason || 'Failed to fetch weather data');
-@@ -1865,6 +1919,8 @@
+@@ -1867,6 +1921,8 @@
                  const data = await reverseGeoResponse.json();
  
                  // BigDataCloud returns data directly - transform to match expected format
@@ -63,7 +63,7 @@
                  if (data) {
                      // Try to get city name, fallback to town, village, or municipality
                      const cityName = data.city || data.locality || data.town || data.village || data.municipality || data.county;
-@@ -1900,6 +1956,8 @@
+@@ -1902,6 +1958,8 @@
              }
          }
  
