@@ -11,7 +11,7 @@ A weather app that runs as a single [Cloudflare Worker](https://workers.cloudfla
 - Moon phase detail modal
 - 48-hour forecast with Conditions, Precipitation, and Wind toggle
 - 14-day forecast with week separators
-- Detail modals with ApexCharts for hourly and daily views, including UV index
+- Detail modals with ApexCharts for hourly and daily views
 - Health scores: sinus risk, allergy risk, nice-weather index (each with a methodology modal)
 - Pollen levels and 5-day pollen forecast
 - Ventusky radar centered on the selected location
@@ -44,8 +44,6 @@ npm install
 ```bash
 npx wrangler login
 ```
-
-`wrangler.toml` already binds `POLLEN_RATE_LIMIT` (20 requests per 60 seconds per IP) on `/api/pollen`. Leave that binding as-is.
 
 ### Run locally
 
