@@ -159,7 +159,7 @@ These are the routes the built Worker actually serves. `/ventusky-proxy/*` is de
 | `/api/geocoding` | Open-Meteo geocoding |
 | `/api/reverse` | BigDataCloud reverse geocode |
 | `/api/air-quality` | Open-Meteo air quality |
-| `/api/pollen` | Google Pollen, then Tomorrow.io, then Open-Meteo (same-origin + `POLLEN_RATE_LIMIT`) |
+| `/api/pollen` | Google Pollen, then Tomorrow.io, then Open-Meteo |
 | `/api/alerts` | NWS alerts (US only) |
 | `/api/nws-points` | NWS points |
 | `/api/nws-wms` | NWS radar WMS tiles |
@@ -178,7 +178,7 @@ These are the routes the built Worker actually serves. `/ventusky-proxy/*` is de
 |---------|-----|
 | Changes in `public/` do not appear | Run `npm run build` and restart `wrangler dev` |
 | `sharp` missing on build | Optional. Favicon PNG conversion warns and continues. `npm install` should install it as a devDependency. |
-| Pollen always empty | Coverage varies by location. Optional Google or Tomorrow secrets help. Without them Open-Meteo is used. `/api/pollen` is same-origin gated and capped by `POLLEN_RATE_LIMIT`. |
+| Pollen always empty | Coverage varies by location. Optional Google or Tomorrow secrets help. Without them Open-Meteo is used. |
 | Radar blank or navigates away | The built Worker embeds Ventusky directly (the HTML proxy is stripped at build). If the iframe stays blank, use the on-page fallback link. |
 | NWS alerts fail | US locations only. The Worker must send a User-Agent header (already set in `build.js`). |
 | Wrong account on deploy | Log in with Wrangler or pass `CLOUDFLARE_ACCOUNT_ID`. Do not commit a personal `account_id` in `wrangler.toml`. |
