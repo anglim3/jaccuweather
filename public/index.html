@@ -980,6 +980,17 @@
             width: 1.2em;
             height: 1.2em;
         }
+        /* Vendored Meteocons fill alarm icons (animated SVG, served by the
+           Worker). Sized up from the old text-2xl warning triangle because
+           the Meteocons glyphs sit small inside their canvas; at this size
+           the funnel, flags, and waves read clearly on the alert header. */
+        .alert-icon {
+            width: 3em;
+            height: 3em;
+            display: inline-block;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body class="text-white p-3 sm:p-4 md:p-8 selection:bg-sky-300/30 selection:text-white">

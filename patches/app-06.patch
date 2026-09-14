@@ -85,7 +85,7 @@
      } catch (error) {
          // Log error for debugging but don't break the app
          console.error('Weather alerts error:', error.message);
-@@ -3368,12 +3426,13 @@
+@@ -3406,12 +3464,13 @@
      labelEl.className = `text-xs font-semibold ${niceLabel.colorClass}`;
  }
  
@@ -100,7 +100,7 @@
  
          if (!aqiResponse.ok) {
              // Hide air quality and pollen sections if API is unavailable
-@@ -3385,6 +3444,7 @@
+@@ -3423,6 +3482,7 @@
          }
  
          const aqiData = await aqiResponse.json();
@@ -108,7 +108,7 @@
  
          if (aqiData.error || !aqiData.current) {
              document.getElementById('airQualitySection').classList.add('hidden');
-@@ -3407,6 +3467,7 @@
+@@ -3445,6 +3505,7 @@
          // Recalculate allergy risk with real pollen data
          updateAllergyRiskWithPollenData();
      } catch (error) {
@@ -116,7 +116,7 @@
          console.error('Error fetching air quality:', error);
          document.getElementById('airQualitySection').classList.add('hidden');
          document.getElementById('pollenSection').classList.add('hidden');
-@@ -3469,8 +3530,9 @@
+@@ -3507,8 +3568,9 @@
  }
  
  // Calculate daily averages from hourly data for a specific date
