@@ -41,26 +41,13 @@ const POLLEN_UI_MAPPING = [
   ['Weed pollen</div>', 'pollen-weed.svg'],
 ];
 
-// The full official static pollen category vendored into public/icons/cards/.
+// The pollen icons vendored into public/icons/cards/: the generic icon
+// plus the Tree / Grass / Weed category icons the UI actually maps.
 const POLLEN_CATEGORY = [
   'pollen.svg',
-  'pollen-flower.svg',
   'pollen-grass.svg',
-  'pollen-grass-high.svg',
-  'pollen-grass-low.svg',
-  'pollen-grass-moderate.svg',
-  'pollen-grass-very-high.svg',
   'pollen-tree.svg',
-  'pollen-tree-fir.svg',
-  'pollen-tree-high.svg',
-  'pollen-tree-low.svg',
-  'pollen-tree-moderate.svg',
-  'pollen-tree-very-high.svg',
   'pollen-weed.svg',
-  'pollen-weed-high.svg',
-  'pollen-weed-low.svg',
-  'pollen-weed-moderate.svg',
-  'pollen-weed-very-high.svg',
 ];
 
 // Exact Font Awesome header markup these cards used before the swap.

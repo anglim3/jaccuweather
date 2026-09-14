@@ -25,7 +25,4 @@ Mapping:
 - Pollen Tree card, legend, and modal -> pollen-tree.svg
 - Pollen Grass card, legend, and modal -> pollen-grass.svg
 - Pollen Weed card, legend, and modal -> pollen-weed.svg
-- The rest of the official pollen category is vendored too
-  (pollen-flower, pollen-grass/pollen-tree/pollen-weed level variants,
-  pollen-tree-fir) so headers can stay on the honest per-plant match.
 - Sinus has no honest Meteocons match and keeps its existing icon.
