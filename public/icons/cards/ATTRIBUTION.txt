@@ -8,7 +8,8 @@ at runtime.
 
 Mapping:
 - Feels Like -> thermometer.svg
-- Humidity -> humidity.svg
+- Humidity -> humidity.svg (monochrome variant, fill="currentColor",
+  so the glyph renders in the header text color instead of the blue fill)
 - Wind -> wind.svg
 - UV Index -> uv-index.svg
 - Sun -> sunrise.svg
