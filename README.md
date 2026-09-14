@@ -1,6 +1,6 @@
 # Jaccuweather
 
-A weather app that runs as a single [Cloudflare Worker](https://workers.cloudflare.com/). It uses vanilla JavaScript with no framework, renders everything client-side, and calls free public APIs. The Worker embeds the HTML and JavaScript and proxies external APIs so the browser avoids CORS errors.
+A weather app that runs as a single [Cloudflare Worker](https://workers.cloudflare.com/). It uses vanilla JavaScript with no framework, renders everything client-side, and calls free public APIs. The Worker embeds the HTML, JavaScript, and icons, and proxies a few APIs so the browser avoids CORS errors.
 
 **Demo:** [weather.janglim.cloud](https://weather.janglim.cloud)
 
@@ -11,7 +11,7 @@ A weather app that runs as a single [Cloudflare Worker](https://workers.cloudfla
 - Moon phase detail modal
 - 48-hour forecast with Conditions, Precipitation, and Wind toggle
 - 14-day forecast with week separators
-- Detail modals with ApexCharts for hourly and daily views
+- Detail modals with ApexCharts for hourly and daily views, including UV index
 - Health scores: sinus risk, allergy risk, nice-weather index (each with a methodology modal)
 - Pollen levels and 5-day pollen forecast
 - Ventusky radar centered on the selected location
@@ -31,19 +31,21 @@ Core weather works without API keys. Optional keys improve pollen coverage.
 ## Quick start
 
 ```bash
-git clone https://github.com/janglimTARS/jaccuweather.git
+git clone https://github.com/anglim3/jaccuweather.git
 cd jaccuweather
 npm install
 ```
 
 ### Configure Cloudflare
 
-1. Open `wrangler.toml` and set your own `account_id`. You can also remove the line and let Wrangler use your default account after login.
+1. Do not commit a personal `account_id` in `wrangler.toml`. After login, Wrangler uses your default account. You can also set `CLOUDFLARE_ACCOUNT_ID` in the environment.
 2. Log in once:
 
 ```bash
 npx wrangler login
 ```
+
+`wrangler.toml` already binds `POLLEN_RATE_LIMIT` (20 requests per 60 seconds per IP) on `/api/pollen`. Leave that binding as-is.
 
 ### Run locally
 
@@ -101,20 +103,28 @@ npx wrangler dev --remote --ip 127.0.0.1 --port 8789
 ```
 jaccuweather/
 ├── public/
-│   ├── index.html      # UI and CSS (edit this)
-│   ├── app.js          # Frontend logic (edit this)
-│   └── favicon.svg
+│   ├── index.html          # UI and CSS (edit this)
+│   ├── app.js              # Frontend logic (edit this)
+│   ├── favicon.svg
+│   └── icons/
+│       ├── weather/        # Meteocons fill, weather-code icons
+│       ├── cards/          # Meteocons static fill, card headers
+│       └── alerts/         # Meteocons fill, NWS alert alarms
 ├── src/
-│   └── index.js        # Generated Worker. Do not edit.
-├── build.js            # Embeds public/* and defines API proxy routes
-├── convert-favicon.js  # SVG to PNG for Apple touch icon (uses sharp)
+│   └── index.js            # Generated Worker. Do not edit.
+├── patches/                # Applied by lockdown-worker.js at build
+├── tests/
+├── build.js                # Embeds public/* and defines API proxy routes
+├── lockdown-worker.js      # Patches the generated Worker (run by npm run build)
+├── convert-favicon.js      # SVG to PNG for Apple touch icon (uses sharp)
+├── AGENTS.md               # Notes for coding agents
 ├── wrangler.toml
 └── package.json
 ```
 
 | Script | Description |
 |--------|-------------|
-| `npm run build` | Generate `src/index.js` from `public/*` |
+| `npm run build` | `node build.js && node lockdown-worker.js` — generate `src/index.js` from `public/*`, then apply lockdown |
 | `npm run dev` | Build and start the local Worker dev server |
 | `npm run deploy` | Build and deploy to Cloudflare |
 
@@ -124,27 +134,37 @@ Syntax check before shipping:
 node --check public/app.js && node --check build.js && npm run build && node --check src/index.js
 ```
 
+Tests:
+
+```bash
+node --test tests/*.test.js
+```
+
 ## How it works
 
-1. `build.js` inlines `public/index.html`, `public/app.js`, and assets into a single Worker file.
-2. The Worker serves the app and proxies `/api/*` routes and Ventusky with caching where useful.
-3. The browser fetches weather data from the Worker, then renders the UI, charts, radar, and health metrics client-side.
+1. `build.js` inlines `public/index.html`, `public/app.js`, and assets (including icons) into a single Worker file.
+2. `lockdown-worker.js` applies the `patches/` updates, rate-limits `/api/pollen`, and removes the Ventusky HTML proxy. The built Worker embeds Ventusky directly.
+3. The Worker serves the app and proxies `/api/*` routes with caching where useful. Tides are fetched in the browser from NOAA.
 4. Favorites live in IndexedDB with a localStorage fallback. Theme preference is stored in the browser only.
 
 ### Worker routes
 
+These are the routes the built Worker actually serves. `/ventusky-proxy/*` is defined in `build.js` and then stripped by lockdown.
+
 | Route | Upstream |
 |-------|----------|
 | `/`, `/app.js`, favicons | Embedded static assets |
+| `/icons/weather/*` | Vendored weather-code icons |
+| `/icons/cards/*` | Vendored card header icons |
+| `/icons/alerts/*` | Vendored NWS alert icons |
 | `/api/forecast` | Open-Meteo forecast |
 | `/api/geocoding` | Open-Meteo geocoding |
 | `/api/reverse` | BigDataCloud reverse geocode |
-| `/api/air-quality` | Open-Meteo air quality and pollen |
-| `/api/pollen` | Google Pollen, then Tomorrow.io, then Open-Meteo |
+| `/api/air-quality` | Open-Meteo air quality |
+| `/api/pollen` | Google Pollen, then Tomorrow.io, then Open-Meteo (same-origin + `POLLEN_RATE_LIMIT`) |
 | `/api/alerts` | NWS alerts (US only) |
 | `/api/nws-points` | NWS points |
 | `/api/nws-wms` | NWS radar WMS tiles |
-| `/ventusky-proxy/*` | Ventusky (iframe-safe proxy) |
 
 ### UI notes for theming
 
@@ -160,10 +180,10 @@ node --check public/app.js && node --check build.js && npm run build && node --c
 |---------|-----|
 | Changes in `public/` do not appear | Run `npm run build` and restart `wrangler dev` |
 | `sharp` missing on build | Optional. Favicon PNG conversion warns and continues. `npm install` should install it as a devDependency. |
-| Pollen always empty | Coverage varies by location. Optional Google or Tomorrow secrets help. Without them Open-Meteo is used. |
-| Radar blank or navigates away | Keep the Ventusky proxy route. It removes frame-busting scripts. |
+| Pollen always empty | Coverage varies by location. Optional Google or Tomorrow secrets help. Without them Open-Meteo is used. `/api/pollen` is same-origin gated and capped by `POLLEN_RATE_LIMIT`. |
+| Radar blank or navigates away | The built Worker embeds Ventusky directly (the HTML proxy is stripped at build). If the iframe stays blank, use the on-page fallback link. |
 | NWS alerts fail | US locations only. The Worker must send a User-Agent header (already set in `build.js`). |
-| Wrong account on deploy | Set `account_id` in `wrangler.toml` or pass `CLOUDFLARE_ACCOUNT_ID`. |
+| Wrong account on deploy | Log in with Wrangler or pass `CLOUDFLARE_ACCOUNT_ID`. Do not commit a personal `account_id` in `wrangler.toml`. |
 
 ## Credits
 
@@ -177,8 +197,10 @@ node --check public/app.js && node --check build.js && npm run build && node --c
 | Moon times | [SunCalc.js](https://github.com/mourner/suncalc) |
 | Charts | [ApexCharts](https://apexcharts.com/) |
 | Math in methodology modals | [MathJax](https://www.mathjax.org/) |
-| Icons | [Font Awesome](https://fontawesome.com/) |
-| Weather icons (fill, vendored) | [Meteocons](https://github.com/basmilius/meteocons) by Bas Milius (MIT) |
+| Weather-code icons (fill, vendored) | [Meteocons](https://github.com/basmilius/meteocons) by Bas Milius (MIT) |
+| Card header icons (static fill, vendored) | [Meteocons](https://github.com/basmilius/meteocons) by Bas Milius (MIT). Sinus still uses Font Awesome. |
+| NWS alert icons (fill, vendored) | [Meteocons](https://github.com/basmilius/meteocons) by Bas Milius (MIT) |
+| UI chrome (search, chevrons, clocks, close) | [Font Awesome](https://fontawesome.com/) |
 | CSS utilities | [Tailwind CSS](https://tailwindcss.com/) |
 | Reverse geocode | [BigDataCloud](https://www.bigdatacloud.com/) |
 | Fonts | [DM Sans](https://fonts.google.com/specimen/DM+Sans), [Lora](https://fonts.google.com/specimen/Lora) |
