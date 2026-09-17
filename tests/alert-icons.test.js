@@ -11,16 +11,21 @@ const buildJs = fs.readFileSync(path.join(root, 'build.js'), 'utf8');
 
 function loadAlertIconFunctions() {
   const source = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
+  const versionStart = source.indexOf('const ASSET_VERSION');
+  const versionEnd = source.indexOf(';', versionStart) + 1;
   const baseStart = source.indexOf('const ALERT_ICON_BASE');
   const displayStart = source.indexOf('function displayAlerts(');
+  assert.ok(versionStart > -1, 'expected ASSET_VERSION in public/app.js');
   assert.ok(baseStart > -1, 'expected ALERT_ICON_BASE in public/app.js');
   assert.ok(displayStart > baseStart, 'expected getAlertIconFile/getAlertIcon before displayAlerts');
   const sandbox = {};
   vm.runInNewContext(
-    `${source.slice(baseStart, displayStart)}
+    `${source.slice(versionStart, versionEnd)}
+     ${source.slice(baseStart, displayStart)}
      this.getAlertIconFile = getAlertIconFile;
      this.getAlertIcon = getAlertIcon;
-     this.ALERT_ICON_BASE = ALERT_ICON_BASE;`,
+     this.ALERT_ICON_BASE = ALERT_ICON_BASE;
+     this.ASSET_VERSION = ASSET_VERSION;`,
     sandbox
   );
   return sandbox;
@@ -160,16 +165,17 @@ test('every mapped event resolves to a vendored file on disk', () => {
 });
 
 test('getAlertIcon renders a Worker-served img instead of Font Awesome', () => {
-  const { getAlertIcon, ALERT_ICON_BASE } = loadAlertIconFunctions();
+  const { getAlertIcon, ALERT_ICON_BASE, ASSET_VERSION } = loadAlertIconFunctions();
   assert.equal(ALERT_ICON_BASE, '/icons/alerts/');
+  assert.equal(ASSET_VERSION, 'dev');
   const htmlOut = getAlertIcon('Tornado Warning');
   assert.ok(htmlOut.startsWith('<img '), 'should render an img tag');
-  assert.ok(htmlOut.includes('src="/icons/alerts/tornado.svg"'), 'should point at the Worker icon route');
+  assert.ok(htmlOut.includes('src="/icons/alerts/tornado.svg?v=dev"'), 'should point at the Worker icon route with a version query');
   assert.ok(htmlOut.includes('class="alert-icon"'), 'should carry the sizing class');
   assert.ok(!htmlOut.includes('fa-'), 'should contain no Font Awesome classes');
   assert.ok(!/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(htmlOut), 'should contain no emoji');
   const fallback = getAlertIcon('Special Weather Statement');
-  assert.ok(fallback.includes('src="/icons/alerts/weather-alarm.svg"'), 'fallback should use the generic alarm icon');
+  assert.ok(fallback.includes('src="/icons/alerts/weather-alarm.svg?v=dev"'), 'fallback should use the generic alarm icon');
 });
 
 test('the FA triangle is gone from the event glyph; chevrons and clocks stay', () => {

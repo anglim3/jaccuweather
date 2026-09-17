@@ -124,13 +124,13 @@ test('pollen UI uses the official static pollen-category icons', () => {
   const sources = [html, appJs];
   for (const [label, file] of POLLEN_UI_MAPPING) {
     const found = sources.some((src) =>
-      src.includes(`<img src="/icons/cards/${file}"`) && src.includes(label)
+      (src.includes(`<img src="/icons/cards/${file}"`) || src.includes(`<img src="/icons/cards/${file}?v=\${ASSET_VERSION}"`)) && src.includes(label)
     );
     assert.equal(found, true, `expected ${label} to use /icons/cards/${file}`);
   }
   // Allergy card header and allergy modal title use the generic pollen icon.
   assert.match(html, /<img src="\/icons\/cards\/pollen\.svg"[^>]*>Allergy/);
-  assert.match(appJs, /titleIcon\.innerHTML = '<img src="\/icons\/cards\/pollen\.svg"/);
+  assert.match(appJs, /titleIcon\.innerHTML = `<img src="\/icons\/cards\/pollen\.svg\?v=\$\{ASSET_VERSION\}"/);
 });
 
 test('retired Font Awesome card headers are gone', () => {

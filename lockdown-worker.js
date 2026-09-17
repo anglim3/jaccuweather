@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { hasUnversionedIconSrc, stampHtmlIconUrls } = require('./asset-version');
 
 const srcPath = path.join(__dirname, 'src', 'index.js');
 let src = fs.readFileSync(srcPath, 'utf8');
@@ -284,6 +285,18 @@ const billedCallAt = src.indexOf('return handlePollenRequest(url, env)');
 if (pollenCallAt < 0 || billedCallAt < 0 || pollenCallAt > billedCallAt) {
   fail('rate limit must run before handlePollenRequest');
 }
+
+const jsEmbedded = extractJsonStringConst(src, 'JS_CONTENT').value;
+const assetVersionMatch = jsEmbedded.match(/const ASSET_VERSION = '([0-9a-f]{8})';/);
+if (!assetVersionMatch) {
+  fail('ASSET_VERSION missing or still the build placeholder in JS_CONTENT');
+}
+const htmlEmbedded = extractJsonStringConst(src, 'HTML_CONTENT').value;
+const stampedHtml = stampHtmlIconUrls(htmlEmbedded, assetVersionMatch[1]);
+if (hasUnversionedIconSrc(stampedHtml)) {
+  fail('HTML icon URLs missing cache-busting query');
+}
+src = replaceJsonStringConst(src, 'HTML_CONTENT', stampedHtml);
 
 fs.writeFileSync(srcPath, src);
 console.log('lockdown-worker: pollen same-origin gate on; per-IP rate limit before billed pollen; Ventusky HTML proxy removed; client patches inlined');
