@@ -61,7 +61,7 @@ let activeSuggestionRequestId = 0;
 // Layer switching removed - Ventusky handles layers internally
 
 const HOURLY_FORECAST_HOURS = 48;
-// Base path for vendored Meteocons fill weather icons served by the Worker.
+const ASSET_VERSION = 'dev'; // build.js replaces this with a content hash
 const WEATHER_ICON_BASE = '/icons/weather/';
 const UNITS = {
     temperature: '\u00b0F',
@@ -2682,7 +2682,7 @@ function getWeatherIconFile(code, isDay = true, precipProbability = null) {
 function getWeatherIcon(code, isDay = true, precipProbability = null) {
     const file = getWeatherIconFile(code, isDay, precipProbability);
     const label = getWeatherDescription(code);
-    return `<img src="${WEATHER_ICON_BASE}${file}" alt="${label}" class="wx-icon" loading="lazy" draggable="false">`;
+    return `<img src="${WEATHER_ICON_BASE}${file}?v=${ASSET_VERSION}" alt="${label}" class="wx-icon" loading="lazy" draggable="false">`;
 }
 
 function getWeatherDescription(code) {
@@ -3241,7 +3241,7 @@ function getAlertIconFile(eventType) {
 function getAlertIcon(eventType) {
     const file = getAlertIconFile(eventType);
     const label = String(eventType || 'Weather Alert');
-    return `<img src="${ALERT_ICON_BASE}${file}" alt="" aria-hidden="true" class="alert-icon" loading="lazy" draggable="false">`;
+    return `<img src="${ALERT_ICON_BASE}${file}?v=${ASSET_VERSION}" alt="" aria-hidden="true" class="alert-icon" loading="lazy" draggable="false">`;
 }
 
 function displayAlerts(alerts) {
@@ -4008,7 +4008,7 @@ function openSymptomRiskModal(type) {
         allergySection.classList.add('hidden');
     } else {
         titleText.textContent = 'Allergy';
-        titleIcon.innerHTML = '<img src="/icons/cards/pollen.svg" alt="" class="card-icon" loading="lazy" draggable="false">';
+        titleIcon.innerHTML = `<img src="/icons/cards/pollen.svg?v=${ASSET_VERSION}" alt="" class="card-icon" loading="lazy" draggable="false">`;
         sinusSection.classList.add('hidden');
         allergySection.classList.remove('hidden');
     }
@@ -4066,17 +4066,17 @@ function openSymptomRiskModal(type) {
 
                 pollenHtml = `
                     <div class="stat-card rounded-lg p-3 text-center">
-                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-tree.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Tree pollen</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-tree.svg?v=${ASSET_VERSION}" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Tree pollen</div>
                         <div class="text-white font-bold">${hasPollenValue(treePollen) ? formatPollenValue(treePollen) : '—'}</div>
                         <div class="text-xs ${hasPollenValue(treePollen) ? treeLevel.colorClass : 'text-gray-400'}">${hasPollenValue(treePollen) ? treeLevel.label : 'Unavailable'}</div>
                     </div>
                     <div class="stat-card rounded-lg p-3 text-center">
-                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-grass.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Grass pollen</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-grass.svg?v=${ASSET_VERSION}" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Grass pollen</div>
                         <div class="text-white font-bold">${hasPollenValue(grassPollen) ? formatPollenValue(grassPollen) : '—'}</div>
                         <div class="text-xs ${hasPollenValue(grassPollen) ? grassLevel.colorClass : 'text-gray-400'}">${hasPollenValue(grassPollen) ? grassLevel.label : 'Unavailable'}</div>
                     </div>
                     <div class="stat-card rounded-lg p-3 text-center">
-                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-weed.svg" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Weed pollen</div>
+                        <div class="text-gray-400 text-xs mb-1"><img src="/icons/cards/pollen-weed.svg?v=${ASSET_VERSION}" alt="" class="card-icon mr-1" loading="lazy" draggable="false">Weed pollen</div>
                         <div class="text-white font-bold">${hasPollenValue(weedPollen) ? formatPollenValue(weedPollen) : '—'}</div>
                         <div class="text-xs ${hasPollenValue(weedPollen) ? weedLevel.colorClass : 'text-gray-400'}">${hasPollenValue(weedPollen) ? weedLevel.label : 'Unavailable'}</div>
                     </div>

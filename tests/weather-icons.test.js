@@ -8,23 +8,26 @@ const root = path.resolve(__dirname, '..');
 
 function loadIconFunctions() {
   const source = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
+  const versionStart = source.indexOf('const ASSET_VERSION');
   const baseStart = source.indexOf('const WEATHER_ICON_BASE');
   const fileStart = source.indexOf('function getWeatherIconFile');
   const iconStart = source.indexOf('function getWeatherIcon(');
   const descStart = source.indexOf('function getWeatherDescription');
   const moonStart = source.indexOf('function calculateMoonPhase');
-  assert.ok(baseStart > -1 && fileStart > baseStart, 'expected WEATHER_ICON_BASE and getWeatherIconFile in public/app.js');
+  assert.ok(versionStart > -1 && baseStart > versionStart, 'expected ASSET_VERSION before WEATHER_ICON_BASE in public/app.js');
+  assert.ok(fileStart > baseStart, 'expected WEATHER_ICON_BASE and getWeatherIconFile in public/app.js');
   assert.ok(iconStart > fileStart && descStart > iconStart && moonStart > descStart, 'expected icon functions in order');
   const baseEnd = source.indexOf(';', baseStart) + 1;
   const sandbox = {};
   vm.runInNewContext(
-    `${source.slice(baseStart, baseEnd)}
+    `${source.slice(versionStart, baseEnd)}
      ${source.slice(fileStart, descStart)}
      ${source.slice(descStart, moonStart)}
      this.getWeatherIconFile = getWeatherIconFile;
      this.getWeatherIcon = getWeatherIcon;
      this.getWeatherDescription = getWeatherDescription;
-     this.WEATHER_ICON_BASE = WEATHER_ICON_BASE;`,
+     this.WEATHER_ICON_BASE = WEATHER_ICON_BASE;
+     this.ASSET_VERSION = ASSET_VERSION;`,
     sandbox
   );
   return sandbox;
@@ -83,16 +86,17 @@ test('rain/drizzle/shower/thunder with probability <= 30 downgrades to partly cl
 });
 
 test('getWeatherIcon renders a Worker-served img instead of emoji', () => {
-  const { getWeatherIcon, WEATHER_ICON_BASE } = loadIconFunctions();
+  const { getWeatherIcon, WEATHER_ICON_BASE, ASSET_VERSION } = loadIconFunctions();
   assert.equal(WEATHER_ICON_BASE, '/icons/weather/');
+  assert.equal(ASSET_VERSION, 'dev');
   const html = getWeatherIcon(63, true);
   assert.ok(html.startsWith('<img '), 'should render an img tag');
-  assert.ok(html.includes('src="/icons/weather/overcast-day-rain.svg"'), 'should point at the Worker icon route');
+  assert.ok(html.includes('src="/icons/weather/overcast-day-rain.svg?v=dev"'), 'should point at the Worker icon route with a version query');
   assert.ok(html.includes('class="wx-icon"'), 'should carry the sizing class');
   assert.ok(html.includes('alt="Moderate rain"'), 'should label the icon from the WMO description');
   assert.ok(!/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(html), 'should contain no emoji');
   const night = getWeatherIcon(0, false);
-  assert.ok(night.includes('clear-night.svg'), 'night clear should use the night variant');
+  assert.ok(night.includes('clear-night.svg?v=dev'), 'night clear should use the night variant');
 });
 
 test('build embeds the vendored icons and serves them from the Worker', () => {

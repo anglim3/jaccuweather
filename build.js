@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { execSync } = require('child_process');
+const {
+  computeStaticAssetVersion,
+  injectAssetVersion,
+  shortContentHash,
+  stampHtmlDocumentAssets,
+} = require('./asset-version');
 
 // Convert SVG to PNG for iOS (if convert-favicon.js exists)
 try {
@@ -15,19 +20,18 @@ try {
 
 // Read the HTML, JS, and favicon files
 let htmlContent = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
-const jsContent = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+let jsContent = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
 const faviconContent = fs.readFileSync(path.join(__dirname, 'public', 'favicon.svg'), 'utf8');
 const appleTouchIconContent = fs.readFileSync(path.join(__dirname, 'public', 'apple-touch-icon.png'));
 
-// Generate a hash of the SVG content for cache-busting
-// This ensures the icon URL changes automatically when the icon is modified
-const svgHash = crypto.createHash('md5').update(faviconContent).digest('hex').substring(0, 8);
-
-// Update the HTML to include the version parameter in the apple-touch-icon URL
-htmlContent = htmlContent.replace(
-  /href="\/apple-touch-icon\.png"/,
-  `href="/apple-touch-icon.png?v=${svgHash}"`
-);
+// Content hash of long-cached static blobs (vendored icon sets, favicon,
+// apple-touch). Injected into the client as ASSET_VERSION and as ?v= on
+// HTML references. Icon <img> srcs in the HTML document are stamped after
+// lockdown patches so patches/index.html.patch context stays stable.
+const assetVersion = computeStaticAssetVersion(__dirname);
+jsContent = injectAssetVersion(jsContent, assetVersion);
+const jsVersion = shortContentHash([jsContent]);
+htmlContent = stampHtmlDocumentAssets(htmlContent, { assetVersion, jsVersion });
 
 // Convert PNG to base64 for embedding
 const appleTouchIconBase64 = appleTouchIconContent.toString('base64');
@@ -490,15 +494,17 @@ export default {
       return new Response(HTML_CONTENT, {
         headers: {
           'Content-Type': 'text/html;charset=UTF-8',
+          'Cache-Control': 'no-cache',
         },
       });
     }
     
-    // Serve the JavaScript file
+    // Serve the JavaScript file (URL is fingerprinted from HTML as /app.js?v=)
     if (url.pathname === '/app.js') {
       return new Response(JS_CONTENT, {
         headers: {
           'Content-Type': 'application/javascript',
+          'Cache-Control': 'public, max-age=31536000, immutable',
         },
       });
     }
@@ -508,7 +514,7 @@ export default {
       return new Response(FAVICON_CONTENT, {
         headers: {
           'Content-Type': 'image/svg+xml',
-          'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+          'Cache-Control': 'public, max-age=31536000, immutable',
         },
       });
     }
@@ -519,7 +525,7 @@ export default {
       return new Response(pngBuffer, {
         headers: {
           'Content-Type': 'image/png',
-          'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+          'Cache-Control': 'public, max-age=31536000, immutable',
         },
       });
     }
