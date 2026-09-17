@@ -103,3 +103,27 @@ test('build embeds the vendored icons and serves them from the Worker', () => {
   const appSource = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
   assert.ok(!appSource.includes('cdn.meteocons.com'), 'client must not hotlink the Meteocons CDN');
 });
+
+test('rain/drizzle drop strokes use high-contrast sky blue, not navy', () => {
+  const dir = path.join(root, 'public', 'icons', 'weather');
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.svg'));
+  let raindropFiles = 0;
+  for (const file of files) {
+    const svg = fs.readFileSync(path.join(dir, file), 'utf8');
+    assert.equal(svg.includes('#0A5AD4'), false, `${file} should not use navy drop stroke`);
+    if (!/id="Raindrop/.test(svg)) continue;
+    raindropFiles += 1;
+    const drops = [...svg.matchAll(/id="Raindrop[^"]*"[\s\S]*?stroke="([^"]+)"[\s\S]*?stroke-width="([^"]+)"/g)];
+    assert.ok(drops.length >= 3, `${file} should have raindrop strokes`);
+    for (const [, color, width] of drops) {
+      assert.equal(color, '#7DD3FC', `${file} drop stroke should be sky-300`);
+      assert.equal(width, '5', `${file} drop stroke-width should be slightly thicker`);
+    }
+    assert.ok(/stroke="#(E6EFFC|94A3B8)"/.test(svg), `${file} should keep original cloud strokes`);
+  }
+  assert.ok(raindropFiles >= 10, `expected rain/drizzle(/sleet) fill icons, got ${raindropFiles}`);
+
+  const worker = fs.readFileSync(path.join(root, 'src', 'index.js'), 'utf8');
+  assert.ok(worker.includes('#7DD3FC'), 'built Worker should embed the sky-300 rain strokes');
+  assert.equal(worker.includes('#0A5AD4'), false, 'built Worker should not embed navy rain strokes');
+});
