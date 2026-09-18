@@ -4,6 +4,10 @@ A weather app that runs as a single [Cloudflare Worker](https://workers.cloudfla
 
 **Demo:** [weather.janglim.cloud](https://weather.janglim.cloud)
 
+## Screenshots
+
+![Rain weather icons on the dark glass-card theme](docs/screenshots/rain-icons-dark-glass.png)
+
 ## What you get
 
 - Current conditions: temperature, feels-like, humidity, wind, UV, pressure trend, AQI
@@ -26,7 +30,7 @@ Core weather works without API keys. Optional keys improve pollen coverage.
 - [Node.js](https://nodejs.org/) 16 or higher
 - npm
 - A [Cloudflare](https://dash.cloudflare.com/) account (the free tier is enough)
-- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) (installed via `npm install`)
+- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) (installed via `npm install`). Wrangler **4.36 or higher** is required — this project pins `^4.54.0` in `package.json`. Older Wrangler versions cannot parse the `[[ratelimits]]` block in `wrangler.toml`
 
 ## Quick start
 
@@ -76,21 +80,31 @@ Optional: set the account ID for that command only:
 CLOUDFLARE_ACCOUNT_ID=your_account_id npm run deploy
 ```
 
-## Optional secrets
+## Optional secrets and bindings
 
 Pollen works without secrets via Open-Meteo. For better coverage, add Worker secrets:
 
-| Secret | Required | Purpose |
-|--------|----------|---------|
-| `GOOGLE_POLLEN_API_KEY` | No | Primary pollen source (Google Pollen API) |
-| `TOMORROW_API_KEY` | No | Secondary pollen fallback |
+| Name | Required | Purpose |
+|------|----------|---------|
+| `GOOGLE_POLLEN_API_KEY` (secret) | No | Primary pollen source (Google Pollen API) |
+| `TOMORROW_API_KEY` (secret) | No | Secondary pollen fallback |
+| `POLLEN_RATE_LIMIT` (binding, not a secret) | No | Rate-limit binding on `/api/pollen`. Simple limit of **20 requests / 60 seconds**, configured in `wrangler.toml` (set up automatically on deploy; no action needed). |
 
 ```bash
 npx wrangler secret put GOOGLE_POLLEN_API_KEY
 npx wrangler secret put TOMORROW_API_KEY
 ```
 
-Local `wrangler dev` does not load remote secrets by default. To test with production secrets:
+For local development, put local-only copies of the secrets in a `.dev.vars` file at the project root. `wrangler dev` loads them automatically (no `--remote` needed):
+
+```ini
+GOOGLE_POLLEN_API_KEY=your_google_pollen_key
+TOMORROW_API_KEY=your_tomorrow_key
+```
+
+Do not commit `.dev.vars` — keep it local only.
+
+Local `wrangler dev` does not load remote secrets by default. To test with production secrets instead:
 
 ```bash
 npx wrangler dev --remote --ip 127.0.0.1 --port 8789
@@ -115,6 +129,9 @@ jaccuweather/
 ├── build.js                # Embeds public/* and defines API proxy routes
 ├── lockdown-worker.js      # Patches the generated Worker (run by npm run build)
 ├── convert-favicon.js      # SVG to PNG for Apple touch icon (uses sharp)
+├── asset-version.js        # Generates versioned (?v=<hash>) asset URLs so deploys bust long-lived icon caches
+├── docs/                   # Project docs
+│   └── screenshots/        # UI screenshots used in this README
 ├── AGENTS.md               # Notes for coding agents
 ├── wrangler.toml
 └── package.json
@@ -144,6 +161,14 @@ node --test tests/*.test.js
 2. `lockdown-worker.js` applies the `patches/` updates, rate-limits `/api/pollen`, and removes the Ventusky HTML proxy. The built Worker embeds Ventusky directly.
 3. The Worker serves the app and proxies `/api/*` routes with caching where useful. Tides are fetched in the browser from NOAA.
 4. Favorites live in IndexedDB with a localStorage fallback. Theme preference is stored in the browser only.
+
+### Bindings
+
+Defined in `wrangler.toml`:
+
+- Worker name: `weather-app`, with `compatibility_date` `2024-01-01`
+- `POLLEN_RATE_LIMIT` — rate-limit binding on `/api/pollen` (simple limit of 20 requests / 60 seconds)
+- Optional secrets: `GOOGLE_POLLEN_API_KEY` and `TOMORROW_API_KEY` (see [Optional secrets and bindings](#optional-secrets-and-bindings))
 
 ### Worker routes
 
