@@ -27,7 +27,7 @@ Core weather works without API keys. Optional keys improve pollen coverage.
 
 ## Requirements
 
-- [Node.js](https://nodejs.org/) 16 or higher
+- [Node.js](https://nodejs.org/) 18 or higher
 - npm
 - A [Cloudflare](https://dash.cloudflare.com/) account (the free tier is enough)
 - [Wrangler](https://developers.cloudflare.com/workers/wrangler/) (installed via `npm install`). Wrangler **4.36 or higher** is required — this project pins `^4.54.0` in `package.json`. Older Wrangler versions cannot parse the `[[ratelimits]]` block in `wrangler.toml`
@@ -72,7 +72,7 @@ Edit files under `public/`. Then rebuild and restart `npm run dev` so `src/index
 npm run deploy
 ```
 
-This builds and deploys the Worker named `weather-app` from `wrangler.toml`. After deploy, attach a custom domain in the Cloudflare dashboard if you want one.
+This builds and deploys the Worker named `weather-app` from `wrangler.toml`. After deploy, attach a custom domain in the Cloudflare Dashboard if you want one.
 
 Optional: set the account ID for that command only:
 
@@ -107,7 +107,7 @@ Do not commit `.dev.vars` — keep it local only.
 Local `wrangler dev` does not load remote secrets by default. To test with production secrets instead:
 
 ```bash
-npx wrangler dev --remote --ip 127.0.0.1 --port 8789
+npx wrangler dev --Remote --ip 127.0.0.1 --port 8789
 ```
 
 ## Project layout
