@@ -27,7 +27,7 @@ Core weather works without API keys. Optional keys improve pollen coverage.
 
 ## Requirements
 
-- [Node.js](https://nodejs.org/) 16 or higher
+- [Node.js](https://nodejs.org/) 18 or higher
 - npm
 - A [Cloudflare](https://dash.cloudflare.com/) account (the free tier is enough)
 - [Wrangler](https://developers.cloudflare.com/workers/wrangler/) (installed via `npm install`). Wrangler **4.36 or higher** is required — this project pins `^4.54.0` in `package.json`. Older Wrangler versions cannot parse the `[[ratelimits]]` block in `wrangler.toml`

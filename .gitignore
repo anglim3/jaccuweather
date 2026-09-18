@@ -11,6 +11,10 @@ dist/
 .env
 .env.local
 
+# Wrangler local-only secrets
+.dev.vars
+.dev.vars.*
+
 # IDE
 .vscode/
 .idea/

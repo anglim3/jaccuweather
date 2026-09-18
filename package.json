@@ -18,5 +18,9 @@
   "devDependencies": {
     "sharp": "^0.34.5",
     "wrangler": "^4.54.0"
+  },
+  "engines": {
+    "node": ">=18",
+    "wrangler": ">=4.36.0"
   }
 }
