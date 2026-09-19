@@ -22,16 +22,6 @@ No framework, client-rendered, free public APIs. The Worker embeds the HTML, Jav
 
 ---
 
-## Screenshots
-
-![Jaccuweather on the dark glass theme, Seattle](docs/screenshots/app-hero.png)
-
-Live desktop capture of the app at [weather.janglim.cloud](https://weather.janglim.cloud) — Seattle, dark navy glass.
-
-![Rain weather icons on the dark glass-card theme](docs/screenshots/rain-icons-dark-glass.png)
-
-Rain icons on dark glass.
-
 ## What you get
 
 - Current conditions: temperature, feels-like, humidity, wind, UV, pressure trend, AQI
