@@ -1,12 +1,36 @@
+<div align="center">
+
+<img src="public/favicon.svg" width="64" height="64" alt="Jaccuweather" />
+
 # Jaccuweather
 
-A weather app that runs as a single [Cloudflare Worker](https://workers.cloudflare.com/). It uses vanilla JavaScript with no framework, renders everything client-side, and calls free public APIs. The Worker embeds the HTML, JavaScript, and icons, and proxies a few APIs so the browser avoids CORS errors.
+**A vanilla-JS weather app on a single [Cloudflare Worker](https://workers.cloudflare.com/).**  
+No framework, client-rendered, free public APIs. The Worker embeds the HTML, JavaScript, and icons, and proxies a few APIs so the browser avoids CORS errors.
 
 **Demo:** [weather.janglim.cloud](https://weather.janglim.cloud)
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-7dd3fc?style=flat-square&labelColor=0d2137)](#license)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat-square&logo=cloudflare&logoColor=white&labelColor=0d2137)](https://workers.cloudflare.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=nodedotjs&logoColor=white&labelColor=0d2137)](https://nodejs.org/)
+[![Demo](https://img.shields.io/badge/demo-live-7dd3fc?style=flat-square&labelColor=0d2137)](https://weather.janglim.cloud)
+
+<img src="docs/screenshots/app-hero.png" alt="Jaccuweather dark glass UI for Seattle, Washington" width="920" />
+
+*Live app on the dark glass theme — Seattle.*
+
+</div>
+
+---
+
 ## Screenshots
 
+![Jaccuweather on the dark glass theme, Seattle](docs/screenshots/app-hero.png)
+
+Live desktop capture of the app at [weather.janglim.cloud](https://weather.janglim.cloud) — Seattle, dark navy glass.
+
 ![Rain weather icons on the dark glass-card theme](docs/screenshots/rain-icons-dark-glass.png)
+
+Rain icons on dark glass.
 
 ## What you get
 
