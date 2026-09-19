@@ -4248,8 +4248,8 @@ function openHourlyModal(data) {
     const cloudLow = [];
     const cloudMid = [];
     const cloudHigh = [];
-    const shortwaveData = [];
-    const labels = [];
+    const cloudTotal = [];
+    const shortwaveData = [], labels = [];
 
     for (let i = 0; i < HOURLY_FORECAST_HOURS && (startIndex + i) < data.hourly.time.length; i++) {
         const idx = startIndex + i;
@@ -4267,6 +4267,7 @@ function openHourlyModal(data) {
         cloudLow.push(data.hourly.cloud_cover_low ? data.hourly.cloud_cover_low[idx] : 0);
         cloudMid.push(data.hourly.cloud_cover_mid ? data.hourly.cloud_cover_mid[idx] : 0);
         cloudHigh.push(data.hourly.cloud_cover_high ? data.hourly.cloud_cover_high[idx] : 0);
+        cloudTotal.push(Math.min(100, Math.max(0, data.hourly.cloud_cover ? data.hourly.cloud_cover[idx] : 0))); // ensemble-averaged total, clamped 0-100
         shortwaveData.push(data.hourly.shortwave_radiation ? data.hourly.shortwave_radiation[idx] : 0);
     }
 
@@ -4429,17 +4430,16 @@ function openHourlyModal(data) {
     hourlyChart.snow.render();
 
     hourlyChart.cloud = new ApexCharts(document.getElementById('hourlyCloudChart'), baseChartOptions({
-        chart: { type: 'bar', stacked: true },
-        series: [
-            { name: 'Low Clouds', data: cloudLow },
-            { name: 'Mid Clouds', data: cloudMid },
-            { name: 'High Clouds', data: cloudHigh }
-        ],
-        colors: ['rgba(100, 116, 139, 0.75)', 'rgba(148, 163, 184, 0.7)', 'rgba(203, 213, 225, 0.65)'],
+        chart: { type: 'bar' },
+        series: [{ name: 'Cloud Cover', data: cloudTotal }],
+        colors: ['rgba(148, 163, 184, 0.7)'],
         fill: { type: 'solid' },
         plotOptions: { bar: { borderRadius: 2 } },
         xaxis: { categories: labels },
-        yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } }
+        yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } },
+        tooltip: {
+            custom: ({ series, dataPointIndex, w }) => cloudCoverTooltip({ series, dataPointIndex, w, lowSeries: cloudLow, midSeries: cloudMid, highSeries: cloudHigh })
+        }
     }));
     hourlyChart.cloud.render();
 
@@ -4546,7 +4546,7 @@ function openDailyModal(data) {
     const dailyPressure = [];
     const dailyCloudLow = [];
     const dailyCloudMid = [];
-    const dailyCloudHigh = [];
+    const dailyCloudHigh = [], dailyCloudTotal = [];
     const dailyShortwaveAverage = [];
     const dailyTideLabels = [];
     const dailyTideValues = [];
@@ -4611,18 +4611,18 @@ function openDailyModal(data) {
                 const avgCloudLow = dayHourlyIndexes.reduce((sum, h) => sum + (data.hourly.cloud_cover_low[h] ?? 0), 0) / dayHourlyIndexes.length;
                 const avgCloudMid = dayHourlyIndexes.reduce((sum, h) => sum + (data.hourly.cloud_cover_mid[h] ?? 0), 0) / dayHourlyIndexes.length;
                 const avgCloudHigh = dayHourlyIndexes.reduce((sum, h) => sum + (data.hourly.cloud_cover_high[h] ?? 0), 0) / dayHourlyIndexes.length;
+                const avgCloudTotal = Math.min(100, Math.max(0, dayHourlyIndexes.reduce((sum, h) => sum + (data.hourly.cloud_cover?.[h] ?? 0), 0) / dayHourlyIndexes.length)); // same source as layers
                 dailyCloudLow.push(Number(avgCloudLow.toFixed(1)));
                 dailyCloudMid.push(Number(avgCloudMid.toFixed(1)));
                 dailyCloudHigh.push(Number(avgCloudHigh.toFixed(1)));
+                dailyCloudTotal.push(Number(avgCloudTotal.toFixed(1)));
             } else {
                 dailyCloudLow.push(0);
-                dailyCloudMid.push(0);
-                dailyCloudHigh.push(0);
+                [dailyCloudMid, dailyCloudHigh, dailyCloudTotal].forEach((arr) => arr.push(0));
             }
         } else {
             dailyCloudLow.push(0);
-            dailyCloudMid.push(0);
-            dailyCloudHigh.push(0);
+            [dailyCloudMid, dailyCloudHigh, dailyCloudTotal].forEach((arr) => arr.push(0));
         }
 
         // Calculate daily average shortwave radiation from hourly data
@@ -4818,17 +4818,17 @@ function openDailyModal(data) {
     maybeRenderDailyChart('snow');
 
     dailyChart.cloud = new ApexCharts(document.getElementById('dailyCloudChart'), baseChartOptions({
-        chart: { type: 'bar', stacked: true },
-        series: [
-            { name: 'Low Clouds', data: dailyCloudLow },
-            { name: 'Mid Clouds', data: dailyCloudMid },
-            { name: 'High Clouds', data: dailyCloudHigh }
-        ],
-        colors: ['rgba(100, 116, 139, 0.75)', 'rgba(148, 163, 184, 0.7)', 'rgba(203, 213, 225, 0.65)'],
+        chart: { type: 'bar' },
+        series: [{ name: 'Cloud Cover', data: dailyCloudTotal }],
+        colors: ['rgba(148, 163, 184, 0.7)'],
         fill: { type: 'solid' },
         plotOptions: { bar: { borderRadius: 2 } },
         xaxis: { categories: labels },
-        yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } }
+        yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } },
+        // Low/mid/high are independent fractions of the sky, not stackable parts — layer detail on hover.
+        tooltip: {
+            custom: ({ series, dataPointIndex, w }) => cloudCoverTooltip({ series, dataPointIndex, w, lowSeries: dailyCloudLow, midSeries: dailyCloudMid, highSeries: dailyCloudHigh })
+        }
     }));
     maybeRenderDailyChart('cloud');
 
@@ -5456,4 +5456,28 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
             updateLastUpdatedLabel();
         }, LAST_UPDATED_TICK_MS);
     }
+}
+
+// Tooltip for the cloud cover charts: one total-cover bar plus the
+// low/mid/high layer breakdown. Low/mid/high are independent fractions of
+// the whole sky (not parts of a whole), so they are shown as detail next to
+// the total instead of being stacked into the bar. Hourly totals come from
+// the ensemble-averaged hourly cloud_cover; daily totals average that day's
+// hourly cloud_cover over the day's hours (same source and averaging as the
+// layer breakdown shown beside them).
+function cloudCoverTooltip({ series, dataPointIndex, w, lowSeries, midSeries, highSeries }) {
+    const idx = dataPointIndex ?? 0;
+    const round = (v) => Math.round(Math.min(100, Math.max(0, v ?? 0)));
+    const total = series && series[0] ? series[0][idx] : 0;
+    const low = lowSeries ? lowSeries[idx] : 0;
+    const mid = midSeries ? midSeries[idx] : 0;
+    const high = highSeries ? highSeries[idx] : 0;
+    const label = w && w.globals ? (w.globals.categoryLabels[idx] || w.globals.labels[idx] || '') : '';
+    return '<div class="apexcharts-tooltip-title">' + label + '</div>' +
+        '<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex">' +
+        '<span class="apexcharts-tooltip-marker" style="background-color:rgba(148, 163, 184, 0.9)"></span>' +
+        '<div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group">' +
+        '<span class="apexcharts-tooltip-text-y-label">Total </span>' +
+        '<span class="apexcharts-tooltip-text-y-value">' + round(total) + '% · Low ' + round(low) + ' · Mid ' + round(mid) + ' · High ' + round(high) + '</span>' +
+        '</div></div></div>';
 }
