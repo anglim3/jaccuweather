@@ -4429,7 +4429,7 @@ function openHourlyModal(data) {
     hourlyChart.snow.render();
 
     hourlyChart.cloud = new ApexCharts(document.getElementById('hourlyCloudChart'), baseChartOptions({
-        chart: { type: 'bar', stacked: true },
+        chart: { type: 'bar', events: { mounted: (c) => overlayCloudSeries(c.el), updated: (c) => overlayCloudSeries(c.el), resized: (c) => overlayCloudSeries(c.el) } },
         series: [
             { name: 'Low Clouds', data: cloudLow },
             { name: 'Mid Clouds', data: cloudMid },
@@ -4818,7 +4818,7 @@ function openDailyModal(data) {
     maybeRenderDailyChart('snow');
 
     dailyChart.cloud = new ApexCharts(document.getElementById('dailyCloudChart'), baseChartOptions({
-        chart: { type: 'bar', stacked: true },
+        chart: { type: 'bar', events: { mounted: (c) => overlayCloudSeries(c.el), updated: (c) => overlayCloudSeries(c.el), resized: (c) => overlayCloudSeries(c.el) } },
         series: [
             { name: 'Low Clouds', data: dailyCloudLow },
             { name: 'Mid Clouds', data: dailyCloudMid },
@@ -5456,4 +5456,47 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
             updateLastUpdatedLabel();
         }, LAST_UPDATED_TICK_MS);
     }
+}
+
+// Cloud-cover layers (low/mid/high) are each a share of the whole sky, so they
+// are presented as translucent bars overlaid on the same x slot instead of being
+// stacked or grouped. ApexCharts has no native bar-overlap option, so after each
+// render the series bars are repositioned onto the first series' x-slots and
+// given reduced fill-opacity so overlaps blend.
+function overlayCloudSeries(chartEl) {
+    if (!chartEl) return;
+    const seriesGroups = chartEl.querySelectorAll('g.apexcharts-series');
+    if (!seriesGroups.length) return;
+    const baseBars = seriesGroups[0].querySelectorAll('.apexcharts-bar-area');
+    // Bars may be <rect x="..."> or, with a borderRadius set, <path d="M x y ...">.
+    const barX = (bar) => {
+        const xAttr = bar.getAttribute('x');
+        if (xAttr != null) return parseFloat(xAttr);
+        const d = bar.getAttribute('d');
+        if (d) {
+            const m = d.match(/^M\s*(-?[\d.]+)/);
+            if (m) return parseFloat(m[1]);
+        }
+        return null;
+    };
+    seriesGroups.forEach((group, gi) => {
+        if (gi === 0) return;
+        const bars = group.querySelectorAll('.apexcharts-bar-area');
+        bars.forEach((bar, i) => {
+            const base = baseBars[i];
+            if (!base) return;
+            const baseX = barX(base);
+            const curX = barX(bar);
+            if (baseX == null || curX == null) return;
+            if (bar.hasAttribute('x')) {
+                bar.setAttribute('x', String(baseX));
+            } else {
+                const dx = baseX - curX;
+                bar.setAttribute('transform', 'translate(' + dx.toFixed(4) + ', 0)');
+            }
+        });
+    });
+    chartEl.querySelectorAll('.apexcharts-bar-area').forEach((bar) => {
+        bar.setAttribute('fill-opacity', '0.55');
+    });
 }
