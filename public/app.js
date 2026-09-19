@@ -4436,8 +4436,8 @@ function openHourlyModal(data) {
             { name: 'High Clouds', data: cloudHigh }
         ],
         colors: ['rgba(100, 116, 139, 0.75)', 'rgba(148, 163, 184, 0.7)', 'rgba(203, 213, 225, 0.65)'],
-        fill: { type: 'solid' },
-        plotOptions: { bar: { borderRadius: 2 } },
+        fill: { type: 'solid' }, stroke: { width: 0 },
+        plotOptions: { bar: { borderRadius: 2, columnWidth: '90%' } },
         xaxis: { categories: labels },
         yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } }
     }));
@@ -4825,8 +4825,8 @@ function openDailyModal(data) {
             { name: 'High Clouds', data: dailyCloudHigh }
         ],
         colors: ['rgba(100, 116, 139, 0.75)', 'rgba(148, 163, 184, 0.7)', 'rgba(203, 213, 225, 0.65)'],
-        fill: { type: 'solid' },
-        plotOptions: { bar: { borderRadius: 2 } },
+        fill: { type: 'solid' }, stroke: { width: 0 },
+        plotOptions: { bar: { borderRadius: 2, columnWidth: '90%' } },
         xaxis: { categories: labels },
         yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } }
     }));
@@ -5461,7 +5461,8 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
 // Cloud-cover layers (low/mid/high) are each a share of the whole sky, so they
 // are presented as translucent bars overlaid on the same x slot instead of being
 // stacked or grouped. ApexCharts has no native bar-overlap option, so after each
-// render the series bars are repositioned onto the first series' x-slots and
+// render the series bars are repositioned onto the first series' x-slots, stretched
+// to the full grouped-column width (columnWidth, default-split across series), and
 // given reduced fill-opacity so overlaps blend.
 function overlayCloudSeries(chartEl) {
     if (!chartEl) return;
@@ -5479,21 +5480,41 @@ function overlayCloudSeries(chartEl) {
         }
         return null;
     };
-    seriesGroups.forEach((group, gi) => {
-        if (gi === 0) return;
+    const barW = (bar) => {
+        const wAttr = bar.getAttribute('width') || bar.getAttribute('barWidth');
+        if (wAttr != null && wAttr !== '') return parseFloat(wAttr);
+        return null;
+    };
+    const seriesCount = seriesGroups.length;
+    const baseWidth = barW(baseBars[0]);
+    const groupWidth = (baseWidth != null && seriesCount > 0) ? baseWidth * seriesCount : null;
+
+    const applyOverlay = (bar, destX, destW) => {
+        const curX = barX(bar);
+        const curW = barW(bar);
+        if (curX == null) return;
+        if (bar.hasAttribute('x')) {
+            bar.setAttribute('x', String(destX));
+            if (destW != null && bar.hasAttribute('width')) bar.setAttribute('width', String(destW));
+            return;
+        }
+        if (destW != null && curW > 0 && Math.abs(destW - curW) > 0.01) {
+            const sx = destW / curW;
+            bar.setAttribute('transform',
+                'translate(' + destX.toFixed(4) + ', 0) scale(' + sx.toFixed(4) + ', 1) translate(' + (-curX).toFixed(4) + ', 0)');
+        } else {
+            bar.setAttribute('transform', 'translate(' + (destX - curX).toFixed(4) + ', 0)');
+        }
+    };
+
+    seriesGroups.forEach((group) => {
         const bars = group.querySelectorAll('.apexcharts-bar-area');
         bars.forEach((bar, i) => {
             const base = baseBars[i];
             if (!base) return;
-            const baseX = barX(base);
-            const curX = barX(bar);
-            if (baseX == null || curX == null) return;
-            if (bar.hasAttribute('x')) {
-                bar.setAttribute('x', String(baseX));
-            } else {
-                const dx = baseX - curX;
-                bar.setAttribute('transform', 'translate(' + dx.toFixed(4) + ', 0)');
-            }
+            const destX = barX(base);
+            if (destX == null) return;
+            applyOverlay(bar, destX, groupWidth);
         });
     });
     chartEl.querySelectorAll('.apexcharts-bar-area').forEach((bar) => {
