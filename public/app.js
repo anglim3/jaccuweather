@@ -4427,9 +4427,9 @@ function openHourlyModal(data) {
         yaxis: { title: { text: "inches", style: { color: "#fff" } } }
     }));
     hourlyChart.snow.render();
-
+    // Low/mid/high cloud are independent fractions of the whole sky: they overlap and do not sum to 100%, so the three series render as grouped side-by-side bars per hour, each on its own 0-100% scale.
     hourlyChart.cloud = new ApexCharts(document.getElementById('hourlyCloudChart'), baseChartOptions({
-        chart: { type: 'bar', stacked: true },
+        chart: { type: 'bar' },
         series: [
             { name: 'Low Clouds', data: cloudLow },
             { name: 'Mid Clouds', data: cloudMid },
@@ -4437,7 +4437,7 @@ function openHourlyModal(data) {
         ],
         colors: ['rgba(100, 116, 139, 0.75)', 'rgba(148, 163, 184, 0.7)', 'rgba(203, 213, 225, 0.65)'],
         fill: { type: 'solid' },
-        plotOptions: { bar: { borderRadius: 2 } },
+        plotOptions: { bar: { columnWidth: '80%', borderRadius: 2 } },
         xaxis: { categories: labels },
         yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } }
     }));
@@ -4816,9 +4816,9 @@ function openDailyModal(data) {
         yaxis: { title: { text: "inches", style: { color: "#fff" } } }
     }));
     maybeRenderDailyChart('snow');
-
+    // Low/mid/high cloud are independent fractions of the whole sky: they overlap and do not sum to 100%, so the three series render as grouped side-by-side bars per day, each on its own 0-100% scale.
     dailyChart.cloud = new ApexCharts(document.getElementById('dailyCloudChart'), baseChartOptions({
-        chart: { type: 'bar', stacked: true },
+        chart: { type: 'bar' },
         series: [
             { name: 'Low Clouds', data: dailyCloudLow },
             { name: 'Mid Clouds', data: dailyCloudMid },
@@ -4826,7 +4826,7 @@ function openDailyModal(data) {
         ],
         colors: ['rgba(100, 116, 139, 0.75)', 'rgba(148, 163, 184, 0.7)', 'rgba(203, 213, 225, 0.65)'],
         fill: { type: 'solid' },
-        plotOptions: { bar: { borderRadius: 2 } },
+        plotOptions: { bar: { columnWidth: '80%', borderRadius: 2 } },
         xaxis: { categories: labels },
         yaxis: { min: 0, max: 100, title: { text: '%', style: { color: '#fff' } }, labels: { style: { colors: '#fff' }, formatter: (val) => `${val}%` } }
     }));
