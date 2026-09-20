@@ -108,6 +108,20 @@ test('build embeds the vendored icons and serves them from the Worker', () => {
   assert.ok(!appSource.includes('cdn.meteocons.com'), 'client must not hotlink the Meteocons CDN');
 });
 
+test('forecast-strip wx-icon sizes are scoped and slightly larger than the 1em default', () => {
+  const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+  const worker = fs.readFileSync(path.join(root, 'src', 'index.js'), 'utf8');
+  assert.match(html, /\.hourly-chip \.wx-icon \{\s*width: 1\.18em;\s*height: 1\.18em;/);
+  assert.match(html, /\.daily-forecast-icon \.wx-icon \{\s*width: 1\.35em;\s*height: 1\.35em;/);
+  assert.match(html, /#currentIcon \.wx-icon \{\s*width: 1\.1em;\s*height: 1\.1em;/);
+  assert.match(html, /\.wx-icon \{\s*width: 1em;\s*height: 1em;/);
+  assert.match(html, /\.card-icon \{\s*width: 2em;\s*height: 2em;/);
+  assert.match(html, /\.alert-icon \{\s*width: 3em;\s*height: 3em;/);
+  assert.match(worker, /\.hourly-chip \.wx-icon \{\\n            width: 1\.18em;\\n            height: 1\.18em;/);
+  assert.match(worker, /\.daily-forecast-icon \.wx-icon \{\\n            width: 1\.35em;\\n            height: 1\.35em;/);
+  assert.equal(worker.includes('width: 1.2em;'), false, 'old daily 1.2em size must not remain in the built worker');
+});
+
 test('rain/drizzle drop strokes use high-contrast sky blue, not navy', () => {
   const dir = path.join(root, 'public', 'icons', 'weather');
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.svg'));
