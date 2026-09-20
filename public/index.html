@@ -701,7 +701,7 @@
             }
 
             .daily-forecast-icon {
-                flex: 0 0 2.25rem;
+                flex: 0 0 1.35em;
                 text-align: center;
             }
 
@@ -735,7 +735,7 @@
 
             .daily-forecast-details {
                 justify-content: space-between;
-                padding-left: 3rem;
+                padding-left: 3.28rem;
             }
 
             .daily-forecast-metrics {
@@ -976,9 +976,14 @@
             height: 1em;
             vertical-align: -0.15em;
         }
+        /* 48-hour chips inherit text-2xl (1em); bump ~18% so glyphs stay readable. */
+        .hourly-chip .wx-icon {
+            width: 1.18em;
+            height: 1.18em;
+        }
         .daily-forecast-icon .wx-icon {
-            width: 1.2em;
-            height: 1.2em;
+            width: 1.35em;
+            height: 1.35em;
         }
         /* Vendored Meteocons fill alarm icons (animated SVG, served by the
            Worker). Sized up from the old text-2xl warning triangle because
