@@ -80,6 +80,36 @@ npx wrangler secret put TOMORROW_API_KEY
 Local `wrangler dev` does not load remote secrets; use
 `npx wrangler dev --remote ...` to test with production secrets.
 
+### Worker Previews (Cloudflare)
+
+Cloudflare Worker Previews gives every Git branch its own isolated,
+production-like environment. Run `npx wrangler preview` from a branch to get
+a stable preview URL; each push to that branch updates the same Preview.
+
+**KNOWN LIMITATION — pollen data in Previews.** The Preview base config is
+deliberately seeded WITHOUT the production secrets (`GOOGLE_POLLEN_API_KEY`,
+`TOMORROW_API_KEY`). The values are write-only in Cloudflare's secret store
+and cannot be copied over programmatically. In a Preview environment,
+`/api/pollen` therefore falls back to **Open-Meteo**: expect coarse category
+data, no species detail, and `X-Pollen-Source: open-meteo` instead of
+`google`. This is expected, not a regression. Do NOT report missing Google
+pollen on a preview URL as a bug, and do not burn time "fixing" it — verify
+pollen behavior against production (`weather.janglim.cloud`) before merging.
+If a change specifically needs to exercise the Google/Tomorrow pollen paths,
+ask Jack to run `npx wrangler preview base-config secret put
+<SECRET_NAME>` (values live only with Jack/Cloudflare dashboard).
+
+Preview workflow:
+
+```bash
+npx wrangler preview            # deploy current branch to its Preview URL
+npx wrangler preview --json     # machine-readable URL
+```
+
+Preview observability (logs, errors, traces) is per-Preview in the
+dashboard, scoped separately from production. Cloudflare Access can protect
+Preview URLs like any hostname.
+
 ## Architecture
 
 - `build.js` output serves embedded assets (`/`, `/app.js`, `/favicon.svg`,
