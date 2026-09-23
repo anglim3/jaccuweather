@@ -10,6 +10,13 @@ dist/
 # Environment variables
 .env
 .env.local
+ios/.env
+ios/.env.local
+
+# Xcode local user state and derived data
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
+ios/DerivedData/
 
 # Wrangler local-only secrets
 .dev.vars
