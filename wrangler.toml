@@ -16,3 +16,16 @@ namespace_id = "27082701"
   [ratelimits.simple]
   limit = 20
   period = 60
+
+# Worker Previews (npx wrangler preview): each branch gets an isolated,
+# production-like preview URL. Previews must not touch production resources,
+# so the preview config declares its own rate-limit binding. Mirror the
+# production shape with preview-safe values; the namespace_id is an
+# account-local integer string, not a secret.
+[[previews.ratelimits]]
+name = "POLLEN_RATE_LIMIT"
+namespace_id = "27082701"
+
+  [previews.ratelimits.simple]
+  limit = 20
+  period = 60
