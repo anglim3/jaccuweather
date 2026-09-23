@@ -8,21 +8,37 @@ const root = path.resolve(__dirname, '..');
 
 // Regression guard for the cloud-cover overlay (low/mid/high bars overlaid per
 // category instead of stacked/grouped). Legend-hidden series keep an empty
-// <g class="apexcharts-series"> in the DOM; the overlay must:
+// <g class="apexcharts-series"> in the DOM (always in Low, Mid, High order).
+// overlayCloudSeries() must:
 //   1. count only series that actually rendered bars (a lone visible series must
 //      keep its natural bar width instead of stretching totalSeriesCount x and
-//      overlapping neighbouring categories), and
+//      overlapping neighbouring categories),
 //   2. anchor slots on the first VISIBLE series (crash fix: series 0 has no bars
-//      when the Low Clouds layer is legend-hidden).
-// Geometry helpers are exercised against a fake DOM mirroring ApexCharts output:
-// path-based bars (borderRadius makes ApexCharts emit <path d="M x y ...">), with
-// transform-anchored overlay placement.
+//      when the Low Clouds layer is legend-hidden), and
+//   3. no-op cleanly when every layer is hidden / no bars have mounted yet.
+//
+// Geometry mirrors ApexCharts grouped-bar layout: natural bar width is full-slot
+// when one layer is visible, ~half when two are, ~third when three are. Bars may
+// be <path d="M x y ..."> (borderRadius) or <rect x width>.
+
+const SLOT_X = [3.2, 67.6];
+const NATURAL_WIDTH = { 1: 57.5, 2: 28.8, 3: 19.3 };
+
+const COMBOS = [
+  { name: 'Low only', visible: [true, false, false] },
+  { name: 'Mid only', visible: [false, true, false] },
+  { name: 'High only', visible: [false, false, true] },
+  { name: 'Low + Mid', visible: [true, true, false] },
+  { name: 'Low + High', visible: [true, false, true] },
+  { name: 'Mid + High', visible: [false, true, true] },
+  { name: 'Low + Mid + High', visible: [true, true, true] },
+  { name: 'empty (all hidden)', visible: [false, false, false] },
+];
 
 function loadOverlay() {
   const source = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
   const start = source.indexOf('function overlayCloudSeries');
   assert.ok(start > -1, 'expected overlayCloudSeries in public/app.js');
-  // brace-match the full function body
   let i = source.indexOf('{', start), depth = 0;
   for (; i < source.length; i++) {
     if (source[i] === '{') depth++;
@@ -34,11 +50,12 @@ function loadOverlay() {
   return sandbox.overlayCloudSeries;
 }
 
-// Fake DOM: groups -> bars as path elements like ApexCharts 4.x with borderRadius
-function makeBar(x, w) {
-  const d = `M ${x} 10 L ${x + w} 10 L ${x + w} 90 L ${x} 90 L ${x} 10`;
+function makeBar(kind, x, w) {
+  const attrs = kind === 'rect'
+    ? { x: String(x), width: String(w), barWidth: String(w) }
+    : { d: `M ${x} 10 L ${x + w} 10 L ${x + w} 90 L ${x} 90 L ${x} 10`, barWidth: String(w) };
   return {
-    attrs: { d, barWidth: String(w) },
+    attrs,
     getAttribute(n) { return this.attrs[n] ?? null; },
     setAttribute(n, v) { this.attrs[n] = v; },
     hasAttribute(n) { return n in this.attrs; },
@@ -65,89 +82,83 @@ function makeChartEl(groups) {
   };
 }
 
-test('overlay stretches each visible series to the full grouped width', () => {
-  const overlay = loadOverlay();
-  // three visible series, natural width 19.3 -> group width 57.9
-  const groups = [
-    makeSeriesGroup([makeBar(3.2, 19.3), makeBar(67.6, 19.3)]),
-    makeSeriesGroup([makeBar(22.5, 19.3), makeBar(87.0, 19.3)]),
-    makeSeriesGroup([makeBar(41.9, 19.3), makeBar(106.3, 19.3)]),
-  ];
-  overlay(makeChartEl(groups));
-  for (const g of groups) {
-    for (const bar of g.bars) {
-      const m = bar.attrs.transform.match(/scale\(([\d.]+)/);
-      assert.ok(m, 'expected a scale transform on overlaid bars');
-      assert.equal(Math.abs(parseFloat(m[1]) - 3), 0, 'scale should stretch by seriesCount');
-    }
+function barX(bar) {
+  if (bar.attrs.x != null) return parseFloat(bar.attrs.x);
+  const m = (bar.attrs.d || '').match(/^M\s*(-?[\d.]+)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function pathDestX(bar) {
+  const t = bar.attrs.transform || '';
+  const firstTranslate = t.match(/translate\(((-?[\d.]+))/);
+  if (!firstTranslate) return null;
+  const tx = parseFloat(firstTranslate[1]);
+  if (/scale\(/.test(t)) return tx;
+  return tx + barX(bar);
+}
+
+function overlayScale(bar, kind, origW) {
+  if (kind === 'rect') {
+    const w = parseFloat(bar.attrs.width);
+    return origW > 0 ? w / origW : null;
   }
-});
+  const m = (bar.attrs.transform || '').match(/scale\(([\d.]+)/);
+  return m ? parseFloat(m[1]) : 1;
+}
 
-test('overlay counts only VISIBLE series (legend-hidden series have no bars)', () => {
-  const overlay = loadOverlay();
-  // mid + high collapsed by the legend: their <g> elements remain, empty.
-  // Low-only: one visible series with ApexCharts' natural FULL-slot width (57.5).
-  // Correct result: no stretch (57.5 x 1); the old bug stretched to 57.5 x 3.
-  const lowOnly = [makeSeriesGroup([makeBar(3.2, 57.5), makeBar(67.6, 57.5)]), makeSeriesGroup([]), makeSeriesGroup([])];
-  overlay(makeChartEl(lowOnly));
-  for (const bar of lowOnly[0].bars) {
-    const m = bar.attrs.transform.match(/scale\(([\d.]+)/);
-    const sx = m ? parseFloat(m[1]) : 1;
-    assert.equal(sx, 1, 'lone visible series must not be stretched');
+function buildGroups(visible, kind) {
+  const n = visible.filter(Boolean).length;
+  if (n === 0) {
+    return [makeSeriesGroup([]), makeSeriesGroup([]), makeSeriesGroup([])];
   }
-});
-
-test('overlay anchors on the first VISIBLE series (no crash when Low is hidden)', () => {
-  const overlay = loadOverlay();
-  // Low collapsed: series 0 has NO bars -> old code crashed on baseBars[0].getAttribute
-  const midAndHigh = [
-    makeSeriesGroup([]),
-    makeSeriesGroup([makeBar(3.2, 28.8), makeBar(67.6, 28.8)]),
-    makeSeriesGroup([makeBar(32.0, 28.8), makeBar(96.6, 28.8)]),
-  ];
-  assert.doesNotThrow(() => overlay(makeChartEl(midAndHigh)));
-  // both visible series should end up anchored at the mid series' x-slots.
-  // Transform chain translate(destX) scale(sx) translate(-curX): at the bar's own
-  // origin (p = curX) the effective start x is exactly destX (the translate value).
-  const anchoredX = (bar) => {
-    const tm = (bar.attrs.transform || '').match(/translate\(((-?[\d.]+))/);
-    return tm ? parseFloat(tm[1]) : null;
-  };
-  for (const bar of [...midAndHigh[1].bars, ...midAndHigh[2].bars]) {
-    const effX = anchoredX(bar);
-    assert.ok(effX != null, 'expected a transform on overlaid bars');
-    assert.ok(
-      Math.abs(effX - 3.2) < 0.2 || Math.abs(effX - 67.6) < 0.2,
-      `bar should be anchored at a mid-series slot (3.2 or 67.6), got ${effX}`
-    );
-  }
-});
-
-test('overlay no-ops when every series is legend-hidden (empty state)', () => {
-  const overlay = loadOverlay();
-  const allHidden = [makeSeriesGroup([]), makeSeriesGroup([]), makeSeriesGroup([])];
-  assert.doesNotThrow(() => overlay(makeChartEl(allHidden)));
-});
-
-test('overlay handles rect-based bars (width/x attributes)', () => {
-  const overlay = loadOverlay();
-  const rect = (x, w) => ({
-    attrs: { x: String(x), width: String(w), barWidth: String(w) },
-    getAttribute(n) { return this.attrs[n] ?? null; },
-    setAttribute(n, v) { this.attrs[n] = v; },
-    hasAttribute(n) { return n in this.attrs; },
+  const w = NATURAL_WIDTH[n];
+  let visIdx = 0;
+  return visible.map((isVisible) => {
+    if (!isVisible) return makeSeriesGroup([]);
+    const offset = visIdx * w;
+    visIdx += 1;
+    return makeSeriesGroup(SLOT_X.map((slotX) => makeBar(kind, slotX + offset, w)));
   });
-  const groups = [makeSeriesGroup([rect(3.2, 19.3), rect(67.6, 19.3)]), makeSeriesGroup([rect(22.5, 19.3), rect(87.0, 19.3)])];
-  overlay(makeChartEl(groups));
-  // rect path: x/width set directly. All bars collapse onto the first series'
-  // x-slots (3.2, 67.6) and stretch to the full group width (19.3 x 2).
-  for (const g of groups) {
-    for (const bar of g.bars) {
+}
+
+function assertCombo(overlay, combo, kind) {
+  const groups = buildGroups(combo.visible, kind);
+  const snapshot = groups.map((g) => g.bars.map((b) => ({ x: barX(b), w: parseFloat(b.attrs.barWidth) })));
+  const visibleIdx = combo.visible.map((v, i) => (v ? i : -1)).filter((i) => i >= 0);
+  const n = visibleIdx.length;
+
+  assert.doesNotThrow(() => overlay(makeChartEl(groups)));
+
+  combo.visible.forEach((isVisible, i) => {
+    if (!isVisible) assert.equal(groups[i].bars.length, 0, `${combo.name}: hidden series ${i} stays empty`);
+  });
+
+  if (n === 0) return;
+
+  const anchorSlots = snapshot[visibleIdx[0]].map((b) => b.x);
+  for (const gi of visibleIdx) {
+    groups[gi].bars.forEach((bar, i) => {
+      assert.equal(bar.attrs['fill-opacity'], '0.55', `${combo.name}: overlay ran on visible bars`);
+      const destX = kind === 'rect' ? parseFloat(bar.attrs.x) : pathDestX(bar);
+      assert.ok(destX != null, `${combo.name}: expected overlay placement on series ${gi} bar ${i}`);
       assert.ok(
-        bar.attrs.x === '3.2' || bar.attrs.x === '67.6',
-        `x should be a base-series slot, got ${bar.attrs.x}`
+        Math.abs(destX - anchorSlots[i]) < 0.2,
+        `${combo.name}: bar should be anchored at first visible series slot ${anchorSlots[i]}, got ${destX}`
       );
-      assert.equal(bar.attrs.width, String(19.3 * 2));
-    }
+      const sx = overlayScale(bar, kind, snapshot[gi][i].w);
+      assert.equal(
+        sx,
+        n,
+        `${combo.name}: stretch must use visible count ${n}, not total series groups (3)`
+      );
+    });
   }
-});
+}
+
+for (const kind of ['path', 'rect']) {
+  for (const combo of COMBOS) {
+    test(`overlay legend combo: ${combo.name} (${kind} bars)`, () => {
+      assertCombo(loadOverlay(), combo, kind);
+    });
+  }
+}
