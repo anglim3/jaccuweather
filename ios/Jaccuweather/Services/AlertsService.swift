@@ -7,16 +7,19 @@ struct AlertsService {
     func alerts(latitude: Double, longitude: Double) async -> [NWSAlertFeature] {
         guard isLikelyUS(latitude: latitude, longitude: longitude) else { return [] }
         do {
+            let nwsHeaders = ["Accept": "application/geo+json"]
             let point = try await HTTPClient.getJSON(
                 APIEndpoints.nwsPoints(latitude: latitude, longitude: longitude),
-                as: NWSPointResponse.self
+                as: NWSPointResponse.self,
+                extraHeaders: nwsHeaders
             )
             guard let zoneURL = point.properties?.forecastZone,
                   let zoneId = zoneURL.split(separator: "/").last.map(String.init)
             else { return [] }
             let payload = try await HTTPClient.getJSON(
                 APIEndpoints.nwsAlerts(zoneId: zoneId),
-                as: NWSAlertsResponse.self
+                as: NWSAlertsResponse.self,
+                extraHeaders: nwsHeaders
             )
             return payload.features.filter { ($0.properties.status ?? "Actual") == "Actual" }
         } catch {

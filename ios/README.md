@@ -1,50 +1,72 @@
 # Jaccuweather iOS (personal)
 
-Native SwiftUI client. Direct public APIs — no Cloudflare Worker in the loop. The website under `public/` is unchanged.
+Native SwiftUI client for a **single iPhone**, signed with a **free Apple ID / Personal Team**. Direct public APIs — no Cloudflare Worker in the loop. The website under `public/` is unchanged.
 
-Research, stack choice, pollen secrets, and radar notes: [`docs/native-ios-research.md`](../docs/native-ios-research.md).
+Parity vs [weather.janglim.cloud](https://weather.janglim.cloud): [`docs/native-ios-parity.md`](../docs/native-ios-parity.md). Research notes: [`docs/native-ios-research.md`](../docs/native-ios-research.md).
 
-## What is here
+Do **not** submit this to the App Store. Do **not** merge to `main` as part of this conversion. Do **not** deploy the Worker from this branch unless you mean to.
 
-- **Now** — current conditions from Open-Meteo (live)
-- **Forecast** — next hours + 14-day list from the same payload
-- **Health** — Open-Meteo AQI/pollen (live), sinus/allergy helpers, optional Google/Tomorrow if keys are set locally
-- **Radar** — MapKit around the selected point, optional Ventusky WKWebView
-- Search (Open-Meteo geocoding), reverse geocode (BigDataCloud), US NWS alerts, on-device favorites
+## Open in Xcode tonight (Mac + free Apple ID)
 
-## Open in Xcode (Mac)
+1. Install [Xcode](https://developer.apple.com/xcode/) from the Mac App Store (15+; iOS 17 deployment target).
+2. Clone/pull this branch (`cursor/native-ios-personal-34dc`) and open **only** the project file:
 
-1. Install [Xcode](https://developer.apple.com/xcode/) from the Mac App Store.
-2. Open `ios/Jaccuweather.xcodeproj` (not the repo root).
-3. Signing & Capabilities on the **Jaccuweather** target:
-   - Team: **Add an Account…** with a free Apple ID → Personal Team
-   - Bundle ID: `cloud.janglim.jaccuweather` (change if Xcode says it is taken)
-4. Destination: your iPhone. On the phone, enable **Developer Mode** (iOS 16+: Settings → Privacy & Security).
-5. Run (⌘R). Trust the developer certificate on the device the first time: Settings → General → VPN & Device Management.
+   ```bash
+   open ios/Jaccuweather.xcodeproj
+   ```
 
-The placeholder App Icon is the 180×180 apple-touch PNG. Xcode may warn until a 1024×1024 marketing icon is dropped into `Assets.xcassets/AppIcon.appiconset`.
+   Do not open the repo root as an Xcode project.
+3. Select the **Jaccuweather** target → **Signing & Capabilities**:
+   - **Team:** Add an Account… with a free Apple ID → **Personal Team**
+   - **Bundle ID:** `cloud.janglim.jaccuweather` (change the last segment if Xcode says it is taken)
+   - Leave **Automatically manage signing** on
+4. On the iPhone: **Settings → Privacy & Security → Developer Mode** (iOS 16+), reboot if asked.
+5. Plug in the phone (or wireless debugging), pick it as the Run destination, press **⌘R**.
+6. First launch: **Settings → General → VPN & Device Management** → trust the developer certificate, then open the app again.
 
-Free Apple ID signing expires about **every 7 days**. Reconnect the phone and Run again. No paid Apple Developer Program is required. Push / CloudKit are unavailable; this app does not need them.
+### 7-day re-sign (free Apple ID)
+
+Personal Team provisioning **expires about every 7 days**. The app icon goes black / “integrity could not be verified.” Fix: reconnect the phone, open the same `.xcodeproj`, **⌘R** again. No paid Apple Developer Program is required. Push / CloudKit are unavailable; this app does not need them.
 
 ### Simulator
 
-Pick an iPhone simulator and Run. Location: Features → Location → Custom Location, or allow the in-app permission.
+Pick any iPhone simulator and Run. **Features → Location → Custom Location** if you want a city other than the in-app default (Seattle).
 
-## Pollen keys (optional)
+### Optional pollen keys (never commit)
 
-Without keys, pollen/AQI use **Open-Meteo** (same fallback as the Worker when secrets are missing).
+Without keys, pollen uses **Open-Meteo** (same fallback as the Worker when secrets are missing). That path must keep working with blank `Secrets.xcconfig`.
 
 ```bash
-cp ios/.env.example ios/.env
-cp ios/Jaccuweather/Config/Secrets.xcconfig.example ios/Jaccuweather/Config/Secrets.xcconfig
-# edit locally — never commit real values
+cp ios/.env.example ios/.env                          # gitignored; notes only
+cp ios/Jaccuweather/Config/Secrets.xcconfig.example \
+   ios/Jaccuweather/Config/Secrets.xcconfig           # already present empty
+# edit Secrets.xcconfig locally — never git add real values
 ```
 
-The committed `Secrets.xcconfig` is empty placeholders. Xcode injects those build settings into Info.plist; `Secrets.swift` reads them. Leave blank to skip Google and Tomorrow.
+Xcode injects `GOOGLE_POLLEN_API_KEY`, `TOMORROW_API_KEY`, and `NWS_USER_AGENT` from `Secrets.xcconfig` into `Info.plist`. `Secrets.swift` reads them at runtime.
 
-Do not copy production Worker secrets into git. Restrict a Google key to this iOS bundle id if you create one.
+**Google Pollen (species detail):** create a key on a personal Google Cloud project with **Pollen API** enabled. Maps Platform Pollen is **billing-capable** even at tiny quota — that is a Google account setting, not an Apple fee. Restrict the key to **iOS apps** + bundle id `cloud.janglim.jaccuweather`. Do not reuse the production Worker key if you want blast-radius isolation. Category `TREE` fills `tree_pollen` only; alder/birch/olive stay `null` unless Google `plantInfo` reported those plants.
 
-## Prove the weather URL without Xcode
+**Tomorrow.io:** optional second pollen vendor (`apikey` query param). Used only if Google is blank or returns nothing usable.
+
+**NWS User-Agent:** edit `NWS_USER_AGENT` in `Secrets.xcconfig` to a string NWS can contact, e.g. `JaccuweatherPersonal/1.0 (you@example.com)`. The committed placeholder is intentionally fake.
+
+## What the app calls
+
+| Data | Upstream |
+|---|---|
+| Forecast | `ensemble-api.open-meteo.com` (same models + `normalizeEnsembleWeatherData` as the website) |
+| Search | `geocoding-api.open-meteo.com` |
+| Reverse | BigDataCloud `reverse-geocode-client` |
+| Pollen / AQI | Google Pollen → Tomorrow.io → Open-Meteo air-quality |
+| US alerts | `api.weather.gov` (User-Agent required) |
+| Radar overlay | NWS WMS `opengeo.ncep.noaa.gov` `nexrad-n0q-wmst` on MapKit |
+| Global radar | Safari → `https://www.ventusky.com/?p=lat;lon;7&l=rain` |
+| Tides | NOAA `mdapi` + `datagetter` (coastal: ≤50 km + elevation ≤20 m) |
+
+Shared scoring, icons, ensemble averaging, moon times, and pollen normalize run in **JavaScriptCore** from `Resources/Logic/jaccuweather-logic.js` (generated by `node ios/scripts/extract-logic.js` from `public/app.js` + `build.js`). Re-run that script if you change the website logic.
+
+## Prove the ensemble URL without Xcode
 
 From the repo root (Linux/macOS, Node 18+):
 
@@ -53,10 +75,16 @@ node ios/scripts/verify-open-meteo.mjs
 # optional: LAT=40.7128 LON=-74.0060 node ios/scripts/verify-open-meteo.mjs
 ```
 
-This hits the same Open-Meteo forecast URL as `WeatherService`.
+This hits **ensemble-api.open-meteo.com** (not the single-model forecast API) and runs `normalizeEnsembleWeatherData`.
+
+Web tests (must stay green):
+
+```bash
+node --test tests/*.test.js
+```
 
 ## Requirements
 
-- macOS + Xcode 15+ (iOS 17 deployment target)
-- Apple ID (free)
-- Network to Open-Meteo, BigDataCloud, and (US) api.weather.gov
+- macOS + Xcode 15+
+- Free Apple ID
+- Network to Open-Meteo, BigDataCloud, api.weather.gov, NOAA, and (optional) Google/Tomorrow

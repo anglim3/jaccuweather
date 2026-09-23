@@ -2,16 +2,17 @@ import Foundation
 
 /// URL builders that replace Worker `/api/*` proxies. Native code calls upstreams directly.
 enum APIEndpoints {
-    static let forecastHost = "https://api.open-meteo.com/v1/forecast"
+    static let ensembleHost = "https://ensemble-api.open-meteo.com/v1/ensemble"
     static let geocodingHost = "https://geocoding-api.open-meteo.com/v1/search"
     static let reverseHost = "https://api.bigdatacloud.net/data/reverse-geocode-client"
     static let airQualityHost = "https://air-quality-api.open-meteo.com/v1/air-quality"
     static let googlePollenHost = "https://pollen.googleapis.com/v1/forecast:lookup"
     static let tomorrowForecastHost = "https://api.tomorrow.io/v4/weather/forecast"
     static let nwsHost = "https://api.weather.gov"
-    static let ventuskyHost = "https://www.ventusky.com/"
+    static let noaaStations = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions"
+    static let noaaDatagetter = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
+    static let nwsWms = "https://opengeo.ncep.noaa.gov/geoserver/ows"
 
-    /// Same hourly/daily variables as `fetchWeather()` in public/app.js (minus ensemble models).
     static let hourlyVars = [
         "temperature_2m", "relative_humidity_2m", "weather_code", "wind_speed_10m",
         "wind_direction_10m", "wind_gusts_10m", "precipitation_probability", "precipitation",
@@ -27,22 +28,16 @@ enum APIEndpoints {
         "snowfall_sum", "uv_index_max", "sunrise", "sunset"
     ].joined(separator: ",")
 
-    static let currentVars = [
-        "temperature_2m", "relative_humidity_2m", "apparent_temperature", "is_day",
-        "precipitation", "weather_code", "cloud_cover", "surface_pressure", "wind_speed_10m",
-        "wind_direction_10m", "wind_gusts_10m", "uv_index", "dew_point_2m"
-    ].joined(separator: ",")
-
-    /// Matches `POLLEN_CURRENT_PARAMS` / `POLLEN_HOURLY_PARAMS` in build.js.
     static let pollenCurrent = "us_aqi,pm10,pm2_5,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen"
     static let pollenHourly = "alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen"
 
-    static func forecast(latitude: Double, longitude: Double) -> URL {
-        var c = URLComponents(string: forecastHost)!
+    /// Exact ensemble request used by public/app.js fetchWeather().
+    static func ensemble(latitude: Double, longitude: Double) -> URL {
+        var c = URLComponents(string: ensembleHost)!
         c.queryItems = [
             URLQueryItem(name: "latitude", value: String(latitude)),
             URLQueryItem(name: "longitude", value: String(longitude)),
-            URLQueryItem(name: "current", value: currentVars),
+            URLQueryItem(name: "models", value: "icon_seamless,gfs_seamless,ecmwf_ifs025"),
             URLQueryItem(name: "hourly", value: hourlyVars),
             URLQueryItem(name: "daily", value: dailyVars),
             URLQueryItem(name: "forecast_days", value: "14"),
@@ -123,6 +118,6 @@ enum APIEndpoints {
     }
 
     static func ventusky(latitude: Double, longitude: Double) -> URL {
-        URL(string: "\(ventuskyHost)?p=\(latitude);\(longitude);7&l=rain")!
+        URL(string: "https://www.ventusky.com/?p=\(latitude);\(longitude);7&l=rain")!
     }
 }

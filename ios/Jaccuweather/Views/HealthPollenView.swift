@@ -6,56 +6,60 @@ struct HealthPollenView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                WeatherCard(title: "Health") {
-                    HStack(spacing: 12) {
-                        riskTile("Sinus", model.sinus?.label ?? "—", model.sinus?.detail ?? "Need forecast")
-                        riskTile("Allergy", model.allergy.label, model.allergy.detail)
-                    }
-                    Text("Nice-weather index is not ported yet (needs the full hourly averaging from public/app.js).")
-                        .font(.caption)
-                        .foregroundStyle(JWTheme.muted)
-                }
-
-                WeatherCard(title: "Air + pollen") {
-                    if let pollen = model.pollen {
-                        LabeledContent("Source", value: pollen.source)
-                        if let aqi = pollen.usAqi {
-                            LabeledContent("US AQI", value: "\(Int(aqi.rounded())) · \(HealthScores.aqiCategory(aqi))")
-                        } else {
-                            Text("AQI is empty when the source is Google/Tomorrow. Open-Meteo supplies US AQI.")
-                                .font(.caption)
-                                .foregroundStyle(JWTheme.muted)
+                if let weather = model.weather {
+                    let sinus = HealthScores.sinus(from: weather)
+                    let allergy = HealthScores.allergy(pollen: model.pollen, weather: weather)
+                    let nice = HealthScores.niceWeather(from: weather)
+                    WeatherCard(title: "Scores") {
+                        NavigationLink { MethodologySheet(kind: .sinus, weather: weather, pollen: model.pollen) } label: {
+                            scoreRow("Sinus", sinus.label, sinus.detail)
                         }
-                        pollenRow("Grass", pollen.grassPollen)
-                        pollenRow("Weed", pollen.weedPollen)
-                        pollenRow("Tree (category)", pollen.treePollen)
-                        pollenRow("Alder", pollen.alderPollen)
-                        pollenRow("Birch", pollen.birchPollen)
-                        pollenRow("Olive", pollen.olivePollen)
-                        pollenRow("Ragweed", pollen.ragweedPollen)
-                        if pollen.daily.isEmpty == false {
-                            Divider().padding(.vertical, 4)
-                            Text("5-day")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(JWTheme.muted)
-                            ForEach(pollen.daily) { day in
-                                HStack {
-                                    Text(String(day.time.prefix(10)))
-                                    Spacer()
-                                    Text(day.grass.map { String(format: "%.0f", $0) } ?? "—")
-                                        .foregroundStyle(JWTheme.muted)
+                        NavigationLink { MethodologySheet(kind: .allergy, weather: weather, pollen: model.pollen) } label: {
+                            scoreRow("Allergy", allergy.label, allergy.detail)
+                        }
+                        NavigationLink { MethodologySheet(kind: .nice, weather: weather, pollen: model.pollen) } label: {
+                            scoreRow("Nice weather", nice.score.map { "\($0)/10 \(nice.label)" } ?? "—", "Same scoring as the website")
+                        }
+                    }
+
+                    if let pollen = model.pollen {
+                        let current = pollen.map("current")
+                        WeatherCard(title: "Pollen · \(pollen.string("pollen_source") ?? "open-meteo")") {
+                            HStack {
+                                pollenCol("Tree", maxTree(current), "pollen-tree")
+                                pollenCol("Grass", current.number("grass_pollen"), "pollen-grass")
+                                pollenCol("Weed", maxWeed(current), "pollen-weed")
+                            }
+                            speciesBlock(current)
+                        }
+
+                        let days = LogicEngine.shared.pollenForecastDays(pollen)
+                        if !days.isEmpty {
+                            WeatherCard(title: "5-day pollen forecast") {
+                                ForEach(Array(days.enumerated()), id: \.offset) { _, day in
+                                    HStack {
+                                        Text(day.string("emoji") ?? "🌿")
+                                        VStack(alignment: .leading) {
+                                            Text(dayLabel(day.string("date") ?? "", index: day.int("index") ?? 0))
+                                                .font(.subheadline.weight(.semibold))
+                                            Text(day.string("date") ?? "").font(.caption2).foregroundStyle(JWTheme.muted)
+                                        }
+                                        Spacer()
+                                        forecastCol("Tree", day.string("treeLabel"))
+                                        forecastCol("Grass", day.string("grassLabel"))
+                                        forecastCol("Weed", day.string("weedLabel"))
+                                    }
+                                    .padding(.vertical, 4)
                                 }
-                                .font(.caption)
                             }
                         }
                     } else {
-                        Text("No pollen payload. Open-Meteo is used when Google/Tomorrow keys are empty.")
-                            .foregroundStyle(JWTheme.muted)
+                        WeatherCard(title: "Pollen") {
+                            Text("Open-Meteo fallback (blank Google/Tomorrow keys).").foregroundStyle(JWTheme.muted)
+                        }
                     }
-                    Text("Paid keys: fill Config/Secrets.xcconfig locally. Empty keys keep the Open-Meteo fallback.")
-                        .font(.caption2)
-                        .foregroundStyle(JWTheme.muted)
-                        .padding(.top, 4)
+                } else {
+                    Text("Load a location first.").foregroundStyle(JWTheme.muted)
                 }
             }
             .padding(16)
@@ -65,23 +69,85 @@ struct HealthPollenView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func riskTile(_ title: String, _ value: String, _ detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(JWTheme.muted)
-            Text(value)
-                .font(.title2.weight(.bold))
-            Text(detail)
-                .font(.caption2)
-                .foregroundStyle(JWTheme.muted)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    private func maxTree(_ current: JSONMap) -> Double? {
+        LogicEngine.shared.number("maxAvailablePollen", [[
+            current.number("tree_pollen") as Any,
+            current.number("alder_pollen") as Any,
+            current.number("birch_pollen") as Any,
+            current.number("olive_pollen") as Any
+        ]])
     }
 
-    private func pollenRow(_ name: String, _ value: Double?) -> some View {
-        LabeledContent(name, value: value.map { String(format: "%.0f", $0) } ?? "n/a")
+    private func maxWeed(_ current: JSONMap) -> Double? {
+        LogicEngine.shared.number("maxAvailablePollen", [[
+            current.number("weed_pollen") as Any,
+            current.number("mugwort_pollen") as Any,
+            current.number("ragweed_pollen") as Any
+        ]])
+    }
+
+    private func speciesBlock(_ current: JSONMap) -> some View {
+        let fields = [
+            ("Alder", "alder_pollen"),
+            ("Birch", "birch_pollen"),
+            ("Olive", "olive_pollen"),
+            ("Mugwort", "mugwort_pollen"),
+            ("Ragweed", "ragweed_pollen")
+        ]
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Species detail (Google plantInfo when keyed; otherwise n/a / Open-Meteo)")
+                .font(.caption)
+                .foregroundStyle(JWTheme.muted)
+            ForEach(fields, id: \.0) { name, key in
+                let value = current.number(key)
+                HStack {
+                    Text(name)
+                    Spacer()
+                    Text(LogicEngine.shared.string("formatPollenValue", [value as Any]) ?? "n/a")
+                    Text(JSONMap(LogicEngine.shared.object("getPollenLevel", [value as Any])).string("label") ?? "")
+                        .foregroundStyle(JWTheme.muted)
+                }
+                .font(.caption)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private func pollenCol(_ name: String, _ value: Double?, _ icon: String) -> some View {
+        let level = JSONMap(LogicEngine.shared.object("getPollenLevel", [value as Any]))
+        return VStack {
+            SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 22).frame(width: 22, height: 22)
+            Text(name).font(.caption).foregroundStyle(JWTheme.muted)
+            Text(LogicEngine.shared.string("formatPollenValue", [value as Any]) ?? "n/a").font(.headline)
+            Text(level.string("label") ?? "None").font(.caption2)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func forecastCol(_ name: String, _ label: String?) -> some View {
+        VStack {
+            Text(name).font(.caption2).foregroundStyle(JWTheme.muted)
+            Text(label ?? "—").font(.caption.weight(.semibold))
+        }
+        .frame(width: 52)
+    }
+
+    private func dayLabel(_ date: String, index: Int) -> String {
+        if index == 0 { return "Today" }
+        if index == 1 { return "Tomorrow" }
+        return date
+    }
+
+    private func scoreRow(_ title: String, _ value: String, _ detail: String) -> some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(title).font(.caption).foregroundStyle(JWTheme.muted)
+                Text(value).font(.title3.weight(.bold))
+                Text(detail).font(.caption).foregroundStyle(JWTheme.muted)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").foregroundStyle(JWTheme.muted)
+        }
+        .padding(.vertical, 6)
     }
 }

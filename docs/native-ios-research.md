@@ -164,23 +164,28 @@ Web paths (`public/`, `build.js`, `lockdown-worker.js`, `src/index.js` generated
 
 ## How to prove the data layer without a Mac
 
-This Linux environment cannot compile the `.xcodeproj`. `ios/scripts/verify-open-meteo.mjs` hits the same public forecast URL `WeatherService` uses (Seattle by default) and prints current temperature + daily highs. Run:
+This Linux environment cannot compile the `.xcodeproj`. `ios/scripts/verify-open-meteo.mjs` hits **ensemble-api.open-meteo.com** (same URL as `fetchWeather()` / `WeatherService`) and runs `normalizeEnsembleWeatherData`.
 
 ```bash
 node ios/scripts/verify-open-meteo.mjs
+node --test tests/*.test.js
 ```
 
-## Open questions / blockers
+Feature close-out vs the live site: [`docs/native-ios-parity.md`](native-ios-parity.md). Sideload: [`ios/README.md`](../ios/README.md).
 
-1. **Ensemble vs forecast.** Web uses three-model ensemble averaging. Scaffold uses `api.open-meteo.com/v1/forecast` for a simpler `Codable` path. Port `normalizeEnsembleWeatherData()` if member-spread / precip probability must match the website.
-2. **Google Pollen billing + iOS key restriction.** Maps Platform keys often need a billing account even at low QPS. Until a key exists, Open-Meteo is the supported path (same as Worker Previews).
-3. **NWS User-Agent identity.** NWS wants a real contact. The scaffold sends `JaccuweatherPersonal/1.0 (https://github.com/anglim3/jaccuweather)`. Confirm the preferred contact string.
-4. **Ventusky ToS** for a WKWebView embed on a personal app. Safari link is the safe fallback.
-5. **Weekly re-sign** on a free Apple ID. Not a code blocker; operational friction.
-6. **Meteocons icons** are MIT and vendored under `public/icons/`. Copy into the asset catalog later rather than hotlinking.
-7. **Health-score parity.** Nice-weather index depends on hourly daily averages; full port needs tests against `tests/` fixtures or recorded payloads.
-8. **No local backend** in v1. Add `ios/helper/` only if a vendor rejects mobile clients.
-9. **This environment has no Xcode / iOS Simulator.** UI must be confirmed on a Mac + device.
+## Follow-up status (personal iOS, not merged)
+
+Items below were the scaffold open questions. They are closed on `cursor/native-ios-personal-34dc` except the operational ones that cannot be closed in Linux CI.
+
+1. **Ensemble vs forecast.** **DONE.** Native calls the ensemble API and runs the website `normalizeEnsembleWeatherData`.
+2. **Google Pollen billing + iOS key restriction.** Documented. Blank `Secrets.xcconfig` → Open-Meteo. Owner must create a billing-capable, iOS-restricted key for species detail.
+3. **NWS User-Agent.** **DONE** as editable `NWS_USER_AGENT` in `Secrets.xcconfig` (placeholder contact).
+4. **Ventusky.** **DONE** as Safari link-out (preferred vs WKWebView/ToS). MapKit + NWS WMS overlay are in-app.
+5. **Weekly re-sign.** Still a free Apple ID limit. Documented in `ios/README.md`.
+6. **Meteocons.** **DONE.** Vendored under `ios/Jaccuweather/Resources/Icons/{weather,cards,alerts}`.
+7. **Health-score parity.** **DONE.** Sinus, allergy, and nice-weather use the extracted website functions.
+8. **No local backend.** Still true. Direct vendor calls from the device.
+9. **No Xcode in this environment.** Still true. Owner confirms UI on a Mac + device with `open ios/Jaccuweather.xcodeproj`.
 
 ## References (in-repo)
 

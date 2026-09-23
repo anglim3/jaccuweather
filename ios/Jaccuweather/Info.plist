@@ -6,5 +6,7 @@
 	<string>$(GOOGLE_POLLEN_API_KEY)</string>
 	<key>TOMORROW_API_KEY</key>
 	<string>$(TOMORROW_API_KEY)</string>
+	<key>NWS_USER_AGENT</key>
+	<string>$(NWS_USER_AGENT)</string>
 </dict>
 </plist>

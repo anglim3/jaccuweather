@@ -1,10 +1,16 @@
 #!/usr/bin/env node
 /**
- * Hits the same Open-Meteo forecast URL the iOS WeatherService builds.
+ * Hits the same Open-Meteo ensemble URL the iOS WeatherService / website fetchWeather() build.
  * Use this on Linux/CI where Xcode cannot compile the .xcodeproj.
  */
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+
 const LAT = process.env.LAT || '47.6062';
 const LON = process.env.LON || '-122.3321';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 const hourly = [
   'temperature_2m', 'relative_humidity_2m', 'weather_code', 'wind_speed_10m',
@@ -21,16 +27,10 @@ const daily = [
   'snowfall_sum', 'uv_index_max', 'sunrise', 'sunset'
 ].join(',');
 
-const current = [
-  'temperature_2m', 'relative_humidity_2m', 'apparent_temperature', 'is_day',
-  'precipitation', 'weather_code', 'cloud_cover', 'surface_pressure', 'wind_speed_10m',
-  'wind_direction_10m', 'wind_gusts_10m', 'uv_index', 'dew_point_2m'
-].join(',');
-
-const url = new URL('https://api.open-meteo.com/v1/forecast');
+const url = new URL('https://ensemble-api.open-meteo.com/v1/ensemble');
 url.searchParams.set('latitude', LAT);
 url.searchParams.set('longitude', LON);
-url.searchParams.set('current', current);
+url.searchParams.set('models', 'icon_seamless,gfs_seamless,ecmwf_ifs025');
 url.searchParams.set('hourly', hourly);
 url.searchParams.set('daily', daily);
 url.searchParams.set('forecast_days', '14');
@@ -58,20 +58,35 @@ async function get(target) {
   return response.json();
 }
 
+function loadLogic() {
+  const sandbox = { console, setTimeout, clearTimeout };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    fs.readFileSync(path.join(root, 'ios/Jaccuweather/Resources/Logic/jaccuweather-logic.js'), 'utf8'),
+    sandbox
+  );
+  return sandbox.JaccuweatherLogic;
+}
+
 (async () => {
-  console.log('Forecast URL:', url.toString());
-  const forecast = await get(url);
-  const temp = forecast.current && forecast.current.temperature_2m;
-  const code = forecast.current && forecast.current.weather_code;
-  const days = (forecast.daily && forecast.daily.time) ? forecast.daily.time.length : 0;
-  const hours = (forecast.hourly && forecast.hourly.time) ? forecast.hourly.time.length : 0;
+  console.log('Ensemble URL:', url.toString());
+  const raw = await get(url);
+  const logic = loadLogic();
+  const weather = logic.normalizeEnsembleWeatherData(raw, Number(LAT), Number(LON));
+  const temp = weather.current && weather.current.temperature_2m;
+  const code = weather.current && weather.current.weather_code;
+  const days = weather.daily && weather.daily.time ? weather.daily.time.length : 0;
+  const hours = weather.hourly && weather.hourly.time ? weather.hourly.time.length : 0;
   if (typeof temp !== 'number') {
-    throw new Error('Open-Meteo current.temperature_2m missing');
+    throw new Error('normalized current.temperature_2m missing');
   }
   if (days < 14) {
     throw new Error(`expected at least 14 daily rows, got ${days}`);
   }
-  console.log(`OK forecast ${LAT},${LON}  current=${temp}°F  weather_code=${code}  hourly=${hours}  daily=${days}  tz=${forecast.timezone}`);
+  if (!Array.isArray(weather.hourly.weather_code) || weather.hourly.weather_code.length !== hours) {
+    throw new Error('ensemble weather_code series missing after normalize');
+  }
+  console.log(`OK ensemble ${LAT},${LON}  current=${temp}°F  weather_code=${code}  hourly=${hours}  daily=${days}  tz=${weather.timezone}`);
 
   const pollen = await get(pollenUrl);
   const aqi = pollen.current && pollen.current.us_aqi;

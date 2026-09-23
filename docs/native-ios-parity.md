@@ -1,0 +1,52 @@
+# Native iOS vs weather.janglim.cloud
+
+Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown (no Cloudflare Worker, no Ventusky HTML proxy). Logic that must match the site is extracted from `public/app.js` + `build.js` into `ios/Jaccuweather/Resources/Logic/jaccuweather-logic.js` and run in JavaScriptCore.
+
+| Web feature | Native status |
+|---|---|
+| Open-Meteo ensemble (`icon_seamless,gfs_seamless,ecmwf_ifs025`) + `normalizeEnsembleWeatherData` | **DONE** — `WeatherService` + JS normalize (mean / medianFloor WMO / derived precip probability) |
+| Current conditions (temp, feels, humidity, wind, UV, pressure trend, dew) | **DONE** — Now tab |
+| Sunrise/sunset arc | **DONE** — SwiftUI arc, times via `formatIsoLocalClock` |
+| Moon phase / rise / set in city TZ (`utc_offset_seconds` + SunCalc) | **DONE** — Now + Moon sheet |
+| 48-hour forecast + UV/precip/wind/humidity/pressure charts | **DONE** — Forecast tab, Swift Charts |
+| 14-day forecast, WMO icons, **30% rain-icon downgrade** | **DONE** — `getWeatherIconFile(code, true, precipProbability)` |
+| 14-day UV (`uv_index_max`) | **DONE** |
+| Meteocons fill weather icons (SMIL in WKWebView wrappers) | **DONE** — `Resources/Icons/weather` |
+| Static card-header Meteocons | **DONE** — `Resources/Icons/cards` |
+| NWS alerts + Meteocons alarm icons | **DONE** — `Resources/Icons/alerts` + `getAlertIconFile` |
+| Sinus risk + methodology | **DONE** — same `calculateSinusRisk` |
+| Allergy risk + methodology | **DONE** — same `calculateAllergyRisk` |
+| Nice-weather index + methodology | **DONE** — same `getNiceWeatherBreakdown` |
+| Pollen cascade Google → Tomorrow → Open-Meteo | **DONE** — blank keys skip to Open-Meteo |
+| Google `TREE` → `tree_pollen` only (no species invention) | **DONE** — `normalizeGooglePollen` |
+| Species rows (alder/birch/olive/mugwort/ragweed) | **DONE** — Now + Health |
+| 5-day pollen forecast (daily max of hourly) | **DONE** |
+| AQI (US AQI from Open-Meteo air-quality) | **DONE** — shown when Open-Meteo (or merged) current has `us_aqi` |
+| NOAA tides (50 km / 20 m elevation, hilo + cosine interpolate) | **DONE** — Now list + Forecast tides chart |
+| MapKit default map | **DONE** — Radar tab |
+| NWS WMS radar overlay (`nexrad-n0q-wmst`, EPSG:3857) | **DONE** — toggle; CONUS only |
+| Ventusky | **DONE** — Safari link-out (`?p=lat;lon;7&l=rain`), no WKWebView |
+| City search (Open-Meteo geocoding) | **DONE** |
+| Reverse geocode (BigDataCloud) | **DONE** |
+| Device geolocation | **DONE** — When In Use |
+| Favorites | **DONE** — on-device UserDefaults |
+| Stale-tab refresh (15 min + 30s last-updated tick) | **DONE** — `shouldRefetchStaleForecast` on `scenePhase == .active` |
+| Theme / glass UI | **DONE** — dark glass, not a pixel clone of Tailwind |
+| 1024 app icon from `public/favicon.svg` | **DONE** |
+| NWS User-Agent (editable) | **DONE** — `NWS_USER_AGENT` in `Secrets.xcconfig` |
+| Pollen keys | **DONE** — `Secrets.xcconfig` only; committed file is blank |
+
+## Honest leftovers (not code gaps vs the site)
+
+| Item | Why it is not a merge blocker |
+|---|---|
+| This cloud agent cannot compile or run Simulator | Linux. Owner opens `ios/Jaccuweather.xcodeproj` on a Mac. |
+| Google/Tomorrow species detail | Needs the owner’s **billing-capable** Google Pollen key (iOS-restricted). Blank keys → Open-Meteo, which is correct. |
+| NWS WMS empty outside CONUS | Same as the Worker tile layer. Use Ventusky Safari for global radar. |
+| Ventusky is not an in-app iframe | Intentional: Safari link-out preferred vs WKWebView/ToS. |
+| Free Apple ID re-sign every ~7 days | Personal Team limit. Not an app bug. |
+| ApexCharts / MathJax / Leaflet | Replaced by Swift Charts + methodology copy + MapKit. Scoring is the same JS. |
+| Worker pollen rate-limit / same-origin | N/A off-Worker. Personal app is one user. |
+| Preview Worker Google pollen | Unrelated; production website still uses Worker secrets. Native does not. |
+
+Do not merge. Do not deploy. Web Worker under `public/` is unchanged.

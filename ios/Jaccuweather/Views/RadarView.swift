@@ -1,29 +1,27 @@
 import SwiftUI
 import MapKit
-import WebKit
+import CoreLocation
 
 struct RadarView: View {
     @Environment(WeatherViewModel.self) private var model
-    @State private var showVentusky = false
-    @State private var camera: MapCameraPosition = .automatic
+    @State private var showNWS = true
 
     var body: some View {
         VStack(spacing: 0) {
-            Map(position: $camera) {
-                Marker(model.locationName, coordinate: model.coordinate)
-            }
-            .mapStyle(.standard(elevation: .realistic))
+            RadarMapView(
+                coordinate: model.coordinate,
+                title: model.locationName,
+                showNWS: showNWS
+            )
             .ignoresSafeArea(edges: .top)
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Native MapKit is the default radar surface. Ventusky stays an optional web embed (same URL as the website iframe), not the app shell.")
+                Toggle("NWS radar overlay (CONUS)", isOn: $showNWS)
+                Text("Ventusky is a Safari link-out — same public URL the website uses after lockdown strips the HTML proxy. WKWebView is not used.")
                     .font(.caption)
                     .foregroundStyle(JWTheme.muted)
-                HStack {
-                    Button("Embed Ventusky") { showVentusky = true }
-                        .buttonStyle(.borderedProminent)
-                    Link("Open in Safari", destination: APIEndpoints.ventusky(latitude: model.coordinate.latitude, longitude: model.coordinate.longitude))
-                }
+                Link("Open Ventusky radar", destination: APIEndpoints.ventusky(latitude: model.coordinate.latitude, longitude: model.coordinate.longitude))
+                    .buttonStyle(.borderedProminent)
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -32,44 +30,47 @@ struct RadarView: View {
         .background(JWTheme.background.ignoresSafeArea())
         .navigationTitle("Radar")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { recenter() }
-        .onChange(of: model.coordinate.latitude) { _, _ in recenter() }
-        .sheet(isPresented: $showVentusky) {
-            NavigationStack {
-                VentuskyWebView(url: APIEndpoints.ventusky(latitude: model.coordinate.latitude, longitude: model.coordinate.longitude))
-                    .ignoresSafeArea(edges: .bottom)
-                    .navigationTitle("Ventusky")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { showVentusky = false }
-                        }
-                    }
-            }
-        }
-    }
-
-    private func recenter() {
-        camera = .region(MKCoordinateRegion(
-            center: model.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 1.2, longitudeDelta: 1.2)
-        ))
     }
 }
 
-struct VentuskyWebView: UIViewRepresentable {
-    let url: URL
+struct RadarMapView: UIViewRepresentable {
+    let coordinate: CLLocationCoordinate2D
+    let title: String
+    let showNWS: Bool
 
-    func makeUIView(context: Context) -> WKWebView {
-        let view = WKWebView()
-        view.scrollView.bounces = false
-        view.load(URLRequest(url: url))
-        return view
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> MKMapView {
+        let map = MKMapView()
+        map.delegate = context.coordinator
+        map.pointOfInterestFilter = .excludingAll
+        return map
     }
 
-    func updateUIView(_ uiView: WKWebView, context: Context) {
-        if uiView.url != url {
-            uiView.load(URLRequest(url: url))
+    func updateUIView(_ map: MKMapView, context: Context) {
+        map.setRegion(MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 1.2, longitudeDelta: 1.2)), animated: false)
+        map.removeAnnotations(map.annotations)
+        let pin = MKPointAnnotation()
+        pin.coordinate = coordinate
+        pin.title = title
+        map.addAnnotation(pin)
+
+        let hasOverlay = map.overlays.contains { $0 is NWSRadarOverlay }
+        if showNWS && !hasOverlay {
+            map.addOverlay(NWSRadarOverlay(), level: .aboveRoads)
+        } else if !showNWS {
+            map.removeOverlays(map.overlays.filter { $0 is NWSRadarOverlay })
+        }
+    }
+
+    final class Coordinator: NSObject, MKMapViewDelegate {
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let tile = overlay as? MKTileOverlay {
+                let renderer = MKTileOverlayRenderer(tileOverlay: tile)
+                renderer.alpha = 0.7
+                return renderer
+            }
+            return MKOverlayRenderer(overlay: overlay)
         }
     }
 }

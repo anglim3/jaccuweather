@@ -8,31 +8,19 @@ function hid() {
 }
 
 const root = path.resolve(__dirname, '..');
-const sources = [
-  'JaccuweatherApp.swift',
-  'Theme.swift',
-  'Info.plist',
-  'Models/WeatherModels.swift',
-  'Models/LocationModels.swift',
-  'Models/PollenModels.swift',
-  'Models/AlertModels.swift',
-  'Services/APIEndpoints.swift',
-  'Services/HTTPClient.swift',
-  'Services/Secrets.swift',
-  'Services/WeatherService.swift',
-  'Services/GeocodingService.swift',
-  'Services/PollenService.swift',
-  'Services/AlertsService.swift',
-  'Services/HealthScores.swift',
-  'Services/FavoritesStore.swift',
-  'ViewModels/WeatherViewModel.swift',
-  'Views/ContentView.swift',
-  'Views/CurrentConditionsView.swift',
-  'Views/ForecastView.swift',
-  'Views/HealthPollenView.swift',
-  'Views/RadarView.swift',
-  'Views/SearchSheet.swift',
-];
+const appDir = path.join(root, 'Jaccuweather');
+
+function walk(dir, ext, acc = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) walk(full, ext, acc);
+    else if (entry.name.endsWith(ext)) acc.push(path.relative(appDir, full).split(path.sep).join('/'));
+  }
+  return acc;
+}
+
+const sources = walk(appDir, '.swift').sort();
+const plistRel = 'Info.plist';
 
 const ids = {
   project: hid(),
@@ -41,6 +29,12 @@ const ids = {
   sourcesPhase: hid(),
   resourcesPhase: hid(),
   frameworksPhase: hid(),
+  jsCore: hid(),
+  jsCoreBuild: hid(),
+  mapKit: hid(),
+  mapKitBuild: hid(),
+  webKit: hid(),
+  webKitBuild: hid(),
   mainGroup: hid(),
   productsGroup: hid(),
   appGroup: hid(),
@@ -51,8 +45,8 @@ const ids = {
   configGroup: hid(),
   assets: hid(),
   assetsBuild: hid(),
-  debugConfig: hid(),
-  releaseConfig: hid(),
+  resourcesFolder: hid(),
+  resourcesBuild: hid(),
   projDebug: hid(),
   projRelease: hid(),
   targetDebug: hid(),
@@ -61,34 +55,41 @@ const ids = {
   releaseXcconfig: hid(),
   secretsXcconfig: hid(),
   secretsExample: hid(),
+  plist: hid(),
 };
 
 const fileIds = {};
-for (const file of sources) {
-  fileIds[file] = { ref: hid(), build: hid() };
-}
+for (const file of sources) fileIds[file] = { ref: hid(), build: hid() };
 
-function groupChildren(files) {
-  return files.map((f) => fileIds[f].ref).join(',\n\t\t\t\t');
-}
+const groups = {
+  Models: sources.filter((f) => f.startsWith('Models/')),
+  Services: sources.filter((f) => f.startsWith('Services/')),
+  ViewModels: sources.filter((f) => f.startsWith('ViewModels/')),
+  Views: sources.filter((f) => f.startsWith('Views/')),
+  root: sources.filter((f) => !f.includes('/')),
+};
 
 const swiftBuildFiles = sources
-  .filter((f) => f.endsWith('.swift'))
   .map((f) => `\t\t${fileIds[f].build} /* ${path.basename(f)} in Sources */ = {isa = PBXBuildFile; fileRef = ${fileIds[f].ref} /* ${path.basename(f)} */; };`)
   .join('\n');
 
 const fileRefs = sources
-  .map((f) => {
-    const last = path.basename(f);
-    if (last === 'Info.plist') {
-      return `\t\t${fileIds[f].ref} /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };`;
-    }
-    return `\t\t${fileIds[f].ref} /* ${last} */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ${last}; sourceTree = "<group>"; };`;
-  })
+  .map((f) => `\t\t${fileIds[f].ref} /* ${path.basename(f)} */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ${path.basename(f)}; sourceTree = "<group>"; };`)
   .join('\n');
 
+function groupBlock(id, name, files, folderPath) {
+  const children = files.map((f) => `\t\t\t\t${fileIds[f].ref} /* ${path.basename(f)} */,`).join('\n');
+  return `\t\t${id} /* ${name} */ = {
+			isa = PBXGroup;
+			children = (
+${children}
+			);
+			path = ${folderPath};
+			sourceTree = "<group>";
+		};`;
+}
+
 const sourceBuildPhase = sources
-  .filter((f) => f.endsWith('.swift'))
   .map((f) => `\t\t\t\t${fileIds[f].build} /* ${path.basename(f)} in Sources */,`)
   .join('\n');
 
@@ -103,15 +104,24 @@ const pbxproj = `// !$*UTF8*$!
 /* Begin PBXBuildFile section */
 ${swiftBuildFiles}
 		${ids.assetsBuild} /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.assets} /* Assets.xcassets */; };
+		${ids.resourcesBuild} /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.resourcesFolder} /* Resources */; };
+		${ids.jsCoreBuild} /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.jsCore} /* JavaScriptCore.framework */; };
+		${ids.mapKitBuild} /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.mapKit} /* MapKit.framework */; };
+		${ids.webKitBuild} /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.webKit} /* WebKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		${ids.product} /* Jaccuweather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jaccuweather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		${ids.assets} /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		${ids.resourcesFolder} /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
 		${ids.debugXcconfig} /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		${ids.releaseXcconfig} /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		${ids.secretsXcconfig} /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		${ids.secretsExample} /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
+		${ids.plist} /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		${ids.jsCore} /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		${ids.mapKit} /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		${ids.webKit} /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 ${fileRefs}
 /* End PBXFileReference section */
 
@@ -120,6 +130,9 @@ ${fileRefs}
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				${ids.jsCoreBuild} /* JavaScriptCore.framework in Frameworks */,
+				${ids.mapKitBuild} /* MapKit.framework in Frameworks */,
+				${ids.webKitBuild} /* WebKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +144,9 @@ ${fileRefs}
 			children = (
 				${ids.appGroup} /* Jaccuweather */,
 				${ids.productsGroup} /* Products */,
+				${ids.jsCore} /* JavaScriptCore.framework */,
+				${ids.mapKit} /* MapKit.framework */,
+				${ids.webKit} /* WebKit.framework */,
 			);
 			sourceTree = "<group>";
 		};
@@ -145,10 +161,10 @@ ${fileRefs}
 		${ids.appGroup} /* Jaccuweather */ = {
 			isa = PBXGroup;
 			children = (
-				${fileIds['JaccuweatherApp.swift'].ref} /* JaccuweatherApp.swift */,
-				${fileIds['Theme.swift'].ref} /* Theme.swift */,
-				${fileIds['Info.plist'].ref} /* Info.plist */,
+${groups.root.map((f) => `\t\t\t\t${fileIds[f].ref} /* ${path.basename(f)} */,`).join('\n')}
+				${ids.plist} /* Info.plist */,
 				${ids.assets} /* Assets.xcassets */,
+				${ids.resourcesFolder} /* Resources */,
 				${ids.configGroup} /* Config */,
 				${ids.modelsGroup} /* Models */,
 				${ids.servicesGroup} /* Services */,
@@ -169,60 +185,16 @@ ${fileRefs}
 			path = Config;
 			sourceTree = "<group>";
 		};
-		${ids.modelsGroup} /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				${fileIds['Models/WeatherModels.swift'].ref} /* WeatherModels.swift */,
-				${fileIds['Models/LocationModels.swift'].ref} /* LocationModels.swift */,
-				${fileIds['Models/PollenModels.swift'].ref} /* PollenModels.swift */,
-				${fileIds['Models/AlertModels.swift'].ref} /* AlertModels.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		${ids.servicesGroup} /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				${fileIds['Services/APIEndpoints.swift'].ref} /* APIEndpoints.swift */,
-				${fileIds['Services/HTTPClient.swift'].ref} /* HTTPClient.swift */,
-				${fileIds['Services/Secrets.swift'].ref} /* Secrets.swift */,
-				${fileIds['Services/WeatherService.swift'].ref} /* WeatherService.swift */,
-				${fileIds['Services/GeocodingService.swift'].ref} /* GeocodingService.swift */,
-				${fileIds['Services/PollenService.swift'].ref} /* PollenService.swift */,
-				${fileIds['Services/AlertsService.swift'].ref} /* AlertsService.swift */,
-				${fileIds['Services/HealthScores.swift'].ref} /* HealthScores.swift */,
-				${fileIds['Services/FavoritesStore.swift'].ref} /* FavoritesStore.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
-		${ids.viewModelsGroup} /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-				${fileIds['ViewModels/WeatherViewModel.swift'].ref} /* WeatherViewModel.swift */,
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		${ids.viewsGroup} /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				${fileIds['Views/ContentView.swift'].ref} /* ContentView.swift */,
-				${fileIds['Views/CurrentConditionsView.swift'].ref} /* CurrentConditionsView.swift */,
-				${fileIds['Views/ForecastView.swift'].ref} /* ForecastView.swift */,
-				${fileIds['Views/HealthPollenView.swift'].ref} /* HealthPollenView.swift */,
-				${fileIds['Views/RadarView.swift'].ref} /* RadarView.swift */,
-				${fileIds['Views/SearchSheet.swift'].ref} /* SearchSheet.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
+${groupBlock(ids.modelsGroup, 'Models', groups.Models, 'Models')}
+${groupBlock(ids.servicesGroup, 'Services', groups.Services, 'Services')}
+${groupBlock(ids.viewModelsGroup, 'ViewModels', groups.ViewModels, 'ViewModels')}
+${groupBlock(ids.viewsGroup, 'Views', groups.Views, 'Views')}
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		${ids.target} /* Jaccuweather */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = ${ids.targetDebug.slice(0, 0)}${hid()} /* Build configuration list for PBXNativeTarget "Jaccuweather" */;
+			buildConfigurationList = TARGET_CFGS /* Build configuration list for PBXNativeTarget "Jaccuweather" */;
 			buildPhases = (
 				${ids.sourcesPhase} /* Sources */,
 				${ids.frameworksPhase} /* Frameworks */,
@@ -276,6 +248,7 @@ ${fileRefs}
 			buildActionMask = 2147483647;
 			files = (
 				${ids.assetsBuild} /* Assets.xcassets in Resources */,
+				${ids.resourcesBuild} /* Resources in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -349,10 +322,9 @@ ${sourceBuildPhase}
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Shows weather for your current location.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.janglim.jaccuweather;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -380,10 +352,9 @@ ${sourceBuildPhase}
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Shows weather for your current location.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = cloud.janglim.jaccuweather;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -421,16 +392,9 @@ ${sourceBuildPhase}
 }
 `;
 
-// Fix the accidental hid() in native target buildConfigurationList
-const fixed = pbxproj
-  .replace(
-    /buildConfigurationList = [A-F0-9]{24} \/\* Build configuration list for PBXNativeTarget "Jaccuweather" \*\/;/,
-    'buildConfigurationList = TARGET_CFGS /* Build configuration list for PBXNativeTarget "Jaccuweather" */;'
-  );
-
 const outDir = path.join(root, 'Jaccuweather.xcodeproj');
 fs.mkdirSync(path.join(outDir, 'xcshareddata', 'xcschemes'), { recursive: true });
-fs.writeFileSync(path.join(outDir, 'project.pbxproj'), fixed);
+fs.writeFileSync(path.join(outDir, 'project.pbxproj'), pbxproj);
 
 const scheme = `<?xml version="1.0" encoding="UTF-8"?>
 <Scheme
@@ -511,5 +475,4 @@ const scheme = `<?xml version="1.0" encoding="UTF-8"?>
 </Scheme>
 `;
 fs.writeFileSync(path.join(outDir, 'xcshareddata', 'xcschemes', 'Jaccuweather.xcscheme'), scheme);
-console.log('Wrote', path.join(outDir, 'project.pbxproj'));
-console.log('target', ids.target);
+console.log('Wrote project with', sources.length, 'swift files');

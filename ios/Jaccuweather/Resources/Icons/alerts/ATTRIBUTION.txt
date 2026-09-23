@@ -1,0 +1,40 @@
+Alert icons in this directory are vendored from the Meteocons fill set
+(https://github.com/basmilius/meteocons, package @meteocons/svg, version
+0.1.0), copyright Bas Milius, licensed under the MIT License. This is the
+same animated fill family as the forecast weather-code icons in
+../weather/ (the warning-flag glyphs ship static upstream by design).
+They are embedded by build.js and served by the Worker at
+/icons/alerts/<name>.svg so the app never hotlinks a third-party icon
+host at runtime.
+
+Only the icons mapped by getAlertIconFile() in public/app.js are
+included. NWS `properties.event` maps to the closest official glyph:
+
+- Tornado Warning / Watch -> tornado.svg
+- Hurricane / Tropical Storm / Typhoon warnings and watches -> hurricane.svg
+- Severe Thunderstorm, Severe Weather Statement -> thunderstorms.svg
+- Flood / Flash Flood / Storm Surge / Tsunami / Rip Current /
+  Beach Hazards / Lakeshore Flood / Hydrologic Outlook -> water.svg
+- Red Flag / Fire Weather / Smoke / Air Quality alerts -> smoke.svg
+  (0.1.0 ships no dedicated fire glyph; smoke is the closest
+  official match for fire-weather alerts)
+- Avalanche Warning / Watch / Advisory -> alert-avalanche-danger.svg
+- Fog advisories -> fog.svg
+- Dust Storm / Blowing Dust advisories -> dust.svg
+- Excessive Heat / Heat Advisory -> sun-hot.svg
+- Winter Storm / Blizzard / Ice Storm / Lake Effect Snow -> snowflake.svg
+- Freeze / Frost / Cold / Wind Chill -> flag-cold-wave.svg
+- High Wind / Wind Advisory / Gale / Extreme Wind -> flag-gale-warning.svg
+- Small Craft Advisory -> flag-small-craft-advisory.svg
+- Storm Warning / Watch / Special Marine Warning -> flag-storm-warning.svg
+- Hurricane Force Wind Warning -> flag-hurricane-warning.svg
+- Anything else -> weather-alarm.svg (honest generic fallback from the
+  official alarms category)
+
+Notes:
+- There is no cyclone glyph in 0.1.0 (upstream added cyclone and
+  *-alert variants to the alarms category after this release); US NWS
+  alert events never report cyclones (tropical systems arrive as
+  hurricane / tropical-storm events), so nothing maps to a missing file.
+- Severity still drives the alert card color band in displayAlerts();
+  the icon is chosen from the event name.

@@ -13,10 +13,9 @@ enum HTTPClientError: LocalizedError {
 }
 
 enum HTTPClient {
-    /// NWS requires a User-Agent identifying the client. Other public APIs tolerate it.
-    static let userAgent = "JaccuweatherPersonal/1.0 (https://github.com/anglim3/jaccuweather)"
+    static var userAgent: String { Secrets.nwsUserAgent }
 
-    static func getJSON<T: Decodable>(_ url: URL, as type: T.Type, extraHeaders: [String: String] = [:]) async throws -> T {
+    static func getData(_ url: URL, extraHeaders: [String: String] = [:]) async throws -> Data {
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -25,6 +24,16 @@ enum HTTPClient {
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw HTTPClientError.badStatus(http.statusCode)
         }
+        return data
+    }
+
+    static func getJSONObject(_ url: URL) async throws -> Any {
+        let data = try await getData(url)
+        return try JSONSerialization.jsonObject(with: data)
+    }
+
+    static func getJSON<T: Decodable>(_ url: URL, as type: T.Type, extraHeaders: [String: String] = [:]) async throws -> T {
+        let data = try await getData(url, extraHeaders: extraHeaders)
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
