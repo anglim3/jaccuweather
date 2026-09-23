@@ -5461,14 +5461,22 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
 // Cloud-cover layers (low/mid/high) are each a share of the whole sky, so they
 // are presented as translucent bars overlaid on the same x slot instead of being
 // stacked or grouped. ApexCharts has no native bar-overlap option, so after each
-// render the series bars are repositioned onto the first series' x-slots, stretched
-// to the full grouped-column width (columnWidth, default-split across series), and
-// given reduced fill-opacity so overlaps blend.
+// render the series bars are repositioned onto the first visible series' x-slots,
+// stretched to the full grouped-column width (columnWidth, default-split across
+// the VISIBLE series), and given reduced fill-opacity so overlaps blend.
+// Legend-hidden series keep their <g> in the DOM but render no bars, so they must
+// be excluded from both the count and the anchor: counting them makes a lone
+// visible series stretch to totalSeriesCount x its natural width (wider than the
+// category slot -> bars overlap), and anchoring on series 0 crashes when the low
+// layer is the hidden one (baseBars[0] undefined).
 function overlayCloudSeries(chartEl) {
     if (!chartEl) return;
     const seriesGroups = chartEl.querySelectorAll('g.apexcharts-series');
     if (!seriesGroups.length) return;
-    const baseBars = seriesGroups[0].querySelectorAll('.apexcharts-bar-area');
+    const groupBars = Array.from(seriesGroups).map((group) => group.querySelectorAll('.apexcharts-bar-area'));
+    const visibleGroups = groupBars.filter((bars) => bars.length > 0);
+    if (!visibleGroups.length) return;
+    const baseBars = visibleGroups[0];
     // Bars may be <rect x="..."> or, with a borderRadius set, <path d="M x y ...">.
     const barX = (bar) => {
         const xAttr = bar.getAttribute('x');
@@ -5485,9 +5493,9 @@ function overlayCloudSeries(chartEl) {
         if (wAttr != null && wAttr !== '') return parseFloat(wAttr);
         return null;
     };
-    const seriesCount = seriesGroups.length;
+    const seriesCount = visibleGroups.length;
     const baseWidth = barW(baseBars[0]);
-    const groupWidth = (baseWidth != null && seriesCount > 0) ? baseWidth * seriesCount : null;
+    const groupWidth = baseWidth != null ? baseWidth * seriesCount : null;
 
     const applyOverlay = (bar, destX, destW) => {
         const curX = barX(bar);
