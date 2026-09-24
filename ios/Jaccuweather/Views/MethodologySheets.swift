@@ -5,6 +5,9 @@ struct MethodologySheet: View {
     let kind: Kind
     let weather: WeatherBundle
     let pollen: JSONMap?
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
     var body: some View {
         ScrollView {
@@ -13,19 +16,19 @@ struct MethodologySheet: View {
                 case .sinus:
                     let sinus = HealthScores.sinus(from: weather)
                     Text(sinus.label).font(.largeTitle.bold())
-                    Text(sinus.detail).foregroundStyle(JWTheme.muted)
+                    Text(sinus.detail).foregroundStyle(theme.muted)
                     Text("Falling pressure is the main driver. Humid or rainy conditions and large day-night temperature swings add to it.")
                     Text("Scoring: Falling +2. Falling fast +3. Humid, rain, or swing over 20°F: +1. 0–1 Low · 2 Elevated · 3–4 High.")
                         .font(.caption)
-                        .foregroundStyle(JWTheme.muted)
+                        .foregroundStyle(theme.muted)
                 case .allergy:
                     let allergy = HealthScores.allergy(pollen: pollen, weather: weather)
                     Text(allergy.label).font(.largeTitle.bold())
-                    Text(allergy.detail).foregroundStyle(JWTheme.muted)
+                    Text(allergy.detail).foregroundStyle(theme.muted)
                     Text("Follows the highest pollen count: tree, grass, or weed. Wind and rain are shown but do not change the score.")
                     Text("Grains/m³: 0–20 Low · 20–80 Moderate · 80–200 High · 200+ Very high.")
                         .font(.caption)
-                        .foregroundStyle(JWTheme.muted)
+                        .foregroundStyle(theme.muted)
                 case .nice:
                     let nice = HealthScores.niceWeather(from: weather)
                     Text(nice.score.map { "\($0)/10" } ?? "—").font(.largeTitle.bold())
@@ -35,16 +38,16 @@ struct MethodologySheet: View {
                             Text(factor.string("name") ?? "")
                             Spacer()
                             Text(factor.string("value") ?? "")
-                            Text("\(factor.int("points") ?? 0) pts").foregroundStyle(JWTheme.muted)
+                            Text("\(factor.int("points") ?? 0) pts").foregroundStyle(theme.muted)
                         }
-                        Text(factor.string("note") ?? "").font(.caption).foregroundStyle(JWTheme.muted)
+                        Text(factor.string("note") ?? "").font(.caption).foregroundStyle(theme.muted)
                     }
                 }
-                Text("Estimates only, not medical advice.").font(.caption2).foregroundStyle(JWTheme.muted)
+                Text("Estimates only, not medical advice.").font(.caption2).foregroundStyle(theme.muted)
             }
             .padding(20)
         }
-        .background(JWTheme.background.ignoresSafeArea())
+        .background(theme.background.ignoresSafeArea())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -60,6 +63,9 @@ struct MethodologySheet: View {
 
 struct MoonSheet: View {
     @Environment(WeatherViewModel.self) private var model
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
     var body: some View {
         let moon = model.moon
@@ -74,7 +80,7 @@ struct MoonSheet: View {
                 LabeledContent("Next new", value: moon.nextNew)
                 Text("Times use the location timezone offset from Open-Meteo (utc_offset_seconds), matching SunCalc + formatInstantInLocation on the website.")
                     .font(.caption)
-                    .foregroundStyle(JWTheme.muted)
+                    .foregroundStyle(theme.muted)
                 Spacer()
             }
             .padding(24)

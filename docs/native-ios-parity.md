@@ -6,9 +6,9 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 |---|---|
 | Open-Meteo ensemble (`icon_seamless,gfs_seamless,ecmwf_ifs025`) + `normalizeEnsembleWeatherData` | **DONE** — `WeatherService` + JS normalize (mean / medianFloor WMO / derived precip probability) |
 | Current conditions (temp, feels, humidity, wind, UV, pressure trend, dew) | **DONE** — Now tab |
-| Sunrise/sunset arc | **DONE** — SwiftUI arc, times via `formatIsoLocalClock` |
+| Sunrise/sunset arc | **DONE** — half-ellipse matches the site SVG; dot uses location-local sunrise/sunset + `utc_offset_seconds` and ticks each minute (gold by day, moon when the sun is down) |
 | Moon phase / rise / set in city TZ (`utc_offset_seconds` + SunCalc) | **DONE** — Now + Moon sheet |
-| 48-hour forecast + UV/precip/wind/humidity/pressure charts | **DONE** — Forecast tab, Swift Charts |
+| 48-hour forecast + UV/precip/wind/humidity/pressure charts | **DONE** — Forecast tab, Swift Charts; wind chart is speed + gust; pressure axis is inHg |
 | 14-day forecast, WMO icons, **30% rain-icon downgrade** | **DONE** — `getWeatherIconFile(code, true, precipProbability)` |
 | 14-day UV (`uv_index_max`) | **DONE** |
 | Meteocons fill weather icons (SMIL in WKWebView wrappers) | **DONE** — `Resources/Icons/weather` |
@@ -31,7 +31,9 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Device geolocation | **DONE** — When In Use |
 | Favorites | **DONE** — on-device UserDefaults |
 | Stale-tab refresh (15 min + 30s last-updated tick) | **DONE** — `shouldRefetchStaleForecast` on `scenePhase == .active` |
-| Theme / glass UI | **DONE** — dark glass, not a pixel clone of Tailwind |
+| Cloud low / mid / high | **DONE** — ensemble layers kept on hourly rows; 48h and 14-day charts are three line series (daily values are that day’s hourly average) |
+| Wind direction + gusts | **DONE** — circular-mean direction and mean gusts; Now shows from-direction + gust; Forecast wind chips use an arrow opposite of FROM plus gust |
+| Theme / glass UI | **DONE** — dark glass by default; Settings and the toolbar toggle persist light glass on device (`jaccuweather-theme`) |
 | 1024 app icon from `public/favicon.svg` | **DONE** |
 | NWS User-Agent (editable) | **DONE** — Settings stores it in the Keychain; blank xcconfig uses a built-in identifier with no email |
 | Pollen keys | **DONE** — Settings Keychain, else blank `Secrets.xcconfig`; empty keys stay on Open-Meteo |
@@ -47,6 +49,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | NWS WMS empty outside CONUS | Same as the Worker tile layer. Use Ventusky Safari for global radar. |
 | Ventusky is not an in-app iframe | Intentional: Safari link-out preferred vs WKWebView/ToS. |
 | Free Apple ID re-sign every ~7 days | Personal Team limit. Not an app bug. |
+| Light appearance | Pale glass palette saved on device. The website’s light mode is weather-reactive gradients; this app keeps one readable light glass theme. |
 | ApexCharts / MathJax / Leaflet | Replaced by Swift Charts + methodology copy + MapKit. Scoring is the same JS. |
 | Worker pollen rate-limit / same-origin | N/A off-Worker. Personal app is one user. |
 | Preview Worker Google pollen | Unrelated; production website still uses Worker secrets. Native does not. |

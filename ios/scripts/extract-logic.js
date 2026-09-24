@@ -76,13 +76,95 @@ function pollenEmoji(level) {
   }
 }
 
+function circularMeanDegrees(values) {
+  let sinSum = 0;
+  let cosSum = 0;
+  let count = 0;
+  for (const value of values) {
+    if (!Number.isFinite(value)) continue;
+    const rad = value * Math.PI / 180;
+    sinSum += Math.sin(rad);
+    cosSum += Math.cos(rad);
+    count++;
+  }
+  if (!count) return null;
+  let deg = Math.atan2(sinSum, cosSum) * 180 / Math.PI;
+  if (deg < 0) deg += 360;
+  return deg;
+}
+
+// Member keys look like wind_direction_10m_icon_seamless_member01.
+// Reject longer variable names that share the prefix (cloud_cover vs cloud_cover_low).
+function ensembleMemberSeries(container, variable) {
+  if (!container || !variable) return [];
+  const blocked = {
+    cloud_cover: ['low', 'mid', 'high'],
+    wind_direction_10m: ['dominant'],
+    wind_gusts_10m: ['max'],
+    wind_speed_10m: ['max']
+  }[variable] || [];
+  const prefix = variable + '_';
+  const series = [];
+  for (const key of Object.keys(container)) {
+    if (key !== variable && !key.startsWith(prefix)) continue;
+    const tail = key === variable ? '' : key.slice(prefix.length);
+    if (blocked.some((word) => tail === word || tail.startsWith(word + '_'))) continue;
+    const value = container[key];
+    if (Array.isArray(value)) series.push(value);
+  }
+  return series;
+}
+
+function aggregateMemberHours(seriesList, length, reducer) {
+  if (!seriesList.length || !length) return null;
+  const result = new Array(length).fill(null);
+  let any = false;
+  for (let i = 0; i < length; i++) {
+    const values = [];
+    for (const series of seriesList) {
+      const value = series[i];
+      if (Number.isFinite(value)) values.push(value);
+    }
+    if (!values.length) continue;
+    result[i] = reducer(values);
+    any = true;
+  }
+  return any ? result : null;
+}
+
+function roundSeries(series, decimals) {
+  if (!series) return series;
+  const factor = 10 ** decimals;
+  return series.map((value) => Number.isFinite(value) ? Math.round(value * factor) / factor : value);
+}
+
+function attachNativeWindAndCloud(raw, n) {
+  if (!n || !n.hourly) return;
+  const hourly = raw && raw.hourly;
+  const len = Array.isArray(n.hourly.time) ? n.hourly.time.length : 0;
+  const gusts = aggregateMemberHours(ensembleMemberSeries(hourly, 'wind_gusts_10m'), len, averageEnsembleValues);
+  const dirs = aggregateMemberHours(ensembleMemberSeries(hourly, 'wind_direction_10m'), len, circularMeanDegrees);
+  if (gusts) n.hourly.wind_gusts_10m = roundSeries(gusts, 1);
+  if (dirs) {
+    n.hourly.wind_direction_10m = roundSeries(dirs, 0).map((value) => value === 360 ? 0 : value);
+  }
+  for (const name of ['cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high']) {
+    if (Array.isArray(n.hourly[name]) && n.hourly[name].some((value) => Number.isFinite(value))) continue;
+    const avg = aggregateMemberHours(ensembleMemberSeries(hourly, name), len, averageEnsembleValues);
+    if (avg) n.hourly[name] = roundSeries(avg, 1);
+  }
+}
+
 function normalizeEnsembleForNative(raw, lat, lon) {
   const n = normalizeEnsembleWeatherData(raw, lat, lon);
+  attachNativeWindAndCloud(raw, n);
   const idx = nearestTimeIndex(n.hourly && n.hourly.time ? n.hourly.time : [], new Date());
   if (n.current && n.hourly) {
     if (n.hourly.is_day) n.current.is_day = n.hourly.is_day[idx];
     if (n.hourly.precipitation) n.current.precipitation = n.hourly.precipitation[idx];
     if (n.hourly.cloud_cover) n.current.cloud_cover = n.hourly.cloud_cover[idx];
+    if (n.hourly.wind_direction_10m) n.current.wind_direction_10m = n.hourly.wind_direction_10m[idx];
+    if (n.hourly.wind_gusts_10m) n.current.wind_gusts_10m = n.hourly.wind_gusts_10m[idx];
   }
   return n;
 }
