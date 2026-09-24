@@ -1868,6 +1868,30 @@ function asJsDate(value) {
   return Number.isFinite(parsed.getTime()) ? parsed : new Date();
 }
 
+// Same WMO → background class as setTheme() in public/app.js. Light appearance
+// paints this class; dark appearance ignores it and keeps the static blue.
+var WMO_SKY_THEMES = {
+  0: 'sunny', 1: 'sunny',
+  2: 'cloudy', 3: 'cloudy',
+  45: 'fog', 48: 'fog',
+  51: 'rainy', 53: 'rainy', 55: 'rainy',
+  56: 'rainy', 57: 'rainy',
+  61: 'rainy', 63: 'rainy', 65: 'rainy',
+  66: 'rainy', 67: 'rainy',
+  71: 'snow', 73: 'snow', 75: 'snow', 77: 'snow',
+  80: 'rainy', 81: 'rainy', 82: 'storm',
+  85: 'snow', 86: 'snow',
+  95: 'storm', 96: 'storm', 99: 'storm'
+};
+
+function weatherSkyTheme(weatherCode, isDay) {
+  const code = Number(weatherCode);
+  let theme = WMO_SKY_THEMES[code] || 'cloudy';
+  const day = isDay === true || isDay === 1 || isDay === '1';
+  if (!day && (code === 0 || code === 1)) theme = 'clear-night';
+  return theme;
+}
+
 function pollenEmoji(level) {
   switch (level) {
     case 0: return '😊';
@@ -2081,6 +2105,7 @@ var JaccuweatherLogic = {
   shouldDisplayNullPollenAsNone: shouldDisplayNullPollenAsNone,
   buildPollenForecastDays: buildPollenForecastDays,
   uvCategoryLabel: uvCategoryLabel,
+  weatherSkyTheme: weatherSkyTheme,
   maxHourlyUvForDateString: maxHourlyUvForDateString,
   normalizeGooglePollen: normalizeGooglePollen,
   normalizeTomorrowPollen: normalizeTomorrowPollen,

@@ -33,7 +33,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Stale-tab refresh (15 min + 30s last-updated tick) | **DONE** — `shouldRefetchStaleForecast` on `scenePhase == .active` |
 | Cloud low / mid / high | **DONE** — ensemble layers kept on hourly rows; 48h and 14-day charts are three line series (daily values are that day’s hourly average) |
 | Wind direction + gusts | **DONE** — circular-mean direction and mean gusts; Now shows from-direction + gust; Forecast wind chips use an arrow opposite of FROM plus gust |
-| Theme / glass UI | **DONE** — dark glass by default; Settings and the toolbar toggle persist light glass on device (`jaccuweather-theme`) |
+| Theme / glass UI | **DONE** — dark glass by default (static deep blue). Light persists on device (`jaccuweather-theme`) and paints the website sky class from the current WMO code (`weatherSkyTheme`: sunny, cloudy, rainy, storm, snow, fog, clear night) behind pale glass cards |
 | 1024 app icon from `public/favicon.svg` | **DONE** |
 | NWS User-Agent (editable) | **DONE** — Settings stores it in the Keychain; blank xcconfig uses a built-in identifier with no email |
 | Pollen keys | **DONE** — Settings Keychain, else blank `Secrets.xcconfig`; empty keys stay on Open-Meteo |
@@ -49,7 +49,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | NWS WMS empty outside CONUS | Same as the Worker tile layer. Use Ventusky Safari for global radar. |
 | Ventusky is not an in-app iframe | Intentional: Safari link-out preferred vs WKWebView/ToS. |
 | Free Apple ID re-sign every ~7 days | Personal Team limit. Not an app bug. |
-| Light appearance | Pale glass palette saved on device. The website’s light mode is weather-reactive gradients; this app keeps one readable light glass theme. |
+| Light appearance | Weather sky matches the website class list. Cards stay pale glass with dark ink so storm and clear-night skies stay readable. The site keeps white type on those same skies. |
 | ApexCharts / MathJax / Leaflet | Replaced by Swift Charts + methodology copy + MapKit. Scoring is the same JS. |
 | Worker pollen rate-limit / same-origin | N/A off-Worker. Personal app is one user. |
 | Preview Worker Google pollen | Unrelated; production website still uses Worker secrets. Native does not. |

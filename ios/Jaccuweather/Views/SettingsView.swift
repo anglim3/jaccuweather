@@ -25,7 +25,7 @@ struct SettingsView: View {
                         Text("Light").tag(JWAppearance.light)
                     }
                     .pickerStyle(.segmented)
-                    Text("Saved on this device. Dark stays the default deep-blue glass. Light uses a pale glass palette.")
+                    Text("Saved on this device. Dark stays the deep-blue glass. Light paints the same weather sky as the website (sun, cloud, rain, storm, snow, fog, clear night) behind pale glass cards.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

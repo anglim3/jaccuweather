@@ -100,6 +100,14 @@ final class WeatherViewModel {
     private var tickTask: Task<Void, Never>?
     private var fetchInFlight = false
 
+    /// Website light-mode background class (`sunny`, `rainy`, `clear-night`, …). Empty until a forecast is loaded.
+    var skyThemeName: String {
+        guard let weather else { return "" }
+        let code = weather.current.int("weather_code") ?? -1
+        let isDay = weather.current.int("is_day") != 0
+        return LogicEngine.shared.weatherSkyTheme(code: code, isDay: isDay)
+    }
+
     var currentPlace: GeoResult {
         GeoResult(name: locationName, latitude: coordinate.latitude, longitude: coordinate.longitude, admin1: nil, country: nil)
     }
