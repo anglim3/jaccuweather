@@ -62,11 +62,15 @@ final class RainViewerRadarOverlay: MKTileOverlay {
     var onSettled: ((String) -> Void)?
 
     private let session: URLSession
+    private let renderQueue = DispatchQueue(label: "cloud.janglim.jaccuweather.radar-tiles", qos: .userInitiated)
     private let lock = NSLock()
     private var generation = 0
     private var inflight = 0
     private var sawRequest = false
     private var settleAttempts = 0
+    /// One download per parent URL. Child tiles at z>7 all crop this image.
+    private var parentData: [URL: Data] = [:]
+    private var parentWaiters: [URL: [(Data?) -> Void]] = [:]
 
     override init(urlTemplate: String?) {
         let configuration = URLSessionConfiguration.default
@@ -82,6 +86,8 @@ final class RainViewerRadarOverlay: MKTileOverlay {
         tileSize = CGSize(width: Self.tilePixels, height: Self.tilePixels)
         canReplaceMapContent = false
         minimumZ = 2
+        // MapKit does not scale tiles past maximumZ, and the radar tab's ~1.2° span
+        // asks for about z=10. Cap the server fetch at 7 and crop; see loadTile.
         maximumZ = 16
     }
 
@@ -120,29 +126,79 @@ final class RainViewerRadarOverlay: MKTileOverlay {
 
         let zoom = min(path.z, Self.nativeMaxZoom)
         let scale = max(1, 1 << max(0, path.z - zoom))
+        let screenScale = path.contentScaleFactor > 1 ? path.contentScaleFactor : 1
         guard let url = Self.tileURL(prefix: prefix, z: zoom, x: path.x / scale, y: path.y / scale) else {
             complete(result, generation: generation, prefix: prefix, data: nil, error: URLError(.badURL))
             return
         }
 
-        session.dataTask(with: url) { [weak self] data, response, error in
-            let tile = Self.tileData(data: data, response: response, error: error, path: path, scale: scale)
-            DispatchQueue.main.async {
-                guard let self else {
-                    result(nil, URLError(.cancelled))
-                    return
-                }
-                self.lock.lock()
-                let current = self.generation
-                self.lock.unlock()
-                if current == generation {
-                    result(tile.data, tile.error)
-                } else {
-                    result(nil, URLError(.cancelled))
-                }
-                self.completeSettle(generation: generation, prefix: prefix)
+        loadParent(url) { [weak self] data in
+            guard let self else {
+                result(nil, URLError(.cancelled))
+                return
             }
+            self.renderQueue.async {
+                let tile = Self.tileImage(data: data, path: path, scale: scale, screenScale: screenScale)
+                DispatchQueue.main.async {
+                    self.lock.lock()
+                    let current = self.generation
+                    self.lock.unlock()
+                    if current == generation {
+                        result(tile.data, tile.error)
+                    } else {
+                        result(nil, URLError(.cancelled))
+                    }
+                    self.completeSettle(generation: generation, prefix: prefix)
+                }
+            }
+        }
+    }
+
+    /// Child tiles share one parent download. A 429 or timeout is retried so one
+    /// burst during play/scrub does not leave a permanent blank square.
+    private func loadParent(_ url: URL, completion: @escaping (Data?) -> Void) {
+        lock.lock()
+        if let cached = parentData[url] {
+            lock.unlock()
+            completion(cached)
+            return
+        }
+        if parentWaiters[url] != nil {
+            parentWaiters[url]?.append(completion)
+            lock.unlock()
+            return
+        }
+        parentWaiters[url] = [completion]
+        lock.unlock()
+        fetchParent(url, attemptsLeft: 3)
+    }
+
+    private func fetchParent(_ url: URL, attemptsLeft: Int) {
+        session.dataTask(with: url) { [weak self] data, response, error in
+            guard let self else { return }
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            let ok = error == nil && (200...299).contains(status) && (data?.isEmpty == false)
+            let retryable = !ok && attemptsLeft > 1 && (error != nil || status == 429 || status >= 500)
+            if retryable {
+                self.renderQueue.asyncAfter(deadline: .now() + .milliseconds(350 * (4 - attemptsLeft))) {
+                    self.fetchParent(url, attemptsLeft: attemptsLeft - 1)
+                }
+                return
+            }
+            let prepared = ok ? data.flatMap(Self.opaqueEcho) : nil
+            self.finishParent(url, data: prepared)
         }.resume()
+    }
+
+    private func finishParent(_ url: URL, data: Data?) {
+        lock.lock()
+        if let data {
+            if parentData.count > 48 { parentData.removeAll() }
+            parentData[url] = data
+        }
+        let waiters = parentWaiters.removeValue(forKey: url) ?? []
+        lock.unlock()
+        for waiter in waiters { waiter(data) }
     }
 
     private func complete(
@@ -208,57 +264,121 @@ final class RainViewerRadarOverlay: MKTileOverlay {
         return URL(string: "\(base)/256/\(z)/\(x)/\(y)/2/1_0.png")
     }
 
-    /// Crop the z=7 parent so a pinched-in tile is that quadrant, scaled back to 256.
-    static func tileData(
-        data: Data?,
-        response: URLResponse?,
-        error: Error?,
-        path: MKTileOverlayPath,
-        scale: Int
-    ) -> (data: Data?, error: Error?) {
-        if let error { return (nil, error) }
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
-              let data, !data.isEmpty else {
-            return (nil, URLError(.badServerResponse))
+    /// Light RainViewer echoes are tan pixels at alpha ~140–190. Under the renderer's
+    /// 0.7 opacity they vanish into a green basemap, and a zoomed-in child tile of only
+    /// that echo looks like a blank square. Keep the color, make the echo opaque.
+    /// Fully clear pixels stay clear.
+    static func opaqueEcho(_ data: Data) -> Data? {
+        guard let source = UIImage(data: data)?.cgImage else { return nil }
+        let width = source.width
+        let height = source.height
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let rendered = UIGraphicsImageRenderer(
+            size: CGSize(width: width, height: height),
+            format: format
+        ).image { _ in
+            UIImage(cgImage: source).draw(in: CGRect(x: 0, y: 0, width: width, height: height))
         }
-        guard scale > 1 else { return (data, nil) }
-        guard let cropped = cropParentTile(data, path: path, scale: scale) else {
-            return (nil, URLError(.cannotDecodeContentData))
+        guard let cg = rendered.cgImage,
+              cg.bitsPerPixel == 32,
+              let src = cg.dataProvider?.data,
+              let ptr = CFDataGetBytePtr(src) else { return data }
+        // UIGraphics bitmaps are little-endian premultiplied-first (BGRA in memory).
+        let bytesPerRow = cg.bytesPerRow
+        var buffer = [UInt8](repeating: 0, count: bytesPerRow * height)
+        for y in 0..<height {
+            for x in 0..<width {
+                let i = y * bytesPerRow + x * 4
+                let alpha = ptr[i + 3]
+                if alpha == 0 || alpha == 255 {
+                    buffer[i] = ptr[i]
+                    buffer[i + 1] = ptr[i + 1]
+                    buffer[i + 2] = ptr[i + 2]
+                    buffer[i + 3] = alpha
+                    continue
+                }
+                let scale = 255.0 / Double(alpha)
+                buffer[i] = UInt8(min(255, Double(ptr[i]) * scale))
+                buffer[i + 1] = UInt8(min(255, Double(ptr[i + 1]) * scale))
+                buffer[i + 2] = UInt8(min(255, Double(ptr[i + 2]) * scale))
+                buffer[i + 3] = 255
+            }
         }
-        return (cropped, nil)
+        let bitmapInfo = CGBitmapInfo(rawValue:
+            CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        )
+        let provider = CGDataProvider(data: Data(buffer) as CFData)
+        guard let provider,
+              let out = CGImage(
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bitsPerPixel: 32,
+                bytesPerRow: bytesPerRow,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: bitmapInfo,
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: .defaultIntent
+              ),
+              let png = UIImage(cgImage: out).pngData() else { return data }
+        return png
     }
 
-    static func cropParentTile(_ data: Data, path: MKTileOverlayPath, scale: Int) -> Data? {
-        guard scale > 1, let image = UIImage(data: data), let cgImage = image.cgImage else { return nil }
+    /// MapKit scales a native z≤7 PNG to the map. A deeper zoom, if one is still
+    /// requested, crops that parent (XYZ y grows south, PNG y grows down).
+    static func tileImage(
+        data: Data?,
+        path: MKTileOverlayPath,
+        scale: Int,
+        screenScale: CGFloat
+    ) -> (data: Data?, error: Error?) {
+        guard let data, !data.isEmpty, let image = UIImage(data: data), let cgImage = image.cgImage else {
+            return (nil, URLError(.badServerResponse))
+        }
+        if scale <= 1 {
+            return (data, nil)
+        }
         let width = CGFloat(cgImage.width)
         let height = CGFloat(cgImage.height)
-        guard width > 0, height > 0 else { return nil }
-        let subW = width / CGFloat(scale)
-        let subH = height / CGFloat(scale)
-        guard subW > 0, subH > 0 else { return nil }
+        guard width > 0, height > 0 else { return (nil, URLError(.cannotDecodeContentData)) }
+        let child = max(scale, 1)
+        let subW = width / CGFloat(child)
+        let subH = height / CGFloat(child)
+        guard subW > 0, subH > 0 else { return (nil, URLError(.cannotDecodeContentData)) }
         let crop = CGRect(
-            x: CGFloat(path.x % scale) * subW,
-            y: CGFloat(path.y % scale) * subH,
+            x: CGFloat(path.x % child) * subW,
+            y: CGFloat(path.y % child) * subH,
             width: subW,
             height: subH
         )
+        guard let png = fillTile(cgImage: cgImage, crop: crop, screenScale: max(screenScale, 1)) else {
+            return (nil, URLError(.cannotDecodeContentData))
+        }
+        return (png, nil)
+    }
+
+    /// Draw `crop` (PNG y grows down, same as XYZ) into a full tile bitmap.
+    /// Cut the parent with `CGImage` first so the child is that rectangle.
+    static func fillTile(cgImage: CGImage, crop: CGRect, screenScale: CGFloat) -> Data? {
+        let bounds = CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height)
+        let integral = crop.integral.intersection(bounds)
+        guard integral.width >= 1, integral.height >= 1, let cropped = cgImage.cropping(to: integral) else {
+            return nil
+        }
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
+        format.scale = screenScale
         format.opaque = false
         let renderer = UIGraphicsImageRenderer(
             size: CGSize(width: tilePixels, height: tilePixels),
             format: format
         )
-        let factorX = CGFloat(tilePixels) / subW
-        let factorY = CGFloat(tilePixels) / subH
         let scaled = renderer.image { context in
             context.cgContext.interpolationQuality = .none
-            UIImage(cgImage: cgImage).draw(in: CGRect(
-                x: -crop.origin.x * factorX,
-                y: -crop.origin.y * factorY,
-                width: width * factorX,
-                height: height * factorY
-            ))
+            UIImage(cgImage: cropped).draw(in: CGRect(x: 0, y: 0, width: CGFloat(tilePixels), height: CGFloat(tilePixels)))
         }
         return scaled.pngData()
     }

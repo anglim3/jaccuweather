@@ -38,7 +38,7 @@ WeatherKit does not serve radar imagery, and it needs a paid Apple Developer Pro
 
 The tile URL is `{host}{path}/256/{z}/{x}/{y}/2/1_0.png` (color scheme 2, smoothed, snow ramp off). One `RainViewerRadarOverlay` stays on the map. Changing frames sets `framePrefix` and calls `MKTileOverlayRenderer.reloadData()`. Renderer alpha is 0.7.
 
-`loadTile` uses a `URLSession` with a 20 MB / 50 MB `URLCache` and `returnCacheDataElseLoad`, so RainViewer’s `max-age=172800` makes a second pass through the loop cheap. Fetches clamp at z=7. A higher zoom crops that parent tile (XYZ y grows south, PNG y grows down) and scales the crop back to 256×256 with no interpolation. `maximumZ` is 16 so pinching in still asks for tiles.
+`loadTile` uses a `URLSession` with a 20 MB / 50 MB `URLCache` and `returnCacheDataElseLoad`, so RainViewer’s `max-age=172800` makes a second pass through the loop cheap. Fetches clamp at z=7. `maximumZ` stays 16 because MapKit does not draw an overlay zoomed past `maximumZ`, and the radar tab’s ~1.2° span asks for about z=10. Every child of a frame shares one parent download, retried on 429 or a timeout. A higher zoom crops that parent (XYZ y grows south, PNG y grows down) by cutting the CGImage first, then scaling that crop to the tile. RainViewer’s light echo is tan at alpha about 140–190. Under the renderer’s 0.7 opacity that wash disappeared into the green basemap, and one 32-pixel block stretched to a z=10 tile looked like a blank square. Nonzero echo is made opaque before the parent is cached. Clear pixels stay clear.
 
 Play steps one frame at a time, waits until that frame’s tile batch settles (or 4 seconds), and holds the frame at least about 0.85 seconds. The map recenters only when the selected coordinate changes, not when the frame changes.
 
@@ -90,7 +90,7 @@ Example that returned a PNG: `https://tilecache.rainviewer.com/v2/radar/e0fed87c
 
 - `MKTileOverlay`, `canReplaceMapContent = false`, `tileSize` 256, `minimumZ` 2, `maximumZ` 16. Fetches clamp at z = 7 inside `loadTile`.
 - One overlay. The coordinator stores it and reloads that same `MKTileOverlayRenderer` when `framePrefix` changes.
-- `URLSession` cache is 20 MB memory / 50 MB disk. `loadTile` crops when `z > 7`: `scale = 1 << (z - 7)`, parent tile `(x / scale, y / scale)`, crop origin `((x % scale) * (256 / scale), (y % scale) * (256 / scale))`, then scale back to 256. Renderer alpha is 0.7.
+- `URLSession` cache is 20 MB memory / 50 MB disk. Light-echo pixels (alpha not 0 or 255) are made opaque before the parent is cached. If `z > 7`, `loadTile` crops: `scale = 1 << (z - 7)`, parent tile `(x / scale, y / scale)`, crop origin `((x % scale) * (256 / scale), (y % scale) * (256 / scale))`, via `CGImage` cropping. Renderer alpha is 0.7.
 
 ### 4. Radar tab UI
 
