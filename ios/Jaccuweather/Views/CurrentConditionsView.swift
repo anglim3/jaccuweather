@@ -3,13 +3,17 @@ import SwiftUI
 struct CurrentConditionsView: View {
     @Environment(WeatherViewModel.self) private var model
     @State private var showMoon = false
+    @State private var selectedAlert: NWSAlertFeature?
 
     var body: some View {
-        ScrollView {
+        TabScreenScroll {
             VStack(alignment: .leading, spacing: 16) {
                 header
                 if let message = model.errorMessage {
                     Text(message).font(.footnote).foregroundStyle(.orange)
+                }
+                if let note = model.statusNote {
+                    Text(note).font(.footnote).foregroundStyle(JWTheme.muted)
                 }
                 if !model.alerts.isEmpty { alertsCard }
                 atmosphere
@@ -17,9 +21,7 @@ struct CurrentConditionsView: View {
                 pollen
                 if let tides = model.tides { tidesCard(tides) }
             }
-            .padding(16)
         }
-        .background(JWTheme.background.ignoresSafeArea())
         .navigationTitle("Now")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -35,6 +37,9 @@ struct CurrentConditionsView: View {
         }
         .refreshable { await model.refresh() }
         .sheet(isPresented: $showMoon) { MoonSheet() }
+        .sheet(item: $selectedAlert) { alert in
+            AlertDetailSheet(alert: alert)
+        }
     }
 
     private var header: some View {
@@ -135,7 +140,11 @@ struct CurrentConditionsView: View {
                 pollenCol("Weed", weed, "pollen-weed")
             }
             if let aqi = current.number("us_aqi") {
-                Text("US AQI \(Int(aqi.rounded()))").font(.caption).foregroundStyle(JWTheme.muted)
+                let label = aqiLabel(aqi)
+                HStack(spacing: 8) {
+                    SVGIconView(fileName: "smoke.svg", folder: "cards", pointSize: 18).frame(width: 18, height: 18)
+                    Text("US AQI \(Int(aqi.rounded())) · \(label)").font(.caption).foregroundStyle(JWTheme.muted)
+                }
             }
             speciesRow(current)
             Text("Tree: Alder, Birch, Olive  ·  Grass: general  ·  Weed: Mugwort, Ragweed")
@@ -163,14 +172,22 @@ struct CurrentConditionsView: View {
         WeatherCard(title: "NWS alerts") {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(model.alerts.prefix(5)) { alert in
-                    HStack(alignment: .top, spacing: 10) {
-                        SVGIconView(fileName: LogicEngine.shared.alertIconFile(alert.properties.event), folder: "alerts", pointSize: 28)
-                            .frame(width: 28, height: 28)
-                        VStack(alignment: .leading) {
-                            Text(alert.properties.event ?? "Alert").font(.subheadline.weight(.semibold))
-                            Text(alert.properties.headline ?? "").font(.caption).foregroundStyle(JWTheme.muted)
+                    Button { selectedAlert = alert } label: {
+                        HStack(alignment: .top, spacing: 10) {
+                            SVGIconView(fileName: LogicEngine.shared.alertIconFile(alert.properties.event), folder: "alerts", pointSize: 28)
+                                .frame(width: 28, height: 28)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(alert.properties.event ?? "Alert").font(.subheadline.weight(.semibold))
+                                if let severity = alert.properties.severity {
+                                    Text(severity).font(.caption2.weight(.semibold)).foregroundStyle(severityColor(severity))
+                                }
+                                Text(alert.properties.headline ?? "").font(.caption).foregroundStyle(JWTheme.muted).lineLimit(2)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(JWTheme.muted)
                         }
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -237,6 +254,26 @@ struct CurrentConditionsView: View {
         .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    private func severityColor(_ severity: String) -> Color {
+        switch severity.lowercased() {
+        case "extreme", "severe": return .red
+        case "moderate": return .orange
+        case "minor": return JWTheme.gold
+        default: return JWTheme.muted
+        }
+    }
+
+    private func aqiLabel(_ value: Double) -> String {
+        switch Int(value.rounded()) {
+        case ..<51: return "Good"
+        case ..<101: return "Moderate"
+        case ..<151: return "Unhealthy for sensitive groups"
+        case ..<201: return "Unhealthy"
+        case ..<301: return "Very unhealthy"
+        default: return "Hazardous"
+        }
+    }
+
     private func temp(_ value: Double?) -> String {
         guard let value else { return "—" }
         return "\(Int(value.rounded()))°"
@@ -289,6 +326,61 @@ struct SunArcView: View {
         if now <= rise { return 0 }
         if now >= set { return 1 }
         return CGFloat((now - rise) / (set - rise))
+    }
+}
+
+struct AlertDetailSheet: View {
+    let alert: NWSAlertFeature
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 12) {
+                        SVGIconView(fileName: LogicEngine.shared.alertIconFile(alert.properties.event), folder: "alerts", pointSize: 36)
+                            .frame(width: 36, height: 36)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(alert.properties.event ?? "Alert").font(.title3.weight(.semibold))
+                            if let severity = alert.properties.severity {
+                                Text([severity, alert.properties.urgency].compactMap { $0 }.joined(separator: " · "))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(JWTheme.gold)
+                            }
+                        }
+                    }
+                    if let headline = alert.properties.headline {
+                        Text(headline).font(.subheadline)
+                    }
+                    if let sender = alert.properties.senderName {
+                        Text(sender).font(.caption).foregroundStyle(JWTheme.muted)
+                    }
+                    if let ends = alert.properties.ends {
+                        Text("Ends \(ends)").font(.caption).foregroundStyle(JWTheme.muted)
+                    }
+                    if let description = alert.properties.description, !description.isEmpty {
+                        Text(description).font(.body)
+                    }
+                    if let instruction = alert.properties.instruction, !instruction.isEmpty {
+                        Text(instruction)
+                            .font(.subheadline)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                }
+                .padding(16)
+                .foregroundStyle(.white)
+            }
+            .background(JWTheme.background.ignoresSafeArea())
+            .navigationTitle("Alert")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
     }
 }
 

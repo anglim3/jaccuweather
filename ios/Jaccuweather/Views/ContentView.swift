@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(WeatherViewModel.self) private var model
     @State private var showSearch = false
+    @State private var showSettings = false
 
     var body: some View {
         TabView {
@@ -38,6 +39,9 @@ struct ContentView: View {
         .sheet(isPresented: $showSearch) {
             SearchSheet().environment(model)
         }
+        .sheet(isPresented: $showSettings) {
+            SettingsView().environment(model)
+        }
     }
 
     @ToolbarContentBuilder
@@ -49,6 +53,12 @@ struct ContentView: View {
                     Text(model.locationName).lineLimit(1)
                 }
             }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button { showSettings = true } label: {
+                Image(systemName: "gearshape")
+            }
+            .accessibilityLabel("Settings")
         }
     }
 

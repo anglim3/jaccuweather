@@ -7,7 +7,7 @@ struct ForecastView: View {
     @State private var dailySeries = "temp"
 
     var body: some View {
-        ScrollView {
+        TabScreenScroll {
             VStack(alignment: .leading, spacing: 16) {
                 Picker("Hourly", selection: $hourlyMode) {
                     Text("Conditions").tag("conditions")
@@ -72,9 +72,7 @@ struct ForecastView: View {
                     }
                 }
             }
-            .padding(16)
         }
-        .background(JWTheme.background.ignoresSafeArea())
         .navigationTitle("Forecast")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -108,8 +106,19 @@ struct ForecastView: View {
                         .interpolationMethod(.catmullRom)
                 }
             }
-            .chartXAxis(.hidden)
-            .frame(height: 150)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                    AxisGridLine().foregroundStyle(Color.white.opacity(0.08))
+                    AxisValueLabel().foregroundStyle(JWTheme.muted)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading) { _ in
+                    AxisGridLine().foregroundStyle(Color.white.opacity(0.08))
+                    AxisValueLabel().foregroundStyle(JWTheme.muted)
+                }
+            }
+            .frame(height: 180)
         }
     }
 
@@ -131,7 +140,21 @@ struct ForecastView: View {
             }
         }
         .chartXAxis(.hidden)
-        .frame(height: 150)
+        .chartYAxis {
+            AxisMarks(position: .leading) { _ in
+                AxisGridLine().foregroundStyle(Color.white.opacity(0.08))
+                AxisValueLabel().foregroundStyle(JWTheme.muted)
+            }
+        }
+        .frame(height: 180)
+        if dailySeries == "temp" {
+            HStack(spacing: 16) {
+                Label("High", systemImage: "circle.fill").foregroundStyle(.orange)
+                Label("Low", systemImage: "circle.fill").foregroundStyle(JWTheme.accent)
+            }
+            .font(.caption2)
+            .padding(.top, 4)
+        }
     }
 
     private func hourlyChip(_ row: HourRow) -> some View {

@@ -17,6 +17,13 @@ struct SearchSheet: View {
                                     dismiss()
                                 }
                             }
+                            .swipeActions {
+                                Button(role: .destructive) {
+                                    model.favorites.remove(place)
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                 }

@@ -24,6 +24,11 @@ final class FavoritesStore {
         items.contains(place)
     }
 
+    func remove(_ place: GeoResult) {
+        items.removeAll { $0 == place }
+        persist()
+    }
+
     func toggle(_ place: GeoResult) {
         if let idx = items.firstIndex(of: place) {
             items.remove(at: idx)

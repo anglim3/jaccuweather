@@ -4,7 +4,7 @@ struct HealthPollenView: View {
     @Environment(WeatherViewModel.self) private var model
 
     var body: some View {
-        ScrollView {
+        TabScreenScroll {
             VStack(alignment: .leading, spacing: 16) {
                 if let weather = model.weather {
                     let sinus = HealthScores.sinus(from: weather)
@@ -62,9 +62,7 @@ struct HealthPollenView: View {
                     Text("Load a location first.").foregroundStyle(JWTheme.muted)
                 }
             }
-            .padding(16)
         }
-        .background(JWTheme.background.ignoresSafeArea())
         .navigationTitle("Health")
         .navigationBarTitleDisplayMode(.inline)
     }

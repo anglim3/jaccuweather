@@ -24,10 +24,14 @@ struct RadarView: View {
                     .buttonStyle(.borderedProminent)
             }
             .padding(16)
+            .padding(.bottom, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(JWTheme.background)
         }
-        .background(JWTheme.background.ignoresSafeArea())
+        .safeAreaPadding(.bottom, 4)
+        .background {
+            JWTheme.background.ignoresSafeArea()
+        }
         .navigationTitle("Radar")
         .navigationBarTitleDisplayMode(.inline)
     }

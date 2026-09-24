@@ -11,7 +11,8 @@ struct AlertsService {
             let point = try await HTTPClient.getJSON(
                 APIEndpoints.nwsPoints(latitude: latitude, longitude: longitude),
                 as: NWSPointResponse.self,
-                extraHeaders: nwsHeaders
+                extraHeaders: nwsHeaders,
+                userAgent: Secrets.nwsUserAgent
             )
             guard let zoneURL = point.properties?.forecastZone,
                   let zoneId = zoneURL.split(separator: "/").last.map(String.init)
@@ -19,7 +20,8 @@ struct AlertsService {
             let payload = try await HTTPClient.getJSON(
                 APIEndpoints.nwsAlerts(zoneId: zoneId),
                 as: NWSAlertsResponse.self,
-                extraHeaders: nwsHeaders
+                extraHeaders: nwsHeaders,
+                userAgent: Secrets.nwsUserAgent
             )
             return payload.features.filter { ($0.properties.status ?? "Actual") == "Actual" }
         } catch {

@@ -23,6 +23,8 @@
 		B4EDAE861B2CECF693123A8F /* NWSRadarOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1DD02B7DEDF5505A067816 /* NWSRadarOverlay.swift */; };
 		579F277D6405C24158D374E0 /* PollenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF9ED1E67DA0C5CF1754C7C /* PollenService.swift */; };
 		B12B25B4BD84AB9BC4CF6F2B /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D21A4943BE68C249507AC84 /* Secrets.swift */; };
+		A7C3E91B4D2F6081C0AB11E4 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D4F02C5E306192D1BC22F5 /* KeychainStore.swift */; };
+		C9E5A13D6F417203E2CD33A6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F6B24E70528314F3DE44B7 /* SettingsView.swift */; };
 		036FE7214AD7DBE259E20DD2 /* TideService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CCBA8EBF3FDF985881BB1CB /* TideService.swift */; };
 		D81E62AE693A2DD7C4341853 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125E33E34973E5FBDB4845EF /* WeatherService.swift */; };
 		39FC41B35F3174E6042C0EB2 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD94EFB70B10589A567E9B4A /* Theme.swift */; };
@@ -72,6 +74,8 @@
 		5F1DD02B7DEDF5505A067816 /* NWSRadarOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NWSRadarOverlay.swift; sourceTree = "<group>"; };
 		AAF9ED1E67DA0C5CF1754C7C /* PollenService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollenService.swift; sourceTree = "<group>"; };
 		6D21A4943BE68C249507AC84 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+		B8D4F02C5E306192D1BC22F5 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		D0F6B24E70528314F3DE44B7 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		2CCBA8EBF3FDF985881BB1CB /* TideService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TideService.swift; sourceTree = "<group>"; };
 		125E33E34973E5FBDB4845EF /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		AD94EFB70B10589A567E9B4A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -169,6 +173,7 @@
 				6D83AE22D9A7837EAA5E29F9 /* GeocodingService.swift */,
 				9C2A96DE86AA3625E69BBDFE /* HTTPClient.swift */,
 				C45F5A93DD439A55C3054B28 /* HealthScores.swift */,
+				B8D4F02C5E306192D1BC22F5 /* KeychainStore.swift */,
 				138E49033C3BA213FCE4B5CC /* LogicEngine.swift */,
 				5F1DD02B7DEDF5505A067816 /* NWSRadarOverlay.swift */,
 				AAF9ED1E67DA0C5CF1754C7C /* PollenService.swift */,
@@ -196,6 +201,7 @@
 				63F74F1420EB787785530751 /* HealthPollenView.swift */,
 				DFA9CA0E258990F10A3961D5 /* MethodologySheets.swift */,
 				9779F93D0F4B722471056025 /* RadarView.swift */,
+				D0F6B24E70528314F3DE44B7 /* SettingsView.swift */,
 				5C61B2E212ACAC155B0ACC11 /* SVGIconView.swift */,
 				1A50660C9B6C41C5A832A743 /* SearchSheet.swift */,
 			);
@@ -285,6 +291,7 @@
 				3FA3FC4CE1520ADD50D29BB8 /* GeocodingService.swift in Sources */,
 				2256449FFD1FA10F16850C4C /* HTTPClient.swift in Sources */,
 				01BA0CC644736D5F8F11A444 /* HealthScores.swift in Sources */,
+				A7C3E91B4D2F6081C0AB11E4 /* KeychainStore.swift in Sources */,
 				EAB2D51E7008CB060F0E15D8 /* LogicEngine.swift in Sources */,
 				B4EDAE861B2CECF693123A8F /* NWSRadarOverlay.swift in Sources */,
 				579F277D6405C24158D374E0 /* PollenService.swift in Sources */,
@@ -299,6 +306,7 @@
 				885516508FA86726A64841C1 /* HealthPollenView.swift in Sources */,
 				8687666A55ED8D9B1897B482 /* MethodologySheets.swift in Sources */,
 				350621A4BA7CFE9236836D93 /* RadarView.swift in Sources */,
+				C9E5A13D6F417203E2CD33A6 /* SettingsView.swift in Sources */,
 				9E36D7F5CF92767446376385 /* SVGIconView.swift in Sources */,
 				149EC7BC091B7A658A9881AD /* SearchSheet.swift in Sources */,
 			);

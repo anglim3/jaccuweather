@@ -10,6 +10,25 @@ enum JWTheme {
     static let gold = Color(red: 251 / 255, green: 191 / 255, blue: 36 / 255)
 }
 
+/// Scroll container that keeps the last card above the floating tab bar.
+/// The fill sits behind the scroll view so `ignoresSafeArea` does not pull content under the bar.
+struct TabScreenScroll<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ZStack {
+            JWTheme.background.ignoresSafeArea()
+            ScrollView {
+                content
+                    .padding(16)
+                    .padding(.bottom, 28)
+            }
+            .contentMargins(.bottom, 12, for: .scrollContent)
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+}
+
 struct WeatherCard<Content: View>: View {
     let title: String
     @ViewBuilder var content: Content

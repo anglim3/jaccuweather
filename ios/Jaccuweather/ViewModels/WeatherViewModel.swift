@@ -75,6 +75,7 @@ final class WeatherViewModel {
     var tides: TideSnapshot?
     var isLoading = false
     var errorMessage: String?
+    var statusNote: String?
     var searchQuery = ""
     var searchResults: [GeoResult] = []
     var isSearching = false
@@ -189,6 +190,7 @@ final class WeatherViewModel {
         fetchInFlight = true
         isLoading = true
         errorMessage = nil
+        statusNote = nil
         defer {
             fetchInFlight = false
             isLoading = false
@@ -207,6 +209,7 @@ final class WeatherViewModel {
             }
             lastFetchMs = Date().timeIntervalSince1970 * 1000
             tickLastUpdated()
+            statusNote = pollen == nil ? "Pollen request failed. Blank keys still use Open-Meteo when that call succeeds." : nil
         } catch {
             errorMessage = error.localizedDescription
         }

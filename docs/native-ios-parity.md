@@ -13,7 +13,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | 14-day UV (`uv_index_max`) | **DONE** |
 | Meteocons fill weather icons (SMIL in WKWebView wrappers) | **DONE** — `Resources/Icons/weather` |
 | Static card-header Meteocons | **DONE** — `Resources/Icons/cards` |
-| NWS alerts + Meteocons alarm icons | **DONE** — `Resources/Icons/alerts` + `getAlertIconFile` |
+| NWS alerts + Meteocons alarm icons | **DONE** — list plus detail sheet (severity, instruction, ends) |
 | Sinus risk + methodology | **DONE** — same `calculateSinusRisk` |
 | Allergy risk + methodology | **DONE** — same `calculateAllergyRisk` |
 | Nice-weather index + methodology | **DONE** — same `getNiceWeatherBreakdown` |
@@ -33,14 +33,16 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Stale-tab refresh (15 min + 30s last-updated tick) | **DONE** — `shouldRefetchStaleForecast` on `scenePhase == .active` |
 | Theme / glass UI | **DONE** — dark glass, not a pixel clone of Tailwind |
 | 1024 app icon from `public/favicon.svg` | **DONE** |
-| NWS User-Agent (editable) | **DONE** — `NWS_USER_AGENT` in `Secrets.xcconfig` |
-| Pollen keys | **DONE** — `Secrets.xcconfig` only; committed file is blank |
+| NWS User-Agent (editable) | **DONE** — Settings stores it in the Keychain; blank xcconfig uses a built-in identifier with no email |
+| Pollen keys | **DONE** — Settings Keychain, else blank `Secrets.xcconfig`; empty keys stay on Open-Meteo |
+| Now tab clear of the tab bar | **DONE** — scroll content sits above the floating tab bar |
+| Favorites remove | **DONE** — swipe to remove in the location sheet |
 
 ## Honest leftovers (not code gaps vs the site)
 
 | Item | Why it is not a merge blocker |
 |---|---|
-| This cloud agent cannot compile or run Simulator | Linux. Owner opens `ios/Jaccuweather.xcodeproj` on a Mac. |
+| Ventusky stays a Safari link | In-app iframe was intentionally not added. |
 | Google/Tomorrow species detail | Needs the owner’s **billing-capable** Google Pollen key (iOS-restricted). Blank keys → Open-Meteo, which is correct. |
 | NWS WMS empty outside CONUS | Same as the Worker tile layer. Use Ventusky Safari for global radar. |
 | Ventusky is not an in-app iframe | Intentional: Safari link-out preferred vs WKWebView/ToS. |
@@ -49,4 +51,4 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Worker pollen rate-limit / same-origin | N/A off-Worker. Personal app is one user. |
 | Preview Worker Google pollen | Unrelated; production website still uses Worker secrets. Native does not. |
 
-Do not merge. Do not deploy. Web Worker under `public/` is unchanged.
+Web Worker under `public/` is unchanged. Native calls stay on public upstreams (30s timeout, 429 retry, short forecast/geocoding cache). Production Worker secrets are not in the app.
