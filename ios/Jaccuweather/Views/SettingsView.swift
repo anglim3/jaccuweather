@@ -4,7 +4,6 @@ struct SettingsView: View {
     @Environment(WeatherViewModel.self) private var model
     @Environment(\.dismiss) private var dismiss
 
-    @AppStorage(JWAppearance.storageKey) private var appearance = JWAppearance.dark
     @State private var googleKey = ""
     @State private var tomorrowKey = ""
     @State private var nwsAgent = ""
@@ -15,17 +14,6 @@ struct SettingsView: View {
             Form {
                 Section {
                     Text("Keys stay in this device’s Keychain. Blank pollen keys keep the Open-Meteo fallback. Nothing here is written into the project.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Appearance") {
-                    Picker("Theme", selection: $appearance) {
-                        Text("Dark").tag(JWAppearance.dark)
-                        Text("Light").tag(JWAppearance.light)
-                    }
-                    .pickerStyle(.segmented)
-                    Text("Saved on this device. Dark stays the deep-blue glass. Light paints the same weather sky as the website (sun, cloud, rain, storm, snow, fog, clear night) behind pale glass cards.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

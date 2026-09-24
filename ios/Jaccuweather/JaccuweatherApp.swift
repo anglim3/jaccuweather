@@ -19,13 +19,12 @@ enum LaunchArgs {
 struct JaccuweatherApp: App {
     @State private var model = WeatherViewModel()
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage(JWAppearance.storageKey) private var appearance = JWAppearance.dark
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(model)
-                .preferredColorScheme(appearance == JWAppearance.light ? .light : .dark)
+                .preferredColorScheme(.dark)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         Task { await model.handleBecameActive() }

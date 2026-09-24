@@ -3,7 +3,6 @@ import SwiftUI
 struct ContentView: View {
     @Environment(WeatherViewModel.self) private var model
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(JWAppearance.storageKey) private var appearance = JWAppearance.dark
     @State private var showSearch = false
     @State private var showSettings = false
     @State private var tab = LaunchArgs.tab
@@ -60,14 +59,6 @@ struct ContentView: View {
                 Image(systemName: "magnifyingglass")
             }
             .accessibilityLabel("Search")
-        }
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                appearance = appearance == JWAppearance.light ? JWAppearance.dark : JWAppearance.light
-            } label: {
-                Image(systemName: appearance == JWAppearance.light ? "moon.fill" : "sun.max.fill")
-            }
-            .accessibilityLabel(appearance == JWAppearance.light ? "Switch to dark appearance" : "Switch to light appearance")
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button { showSettings = true } label: {
