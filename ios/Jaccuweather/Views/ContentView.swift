@@ -57,11 +57,9 @@ struct ContentView: View {
     private var locationToolbar: some ToolbarContent {
         ToolbarItem(placement: .principal) {
             Button { showSearch = true } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                    Text(model.locationName).lineLimit(1)
-                }
+                Image(systemName: "magnifyingglass")
             }
+            .accessibilityLabel("Search")
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button {

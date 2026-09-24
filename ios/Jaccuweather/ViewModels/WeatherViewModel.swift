@@ -35,7 +35,9 @@ struct HourRow: Identifiable {
     let code: Int?
     let isDay: Bool
     let temp: Double?
+    let feels: Double?
     let precip: Double?
+    let snow: Double?
     let precipChance: Int?
     let wind: Double?
     let windDir: Double?
@@ -47,6 +49,7 @@ struct HourRow: Identifiable {
     let pressure: Double?
     let cloud: Double?
     let humidity: Double?
+    let radiation: Double?
     let iconFile: String
 }
 
@@ -132,7 +135,9 @@ final class WeatherViewModel {
                 code: code.map { Int($0) },
                 isDay: isDay,
                 temp: hourly.numbers("temperature_2m")[safe: i] ?? nil,
+                feels: hourly.numbers("apparent_temperature")[safe: i] ?? nil,
                 precip: hourly.numbers("precipitation")[safe: i] ?? nil,
+                snow: hourly.numbers("snowfall")[safe: i] ?? nil,
                 precipChance: precipChance.map { Int($0) },
                 wind: hourly.numbers("wind_speed_10m")[safe: i] ?? nil,
                 windDir: hourly.numbers("wind_direction_10m")[safe: i] ?? nil,
@@ -144,6 +149,7 @@ final class WeatherViewModel {
                 pressure: hourly.numbers("surface_pressure")[safe: i] ?? nil,
                 cloud: hourly.numbers("cloud_cover")[safe: i] ?? nil,
                 humidity: hourly.numbers("relative_humidity_2m")[safe: i] ?? nil,
+                radiation: hourly.numbers("shortwave_radiation")[safe: i] ?? nil,
                 iconFile: icon
             )
         }
