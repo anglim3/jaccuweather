@@ -35,7 +35,9 @@ struct HourRow: Identifiable {
     let code: Int?
     let isDay: Bool
     let temp: Double?
+    let feels: Double?
     let precip: Double?
+    let snow: Double?
     let precipChance: Int?
     let wind: Double?
     let windDir: Double?
@@ -47,6 +49,7 @@ struct HourRow: Identifiable {
     let pressure: Double?
     let cloud: Double?
     let humidity: Double?
+    let radiation: Double?
     let iconFile: String
 }
 
@@ -100,14 +103,6 @@ final class WeatherViewModel {
     private var tickTask: Task<Void, Never>?
     private var fetchInFlight = false
 
-    /// Website light-mode background class (`sunny`, `rainy`, `clear-night`, …). Empty until a forecast is loaded.
-    var skyThemeName: String {
-        guard let weather else { return "" }
-        let code = weather.current.int("weather_code") ?? -1
-        let isDay = weather.current.int("is_day") != 0
-        return LogicEngine.shared.weatherSkyTheme(code: code, isDay: isDay)
-    }
-
     var currentPlace: GeoResult {
         GeoResult(name: locationName, latitude: coordinate.latitude, longitude: coordinate.longitude, admin1: nil, country: nil)
     }
@@ -132,7 +127,9 @@ final class WeatherViewModel {
                 code: code.map { Int($0) },
                 isDay: isDay,
                 temp: hourly.numbers("temperature_2m")[safe: i] ?? nil,
+                feels: hourly.numbers("apparent_temperature")[safe: i] ?? nil,
                 precip: hourly.numbers("precipitation")[safe: i] ?? nil,
+                snow: hourly.numbers("snowfall")[safe: i] ?? nil,
                 precipChance: precipChance.map { Int($0) },
                 wind: hourly.numbers("wind_speed_10m")[safe: i] ?? nil,
                 windDir: hourly.numbers("wind_direction_10m")[safe: i] ?? nil,
@@ -144,6 +141,7 @@ final class WeatherViewModel {
                 pressure: hourly.numbers("surface_pressure")[safe: i] ?? nil,
                 cloud: hourly.numbers("cloud_cover")[safe: i] ?? nil,
                 humidity: hourly.numbers("relative_humidity_2m")[safe: i] ?? nil,
+                radiation: hourly.numbers("shortwave_radiation")[safe: i] ?? nil,
                 iconFile: icon
             )
         }

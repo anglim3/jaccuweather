@@ -75,10 +75,6 @@ final class LogicEngine {
         string("getAlertIconFile", [event as Any]) ?? "weather-alarm.svg"
     }
 
-    func weatherSkyTheme(code: Int?, isDay: Bool) -> String {
-        string("weatherSkyTheme", [code as Any, isDay]) ?? "cloudy"
-    }
-
     func uvLabel(_ value: Double?) -> String {
         string("uvCategoryLabel", [value as Any]) ?? "Low"
     }
