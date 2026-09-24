@@ -51,13 +51,13 @@ cp ios/Jaccuweather/Config/Secrets.xcconfig.example \
 # edit Secrets.xcconfig locally — never git add real values
 ```
 
-Xcode injects `GOOGLE_POLLEN_API_KEY`, `TOMORROW_API_KEY`, and `NWS_USER_AGENT` from `Secrets.xcconfig` into `Info.plist`. `Secrets.swift` reads them at runtime.
+Xcode still injects `GOOGLE_POLLEN_API_KEY`, `TOMORROW_API_KEY`, and `NWS_USER_AGENT` from `Secrets.xcconfig` into `Info.plist` when those values are set. The app reads the Keychain first (Settings gear on every tab). A blank key skips that vendor. A blank NWS User-Agent uses `Jaccuweather/1.0 (personal iOS; https://github.com/anglim3/jaccuweather)`.
 
 **Google Pollen (species detail):** create a key on a personal Google Cloud project with **Pollen API** enabled. Maps Platform Pollen is **billing-capable** even at tiny quota — that is a Google account setting, not an Apple fee. Restrict the key to **iOS apps** + bundle id `cloud.janglim.jaccuweather`. Do not reuse the production Worker key if you want blast-radius isolation. Category `TREE` fills `tree_pollen` only; alder/birch/olive stay `null` unless Google `plantInfo` reported those plants.
 
 **Tomorrow.io:** optional second pollen vendor (`apikey` query param). Used only if Google is blank or returns nothing usable.
 
-**NWS User-Agent:** edit `NWS_USER_AGENT` in `Secrets.xcconfig` to a string NWS can contact, e.g. `JaccuweatherPersonal/1.0 (you@example.com)`. The committed placeholder is intentionally fake.
+**NWS User-Agent:** open Settings in the app and enter a contact string NWS can use. Do not put a personal email in git. The committed `Secrets.xcconfig` leaves `NWS_USER_AGENT` empty.
 
 ## What the app calls
 

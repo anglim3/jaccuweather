@@ -39,7 +39,11 @@ struct HourRow: Identifiable {
     let precipChance: Int?
     let wind: Double?
     let windDir: Double?
+    let windGust: Double?
     let uv: Double?
+    let cloudLow: Double?
+    let cloudMid: Double?
+    let cloudHigh: Double?
     let pressure: Double?
     let cloud: Double?
     let humidity: Double?
@@ -75,6 +79,7 @@ final class WeatherViewModel {
     var tides: TideSnapshot?
     var isLoading = false
     var errorMessage: String?
+    var statusNote: String?
     var searchQuery = ""
     var searchResults: [GeoResult] = []
     var isSearching = false
@@ -95,6 +100,14 @@ final class WeatherViewModel {
     private var tickTask: Task<Void, Never>?
     private var fetchInFlight = false
 
+    /// Website light-mode background class (`sunny`, `rainy`, `clear-night`, …). Empty until a forecast is loaded.
+    var skyThemeName: String {
+        guard let weather else { return "" }
+        let code = weather.current.int("weather_code") ?? -1
+        let isDay = weather.current.int("is_day") != 0
+        return LogicEngine.shared.weatherSkyTheme(code: code, isDay: isDay)
+    }
+
     var currentPlace: GeoResult {
         GeoResult(name: locationName, latitude: coordinate.latitude, longitude: coordinate.longitude, admin1: nil, country: nil)
     }
@@ -105,7 +118,7 @@ final class WeatherViewModel {
         let times = hourly.strings("time")
         let start = Self.hourlyStartIndex(times: times, utcOffset: weather.utcOffset)
         let logic = LogicEngine.shared
-        return (0..<48).compactMap { offset in
+        return (0..<48).compactMap { (offset: Int) -> HourRow? in
             let i = start + offset
             guard i < times.count else { return nil }
             let code = hourly.numbers("weather_code")[safe: i] ?? nil
@@ -123,7 +136,11 @@ final class WeatherViewModel {
                 precipChance: precipChance.map { Int($0) },
                 wind: hourly.numbers("wind_speed_10m")[safe: i] ?? nil,
                 windDir: hourly.numbers("wind_direction_10m")[safe: i] ?? nil,
+                windGust: hourly.numbers("wind_gusts_10m")[safe: i] ?? nil,
                 uv: hourly.numbers("uv_index")[safe: i] ?? nil,
+                cloudLow: hourly.numbers("cloud_cover_low")[safe: i] ?? nil,
+                cloudMid: hourly.numbers("cloud_cover_mid")[safe: i] ?? nil,
+                cloudHigh: hourly.numbers("cloud_cover_high")[safe: i] ?? nil,
                 pressure: hourly.numbers("surface_pressure")[safe: i] ?? nil,
                 cloud: hourly.numbers("cloud_cover")[safe: i] ?? nil,
                 humidity: hourly.numbers("relative_humidity_2m")[safe: i] ?? nil,
@@ -164,6 +181,10 @@ final class WeatherViewModel {
     }
 
     init() {
+        if let lat = LaunchArgs.latitude, let lon = LaunchArgs.longitude {
+            coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            locationName = LaunchArgs.placeName ?? locationName
+        }
         locator.onUpdate = { [weak self] coordinate in
             Task { @MainActor in
                 guard let self else { return }
@@ -189,6 +210,7 @@ final class WeatherViewModel {
         fetchInFlight = true
         isLoading = true
         errorMessage = nil
+        statusNote = nil
         defer {
             fetchInFlight = false
             isLoading = false
@@ -207,6 +229,7 @@ final class WeatherViewModel {
             }
             lastFetchMs = Date().timeIntervalSince1970 * 1000
             tickLastUpdated()
+            statusNote = pollen == nil ? "Pollen request failed. Blank keys still use Open-Meteo when that call succeeds." : nil
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -326,6 +349,20 @@ final class WeatherViewModel {
         parser.locale = Locale(identifier: "en_US")
         return parser.string(from: parsed)
     }
+}
+
+enum WindCompass {
+    private static let names = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+    static func label(_ degrees: Double) -> String {
+        let wrapped = (degrees.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        let index = Int((wrapped / 22.5).rounded()) % 16
+        return names[index]
+    }
+
+    /// Open-Meteo direction is meteorological (degrees the wind comes FROM).
+    /// The arrow points the way the wind is going, opposite of FROM.
+    static func arrowDegrees(_ fromDegrees: Double) -> Double { fromDegrees + 180 }
 }
 
 private extension Array {

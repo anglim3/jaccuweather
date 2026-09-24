@@ -1,15 +1,31 @@
 import SwiftUI
 
+enum LaunchArgs {
+    static var tab: Int { value("tab").flatMap(Int.init) ?? 0 }
+    static var hourly: String { value("hourly") ?? "conditions" }
+    static var daily: String { value("daily") ?? "temp" }
+    static var latitude: Double? { value("lat").flatMap(Double.init) }
+    static var longitude: Double? { value("lon").flatMap(Double.init) }
+    static var placeName: String? { value("name") }
+
+    static func value(_ name: String) -> String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-\(name)"), index + 1 < args.count else { return nil }
+        return args[index + 1]
+    }
+}
+
 @main
 struct JaccuweatherApp: App {
     @State private var model = WeatherViewModel()
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(JWAppearance.storageKey) private var appearance = JWAppearance.dark
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(model)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appearance == JWAppearance.light ? .light : .dark)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         Task { await model.handleBecameActive() }

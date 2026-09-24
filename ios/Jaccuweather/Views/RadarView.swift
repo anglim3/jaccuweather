@@ -4,7 +4,10 @@ import CoreLocation
 
 struct RadarView: View {
     @Environment(WeatherViewModel.self) private var model
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showNWS = true
+
+    private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,15 +22,19 @@ struct RadarView: View {
                 Toggle("NWS radar overlay (CONUS)", isOn: $showNWS)
                 Text("Ventusky is a Safari link-out — same public URL the website uses after lockdown strips the HTML proxy. WKWebView is not used.")
                     .font(.caption)
-                    .foregroundStyle(JWTheme.muted)
+                    .foregroundStyle(theme.muted)
                 Link("Open Ventusky radar", destination: APIEndpoints.ventusky(latitude: model.coordinate.latitude, longitude: model.coordinate.longitude))
                     .buttonStyle(.borderedProminent)
             }
             .padding(16)
+            .padding(.bottom, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(JWTheme.background)
+            .background(theme.background)
         }
-        .background(JWTheme.background.ignoresSafeArea())
+        .safeAreaPadding(.bottom, 4)
+        .background {
+            theme.background.ignoresSafeArea()
+        }
         .navigationTitle("Radar")
         .navigationBarTitleDisplayMode(.inline)
     }

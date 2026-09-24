@@ -255,6 +255,45 @@ test('Xcode copies Logic and Icons to the app root, not a Resources folder', () 
   assert.ok(fs.existsSync(path.join(root, 'ios/Jaccuweather/Resources/Icons/weather')));
 });
 
+test('native ensemble keeps cloud layers and circular-mean wind', () => {
+  const logic = loadLogic();
+  const raw = ensembleFixture();
+  raw.hourly.cloud_cover_low_icon_seamless = [10, 20, 30];
+  raw.hourly.cloud_cover_low_gfs_seamless = [30, 40, 50];
+  raw.hourly.cloud_cover_mid_icon_seamless = [40, 50, 60];
+  raw.hourly.cloud_cover_high_ecmwf_ifs025 = [70, 80, 90];
+  raw.hourly.wind_direction_10m_icon_seamless = [350, 0, 90];
+  raw.hourly.wind_direction_10m_gfs_seamless = [10, 0, 90];
+  raw.hourly.wind_gusts_10m_icon_seamless = [12, 14, 16];
+  raw.hourly.wind_gusts_10m_gfs_seamless = [8, 10, 20];
+  const native = logic.normalizeEnsembleForNative(raw, 47.6, -122.3);
+  assert.equal(native.hourly.cloud_cover_low[0], 20);
+  assert.equal(native.hourly.cloud_cover_mid[0], 40);
+  assert.equal(native.hourly.cloud_cover_high[0], 70);
+  assert.equal(native.hourly.wind_direction_10m[0], 0);
+  assert.equal(native.hourly.wind_direction_10m[2], 90);
+  assert.equal(native.hourly.wind_gusts_10m[0], 10);
+  assert.equal(native.hourly.wind_gusts_10m[1], 12);
+});
+
+test('light-mode sky class matches website setTheme WMO map', () => {
+  const logic = loadLogic();
+  assert.equal(logic.weatherSkyTheme(0, 1), 'sunny');
+  assert.equal(logic.weatherSkyTheme(0, 0), 'clear-night');
+  assert.equal(logic.weatherSkyTheme(1, false), 'clear-night');
+  assert.equal(logic.weatherSkyTheme(3, 1), 'cloudy');
+  assert.equal(logic.weatherSkyTheme(45, 1), 'fog');
+  assert.equal(logic.weatherSkyTheme(63, 0), 'rainy');
+  assert.equal(logic.weatherSkyTheme(82, 1), 'storm');
+  assert.equal(logic.weatherSkyTheme(73, 1), 'snow');
+  assert.equal(logic.weatherSkyTheme(95, 0), 'storm');
+  assert.equal(logic.weatherSkyTheme(999, 1), 'cloudy');
+  const block = appJs.slice(appJs.indexOf('const WMO_THEMES'), appJs.indexOf('function setTheme'));
+  assert.match(block, /0:\s*'sunny'/);
+  assert.match(block, /82:\s*'storm'/);
+  assert.match(appJs, /if \(!isDay && \(weatherCode === 0 \|\| weatherCode === 1\)\) theme = 'clear-night'/);
+});
+
 test('1024 app icon and vendored Meteocons copies are present', () => {
   const icon = path.join(root, 'ios/Jaccuweather/Assets.xcassets/AppIcon.appiconset/AppIcon.png');
   assert.ok(fs.existsSync(icon));

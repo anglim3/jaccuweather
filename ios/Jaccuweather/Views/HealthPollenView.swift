@@ -2,9 +2,12 @@ import SwiftUI
 
 struct HealthPollenView: View {
     @Environment(WeatherViewModel.self) private var model
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
     var body: some View {
-        ScrollView {
+        TabScreenScroll {
             VStack(alignment: .leading, spacing: 16) {
                 if let weather = model.weather {
                     let sinus = HealthScores.sinus(from: weather)
@@ -42,7 +45,7 @@ struct HealthPollenView: View {
                                         VStack(alignment: .leading) {
                                             Text(dayLabel(day.string("date") ?? "", index: day.int("index") ?? 0))
                                                 .font(.subheadline.weight(.semibold))
-                                            Text(day.string("date") ?? "").font(.caption2).foregroundStyle(JWTheme.muted)
+                                            Text(day.string("date") ?? "").font(.caption2).foregroundStyle(theme.muted)
                                         }
                                         Spacer()
                                         forecastCol("Tree", day.string("treeLabel"))
@@ -55,16 +58,14 @@ struct HealthPollenView: View {
                         }
                     } else {
                         WeatherCard(title: "Pollen") {
-                            Text("Open-Meteo fallback (blank Google/Tomorrow keys).").foregroundStyle(JWTheme.muted)
+                            Text("Open-Meteo fallback (blank Google/Tomorrow keys).").foregroundStyle(theme.muted)
                         }
                     }
                 } else {
-                    Text("Load a location first.").foregroundStyle(JWTheme.muted)
+                    Text("Load a location first.").foregroundStyle(theme.muted)
                 }
             }
-            .padding(16)
         }
-        .background(JWTheme.background.ignoresSafeArea())
         .navigationTitle("Health")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -97,7 +98,7 @@ struct HealthPollenView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Text("Species detail (Google plantInfo when keyed; otherwise n/a / Open-Meteo)")
                 .font(.caption)
-                .foregroundStyle(JWTheme.muted)
+                .foregroundStyle(theme.muted)
             ForEach(fields, id: \.0) { name, key in
                 let value = current.number(key)
                 HStack {
@@ -105,7 +106,7 @@ struct HealthPollenView: View {
                     Spacer()
                     Text(LogicEngine.shared.string("formatPollenValue", [value as Any]) ?? "n/a")
                     Text(JSONMap(LogicEngine.shared.object("getPollenLevel", [value as Any])).string("label") ?? "")
-                        .foregroundStyle(JWTheme.muted)
+                        .foregroundStyle(theme.muted)
                 }
                 .font(.caption)
             }
@@ -117,7 +118,7 @@ struct HealthPollenView: View {
         let level = JSONMap(LogicEngine.shared.object("getPollenLevel", [value as Any]))
         return VStack {
             SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 22).frame(width: 22, height: 22)
-            Text(name).font(.caption).foregroundStyle(JWTheme.muted)
+            Text(name).font(.caption).foregroundStyle(theme.muted)
             Text(LogicEngine.shared.string("formatPollenValue", [value as Any]) ?? "n/a").font(.headline)
             Text(level.string("label") ?? "None").font(.caption2)
         }
@@ -126,7 +127,7 @@ struct HealthPollenView: View {
 
     private func forecastCol(_ name: String, _ label: String?) -> some View {
         VStack {
-            Text(name).font(.caption2).foregroundStyle(JWTheme.muted)
+            Text(name).font(.caption2).foregroundStyle(theme.muted)
             Text(label ?? "—").font(.caption.weight(.semibold))
         }
         .frame(width: 52)
@@ -141,12 +142,12 @@ struct HealthPollenView: View {
     private func scoreRow(_ title: String, _ value: String, _ detail: String) -> some View {
         HStack {
             VStack(alignment: .leading) {
-                Text(title).font(.caption).foregroundStyle(JWTheme.muted)
+                Text(title).font(.caption).foregroundStyle(theme.muted)
                 Text(value).font(.title3.weight(.bold))
-                Text(detail).font(.caption).foregroundStyle(JWTheme.muted)
+                Text(detail).font(.caption).foregroundStyle(theme.muted)
             }
             Spacer()
-            Image(systemName: "chevron.right").foregroundStyle(JWTheme.muted)
+            Image(systemName: "chevron.right").foregroundStyle(theme.muted)
         }
         .padding(.vertical, 6)
     }
