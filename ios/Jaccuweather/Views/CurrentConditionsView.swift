@@ -138,6 +138,7 @@ struct CurrentConditionsView: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("moon-card")
             .accessibilityLabel("\(moon.name), \(moon.illumination) illuminated. Rise \(moon.rise), set \(moon.set)")
         }
     }
