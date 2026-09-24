@@ -24,6 +24,14 @@ Do **not** submit this to the App Store. Do **not** merge to `main` as part of t
 5. Plug in the phone (or wireless debugging), pick it as the Run destination, press **⌘R**.
 6. First launch: **Settings → General → VPN & Device Management** → trust the developer certificate, then open the app again.
 
+### Copy Bundle Resources (Logic / Icons at app root)
+
+Source files stay on disk at `Jaccuweather/Resources/Logic` and `Jaccuweather/Resources/Icons`. In the Xcode project those are **two folder references** (`name = Logic`, `path = Resources/Logic` and the same for Icons) in Copy Bundle Resources.
+
+The built `.app` must contain `Logic/` and `Icons/` at the **bundle root**, next to the executable and `Assets.car`. Do not add a folder reference named `Resources` — a top-level `Resources/` directory inside an iOS `.app` makes `codesign` fail (`bundle format unrecognized, invalid, or unsuitable`) on current SDKs. `LogicEngine` and `SVGIconView` look up both `Logic/` / `Icons/` and the `Resources/…` fallbacks.
+
+If you regenerate the project, use `node ios/scripts/generate-xcodeproj.js` (it emits the flattened folder refs). Do not point Copy Bundle Resources at the parent `Resources` directory.
+
 ### 7-day re-sign (free Apple ID)
 
 Personal Team provisioning **expires about every 7 days**. The app icon goes black / “integrity could not be verified.” Fix: reconnect the phone, open the same `.xcodeproj`, **⌘R** again. No paid Apple Developer Program is required. Push / CloudKit are unavailable; this app does not need them.

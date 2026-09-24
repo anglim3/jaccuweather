@@ -45,8 +45,10 @@ const ids = {
   configGroup: hid(),
   assets: hid(),
   assetsBuild: hid(),
-  resourcesFolder: hid(),
-  resourcesBuild: hid(),
+  logicFolder: hid(),
+  logicBuild: hid(),
+  iconsFolder: hid(),
+  iconsBuild: hid(),
   projDebug: hid(),
   projRelease: hid(),
   targetDebug: hid(),
@@ -104,7 +106,8 @@ const pbxproj = `// !$*UTF8*$!
 /* Begin PBXBuildFile section */
 ${swiftBuildFiles}
 		${ids.assetsBuild} /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.assets} /* Assets.xcassets */; };
-		${ids.resourcesBuild} /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.resourcesFolder} /* Resources */; };
+		${ids.logicBuild} /* Logic in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.logicFolder} /* Logic */; };
+		${ids.iconsBuild} /* Icons in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.iconsFolder} /* Icons */; };
 		${ids.jsCoreBuild} /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.jsCore} /* JavaScriptCore.framework */; };
 		${ids.mapKitBuild} /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.mapKit} /* MapKit.framework */; };
 		${ids.webKitBuild} /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.webKit} /* WebKit.framework */; };
@@ -113,7 +116,8 @@ ${swiftBuildFiles}
 /* Begin PBXFileReference section */
 		${ids.product} /* Jaccuweather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jaccuweather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		${ids.assets} /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		${ids.resourcesFolder} /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
+		${ids.logicFolder} /* Logic */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Logic; path = Resources/Logic; sourceTree = "<group>"; };
+		${ids.iconsFolder} /* Icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Icons; path = Resources/Icons; sourceTree = "<group>"; };
 		${ids.debugXcconfig} /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		${ids.releaseXcconfig} /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		${ids.secretsXcconfig} /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
@@ -164,7 +168,8 @@ ${fileRefs}
 ${groups.root.map((f) => `\t\t\t\t${fileIds[f].ref} /* ${path.basename(f)} */,`).join('\n')}
 				${ids.plist} /* Info.plist */,
 				${ids.assets} /* Assets.xcassets */,
-				${ids.resourcesFolder} /* Resources */,
+				${ids.logicFolder} /* Logic */,
+				${ids.iconsFolder} /* Icons */,
 				${ids.configGroup} /* Config */,
 				${ids.modelsGroup} /* Models */,
 				${ids.servicesGroup} /* Services */,
@@ -248,7 +253,8 @@ ${groupBlock(ids.viewsGroup, 'Views', groups.Views, 'Views')}
 			buildActionMask = 2147483647;
 			files = (
 				${ids.assetsBuild} /* Assets.xcassets in Resources */,
-				${ids.resourcesBuild} /* Resources in Resources */,
+				${ids.logicBuild} /* Logic in Resources */,
+				${ids.iconsBuild} /* Icons in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -238,6 +238,23 @@ test('Secrets.xcconfig keeps pollen keys blank and documents NWS User-Agent', ()
   assert.match(plist, /\$\(NWS_USER_AGENT\)/);
 });
 
+test('Xcode copies Logic and Icons to the app root, not a Resources folder', () => {
+  const pbx = fs.readFileSync(path.join(root, 'ios/Jaccuweather.xcodeproj/project.pbxproj'), 'utf8');
+  const gen = fs.readFileSync(path.join(root, 'ios/scripts/generate-xcodeproj.js'), 'utf8');
+  assert.match(pbx, /name = Logic; path = Resources\/Logic;/);
+  assert.match(pbx, /name = Icons; path = Resources\/Icons;/);
+  assert.match(pbx, /Logic in Resources/);
+  assert.match(pbx, /Icons in Resources/);
+  assert.doesNotMatch(pbx, /path = Resources;/);
+  assert.doesNotMatch(pbx, /Resources in Resources/);
+  assert.match(gen, /name = Logic; path = Resources\/Logic;/);
+  assert.match(gen, /name = Icons; path = Resources\/Icons;/);
+  assert.doesNotMatch(gen, /path = Resources;/);
+  assert.match(pbx, /DEVELOPMENT_TEAM = "";/);
+  assert.ok(fs.existsSync(path.join(root, 'ios/Jaccuweather/Resources/Logic/jaccuweather-logic.js')));
+  assert.ok(fs.existsSync(path.join(root, 'ios/Jaccuweather/Resources/Icons/weather')));
+});
+
 test('1024 app icon and vendored Meteocons copies are present', () => {
   const icon = path.join(root, 'ios/Jaccuweather/Assets.xcassets/AppIcon.appiconset/AppIcon.png');
   assert.ok(fs.existsSync(icon));

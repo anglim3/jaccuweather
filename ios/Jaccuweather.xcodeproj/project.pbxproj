@@ -36,7 +36,8 @@
 		9E36D7F5CF92767446376385 /* SVGIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C61B2E212ACAC155B0ACC11 /* SVGIconView.swift */; };
 		149EC7BC091B7A658A9881AD /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A50660C9B6C41C5A832A743 /* SearchSheet.swift */; };
 		76E4A7ACF64AB0D0642825C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77FF417B36FF374AD06C195C /* Assets.xcassets */; };
-		F3EA210A9926E6B92F3F0DAB /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = C7B81C2164F318BB03469BF0 /* Resources */; };
+		EEA210A9926E6B92F3F0DAB1 /* Logic in Resources */ = {isa = PBXBuildFile; fileRef = D8C92D3275A429CC1457AC01 /* Logic */; };
+		FFA210A9926E6B92F3F0DAB2 /* Icons in Resources */ = {isa = PBXBuildFile; fileRef = C81C2164F318BB03469BF0B2 /* Icons */; };
 		D5B5048D02C9B882610C3BAA /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8D23BEF26AC9C8BCDEF5BFDD /* JavaScriptCore.framework */; };
 		E3BD063081CF02EEEB7AB6CB /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497A23218B6661A8BA2CC6F7 /* MapKit.framework */; };
 		7CC19BB9F1BE23A0AD11F474 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E339CFA7030EAC893A06C03A /* WebKit.framework */; };
@@ -45,7 +46,8 @@
 /* Begin PBXFileReference section */
 		F6028E2FD9B7A5EB56EA9A20 /* Jaccuweather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jaccuweather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		77FF417B36FF374AD06C195C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C7B81C2164F318BB03469BF0 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
+		D8C92D3275A429CC1457AC01 /* Logic */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Logic; path = Resources/Logic; sourceTree = "<group>"; };
+		C81C2164F318BB03469BF0B2 /* Icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Icons; path = Resources/Icons; sourceTree = "<group>"; };
 		636673DF94991953DE70686A /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		D64F9230449A0B81E73E2EB0 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		C63059341DBE0846FC81512A /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
@@ -124,7 +126,8 @@
 				AD94EFB70B10589A567E9B4A /* Theme.swift */,
 				CBA3E895D9B3F1C8DE127AF5 /* Info.plist */,
 				77FF417B36FF374AD06C195C /* Assets.xcassets */,
-				C7B81C2164F318BB03469BF0 /* Resources */,
+				D8C92D3275A429CC1457AC01 /* Logic */,
+				C81C2164F318BB03469BF0B2 /* Icons */,
 				99595ED041B45A3B71C52DCA /* Config */,
 				DE0086F5EAF2EC84129F02B6 /* Models */,
 				DC6CF9544ED2733EC9B8D1B6 /* Services */,
@@ -258,7 +261,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				76E4A7ACF64AB0D0642825C2 /* Assets.xcassets in Resources */,
-				F3EA210A9926E6B92F3F0DAB /* Resources in Resources */,
+				EEA210A9926E6B92F3F0DAB1 /* Logic in Resources */,
+				FFA210A9926E6B92F3F0DAB2 /* Icons in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
