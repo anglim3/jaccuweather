@@ -11,7 +11,8 @@ enum APIEndpoints {
     static let nwsHost = "https://api.weather.gov"
     static let noaaStations = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions"
     static let noaaDatagetter = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
-    static let nwsWms = "https://opengeo.ncep.noaa.gov/geoserver/ows"
+    static let rainViewerMaps = URL(string: "https://api.rainviewer.com/public/weather-maps.json")!
+    static let rainViewerCredit = URL(string: "https://www.rainviewer.com/")!
 
     static let hourlyVars = [
         "temperature_2m", "relative_humidity_2m", "weather_code", "wind_speed_10m",
@@ -117,7 +118,4 @@ enum APIEndpoints {
         URL(string: "\(nwsHost)/alerts/active/zone/\(zoneId)")!
     }
 
-    static func ventusky(latitude: Double, longitude: Double) -> URL {
-        URL(string: "https://www.ventusky.com/?p=\(latitude);\(longitude);7&l=rain")!
-    }
 }
