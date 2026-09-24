@@ -145,7 +145,9 @@ jaccuweather/
 ├── convert-favicon.js      # SVG to PNG for Apple touch icon (uses sharp)
 ├── asset-version.js        # Generates versioned (?v=<hash>) asset URLs so deploys bust long-lived icon caches
 ├── docs/                   # Project docs
-│   └── screenshots/        # UI screenshots used in this README
+│   ├── screenshots/        # UI screenshots used in this README
+│   └── native-ios-research.md  # Personal native iOS conversion notes
+├── ios/                    # SwiftUI personal-device client (not the Worker)
 ├── AGENTS.md               # Notes for coding agents
 ├── wrangler.toml
 └── package.json
@@ -156,6 +158,8 @@ jaccuweather/
 | `npm run build` | `node build.js && node lockdown-worker.js` — generate `src/index.js` from `public/*`, then apply lockdown |
 | `npm run dev` | Build and start the local Worker dev server |
 | `npm run deploy` | Build and deploy to Cloudflare |
+
+A personal SwiftUI iOS client (direct Open-Meteo / NWS, no Worker in the loop) is scaffolded under `ios/`. It does not replace this website. See [`docs/native-ios-research.md`](docs/native-ios-research.md) and [`ios/README.md`](ios/README.md).
 
 Syntax check before shipping:
 

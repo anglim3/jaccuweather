@@ -1,0 +1,28 @@
+Card header icons in this directory are vendored from the Meteocons static fill
+set (https://github.com/basmilius/meteocons, package @meteocons/svg-static,
+version 0.1.0), copyright Bas Milius, licensed under the MIT License. These
+are the non-animated counterparts of the animated fill weather icons in
+../weather/. They are embedded by build.js and served by the Worker at
+/icons/cards/<name>.svg so the app never hotlinks a third-party icon host
+at runtime.
+
+Mapping:
+- Feels Like -> thermometer.svg
+- Humidity -> humidity.svg (monochrome variant, fill="currentColor",
+  so the glyph renders in the header text color instead of the blue fill)
+- Wind -> wind.svg
+- UV Index -> uv-index.svg
+- Sun -> sunrise.svg
+- Pressure -> barometer.svg
+- Moon -> starry-night.svg (generic moon glyph; the pack has no single
+  generic moon icon, only phase-specific ones, so the header stays
+  phase-neutral and the card keeps showing the phase name)
+- Air Quality -> smoke.svg
+- Allergy -> pollen.svg (also used for the generic Pollen factor row and
+  the allergy modal title)
+- Nice Weather -> clear-day.svg (static counterpart of the animated
+  forecast icon)
+- Pollen Tree card, legend, and modal -> pollen-tree.svg
+- Pollen Grass card, legend, and modal -> pollen-grass.svg
+- Pollen Weed card, legend, and modal -> pollen-weed.svg
+- Sinus has no honest Meteocons match and keeps its existing icon.

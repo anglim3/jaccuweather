@@ -1,0 +1,12 @@
+# iOS local secrets and Xcode noise
+.env
+.env.local
+Jaccuweather/Config/Secrets.local.xcconfig
+**/xcuserdata/
+*.xcuserstate
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM

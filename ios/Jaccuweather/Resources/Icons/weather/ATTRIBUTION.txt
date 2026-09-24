@@ -1,0 +1,6 @@
+Weather icons in this directory are vendored from the Meteocons fill set
+(https://github.com/basmilius/meteocons, package @meteocons/svg, version
+0.1.0), copyright Bas Milius, licensed under the MIT License. Only the
+icons mapped by getWeatherIcon() in public/app.js are included. They are
+embedded by build.js and served by the Worker at /icons/weather/<name>.svg
+so the app never hotlinks a third-party icon host at runtime.
