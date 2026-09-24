@@ -51,9 +51,9 @@ Native iOS does not need the Cloudflare edge. URLSession has no CORS. Caching, U
 | `/api/pollen` | Google Pollen → Tomorrow.io → Open-Meteo | `PollenService` | Open-Meteo **live**. Google/Tomorrow **opt-in** via local secrets; cascade order preserved. Same-origin gate is N/A off-Worker. |
 | `/api/nws-points` | `https://api.weather.gov/points/{lat},{lon}` | `AlertsService` | **Live** (US bounding box, NWS User-Agent) |
 | `/api/alerts/...` | `https://api.weather.gov/alerts/...` | `AlertsService` | **Live** |
-| `/api/nws-wms` | `https://opengeo.ncep.noaa.gov/geoserver/ows` | `RadarView` tile overlay | **Documented.** MapKit `MKTileOverlay` can hit NWS WMS **directly** (no CORS). Not wired in v1. |
+| `/api/nws-wms` | `https://opengeo.ncep.noaa.gov/geoserver/ows` | unused by the app | Historical Worker route. The iOS overlay does not call it. |
 | NOAA tides (client) | `api.tidesandcurrents.noaa.gov` | `TideService` (not created yet) | **Stub later.** Same URLs as `public/app.js`. |
-| Ventusky iframe | `https://www.ventusky.com/?p=lat;lon;7&l=rain` | `RadarView` | MapKit is primary. Optional WKWebView embed + Safari fallback. |
+| Ventusky iframe | `https://www.ventusky.com/?p=lat;lon;7&l=rain` | website only | iOS radar does not link out or embed it. |
 | Favorites IndexedDB / `weatherFavorites` | local | `FavoritesStore` | **UserDefaults JSON** (SwiftData later if needed) |
 | Health scores | pure functions in `public/app.js` | `HealthScores` | **Ported** sinus 0–4 + allergy-from-pollen. Nice-weather index is a placeholder until daily averages are fully ported. |
 
@@ -90,6 +90,8 @@ Production Worker (`build.js` `handlePollenRequest` + `lockdown-worker.js`):
 Null vs none: keep the product rule. Plants Google did not report stay `null`. Do not backfill alder/birch/olive from category `TREE`.
 
 ## Radar / map strategy
+
+**Shipped:** the iOS radar tab uses RainViewer tiles on MapKit. See [native-ios-radar.md](native-ios-radar.md). The Ventusky rows below are the original scaffold notes. The website iframe is unchanged.
 
 | Option | Fit | Tradeoff |
 |---|---|---|
@@ -136,7 +138,7 @@ ATS: all current upstreams are HTTPS. No ATS exception.
 | Sunrise/sunset, moon | Later (SunCalc port or `Astronomy` / manual phase) |
 | Sinus / allergy / nice-weather | Sinus + allergy in **Health** tab; nice-weather later |
 | Pollen 5-day | Open-Meteo now; Google/Tomorrow when keys exist |
-| Ventusky radar | MapKit + optional WKWebView |
+| Radar | RainViewer tiles on MapKit (see `docs/native-ios-radar.md`). Website stays Ventusky |
 | NWS alerts | Live fetch, simple list |
 | NOAA tides | Later |
 | Search autocomplete | Live Open-Meteo geocoding sheet |

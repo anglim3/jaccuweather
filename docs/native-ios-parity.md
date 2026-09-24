@@ -24,8 +24,9 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | AQI (US AQI from Open-Meteo air-quality) | **DONE** — shown when Open-Meteo (or merged) current has `us_aqi` |
 | NOAA tides (50 km / 20 m elevation, hilo + cosine interpolate) | **DONE** — Now list + Forecast tides chart |
 | MapKit default map | **DONE** — Radar tab |
-| NWS WMS radar overlay (`nexrad-n0q-wmst`, EPSG:3857) | **DONE** — toggle; CONUS only |
-| Ventusky | **DONE** — Safari link-out (`?p=lat;lon;7&l=rain`), no WKWebView |
+| RainViewer past-radar tiles on MapKit | **DONE** — one `MKTileOverlay`, play/pause, scrubber, frame time in the location offset, [RainViewer](https://www.rainviewer.com/) credit. Zoom above 7 crops the z=7 tile. See [native-ios-radar.md](native-ios-radar.md) |
+| NWS WMS `nexrad-n0q-wmst` | **Removed** — upstream `LayerNotDefined`. NOAA mosaic fallback was not built |
+| Ventusky | **Removed from the app.** The website iframe is unchanged. No WKWebView |
 | City search (Open-Meteo geocoding) | **DONE** |
 | Reverse geocode (BigDataCloud) | **DONE** |
 | Device geolocation | **DONE** — When In Use |

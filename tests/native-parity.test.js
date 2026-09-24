@@ -208,24 +208,28 @@ test('iOS ensemble URL matches public/app.js fetchWeather()', () => {
   assert.match(endpoints, /icon_seamless,gfs_seamless,ecmwf_ifs025/);
 });
 
-test('Ventusky Safari URL matches lockdown-era website', () => {
+test('website keeps Ventusky; iOS radar uses RainViewer tiles', () => {
   const match = appJs.match(/https:\/\/www\.ventusky\.com\/\?p=\$\{[^}]+\}/);
-  assert.ok(match);
+  assert.ok(match, 'website still builds a Ventusky URL');
   const endpoints = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Services/APIEndpoints.swift'), 'utf8');
-  assert.match(endpoints, /https:\/\/www\.ventusky\.com\/\?p=/);
+  assert.match(endpoints, /https:\/\/api\.rainviewer\.com\/public\/weather-maps\.json/);
+  assert.match(endpoints, /https:\/\/www\.rainviewer\.com\//);
+  assert.doesNotMatch(endpoints, /ventusky\.com/);
   const radar = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Views/RadarView.swift'), 'utf8');
-  assert.match(radar, /Open Ventusky radar/);
-  assert.match(radar, /Link\("Open Ventusky radar"/);
-  assert.doesNotMatch(radar, /WKWebView\(/);
-});
-
-test('NWS WMS overlay uses RIDGE2 nexrad-n0q-wmst EPSG:3857', () => {
+  assert.match(radar, /Radar from RainViewer/);
+  assert.match(radar, /Pause radar/);
+  assert.match(radar, /Radar time/);
+  assert.doesNotMatch(radar, /[Vv]entusky/);
+  assert.doesNotMatch(radar, /WKWebView/);
+  assert.match(radar, /appliedPrefix != framePrefix/);
   const overlay = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Services/NWSRadarOverlay.swift'), 'utf8');
-  const endpoints = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Services/APIEndpoints.swift'), 'utf8');
-  assert.match(endpoints, /opengeo\.ncep\.noaa\.gov/);
-  assert.match(overlay, /APIEndpoints\.nwsWms/);
-  assert.match(overlay, /nexrad-n0q-wmst/);
-  assert.match(overlay, /EPSG:3857/);
+  assert.match(overlay, /RainViewerRadarOverlay/);
+  assert.match(overlay, /nativeMaxZoom = 7/);
+  assert.match(overlay, /\/256\//);
+  assert.match(overlay, /2\/1_0\.png/);
+  assert.match(radar, /reloadData\(\)/);
+  assert.doesNotMatch(overlay, /nexrad-n0q-wmst/);
+  assert.doesNotMatch(overlay, /opengeo\.ncep\.noaa\.gov/);
 });
 
 test('Secrets.xcconfig keeps pollen keys blank and documents NWS User-Agent', () => {
