@@ -24,8 +24,8 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | AQI (US AQI from Open-Meteo air-quality) | **DONE** — shown when Open-Meteo (or merged) current has `us_aqi` |
 | NOAA tides (50 km / 20 m elevation, hilo + cosine interpolate) | **DONE** — Now list + Forecast tides chart |
 | MapKit default map | **DONE** — Radar tab |
-| NWS WMS radar overlay (`nexrad-n0q-wmst`, EPSG:3857) | **DONE** — toggle; CONUS only |
-| Ventusky | **DONE** — Safari link-out (`?p=lat;lon;7&l=rain`), no WKWebView |
+| NWS WMS radar overlay (`nexrad-n0q-wmst`, EPSG:3857) | **Broken upstream** — `LayerNotDefined` as of 2026-09-24. Replacement: [native-ios-radar.md](native-ios-radar.md) |
+| Ventusky | Safari link-out is still in the radar tab. The radar plan removes it; do not add a WKWebView |
 | City search (Open-Meteo geocoding) | **DONE** |
 | Reverse geocode (BigDataCloud) | **DONE** |
 | Device geolocation | **DONE** — When In Use |

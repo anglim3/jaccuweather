@@ -91,6 +91,8 @@ Null vs none: keep the product rule. Plants Google did not report stay `null`. D
 
 ## Radar / map strategy
 
+**2026-09-24:** The decision for the iOS radar tab is [native-ios-radar.md](native-ios-radar.md): RainViewer XYZ tiles on the existing MapKit overlay. The Ventusky rows in this section are the original scaffold notes. Do not embed Ventusky, and do not keep `nexrad-n0q-wmst` (that layer now returns `LayerNotDefined`).
+
 | Option | Fit | Tradeoff |
 |---|---|---|
 | **MapKit** (chosen default) | Native, works offline-ish for base map, no iframe, free Apple ID OK | No Ventusky-quality global radar by default |
