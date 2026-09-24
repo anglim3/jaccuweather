@@ -235,7 +235,7 @@ final class WeatherViewModel {
     func handleBecameActive() async {
         tickLastUpdated()
         let now = Date().timeIntervalSince1970 * 1000
-        let should = LogicEngine.shared.invoke("shouldRefetchStaleForecast", [now, lastFetchMs, staleAfterMs])?.toBool ?? false
+        let should = LogicEngine.shared.bool("shouldRefetchStaleForecast", [now, lastFetchMs, staleAfterMs])
         if should { await refresh() }
     }
 

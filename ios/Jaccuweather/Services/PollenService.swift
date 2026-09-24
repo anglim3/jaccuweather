@@ -28,7 +28,7 @@ struct PollenService {
         )
         guard let normalized = LogicEngine.shared.object("normalizeGooglePollen", [raw]) else { return nil }
         let map = JSONMap(normalized)
-        let usable = LogicEngine.shared.invoke("hasAnyUsablePollen", [normalized])?.toBool ?? false
+        let usable = LogicEngine.shared.bool("hasAnyUsablePollen", [normalized])
         return usable ? map : nil
     }
 
@@ -37,7 +37,7 @@ struct PollenService {
             APIEndpoints.tomorrowForecast(latitude: latitude, longitude: longitude, apiKey: Secrets.tomorrowAPIKey)
         )
         guard let normalized = LogicEngine.shared.object("normalizeTomorrowPollen", [raw]) else { return nil }
-        let usable = LogicEngine.shared.invoke("hasAnyUsablePollen", [normalized])?.toBool ?? false
+        let usable = LogicEngine.shared.bool("hasAnyUsablePollen", [normalized])
         return usable ? JSONMap(normalized) : nil
     }
 }

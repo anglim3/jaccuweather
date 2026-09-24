@@ -45,6 +45,12 @@ final class LogicEngine {
         return value.toDouble()
     }
 
+    /// JSValue.toBool is a method on current SDKs (Xcode 26 / iOS 27); never read `.toBool` as a property.
+    func bool(_ name: String, _ args: [Any] = []) -> Bool {
+        guard let value = invoke(name, args), !value.isUndefined, !value.isNull else { return false }
+        return value.toBool()
+    }
+
     func normalizeEnsemble(_ raw: Any, latitude: Double, longitude: Double) -> JSONMap {
         JSONMap(object("normalizeEnsembleForNative", [raw, latitude, longitude]))
     }
