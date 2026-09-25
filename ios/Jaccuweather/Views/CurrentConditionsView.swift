@@ -60,7 +60,7 @@ struct CurrentConditionsView: View {
                     }
                 }
                 Spacer()
-                SVGIconView(fileName: model.conditionIcon, folder: "weather", pointSize: 72, animates: true)
+                SVGIconView(fileName: model.conditionIcon, folder: "weather", pointSize: 72)
                     .frame(width: 72, height: 72)
             }
             if let sun {
