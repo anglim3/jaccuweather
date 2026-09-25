@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "265A6AE29D9C133DE9D35AD2"
-               BuildableName = "Jaccuweather.app"
-               BlueprintName = "Jaccuweather"
+               BlueprintIdentifier = "C3914D07CC34728CD9BFE4EA"
+               BuildableName = "JaccuweatherWidgets.appex"
+               BlueprintName = "JaccuweatherWidgets"
                ReferencedContainer = "container:Jaccuweather.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -43,9 +43,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "265A6AE29D9C133DE9D35AD2"
-            BuildableName = "Jaccuweather.app"
-            BlueprintName = "Jaccuweather"
+            BlueprintIdentifier = "C3914D07CC34728CD9BFE4EA"
+            BuildableName = "JaccuweatherWidgets.appex"
+            BlueprintName = "JaccuweatherWidgets"
             ReferencedContainer = "container:Jaccuweather.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -60,9 +60,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "265A6AE29D9C133DE9D35AD2"
-            BuildableName = "Jaccuweather.app"
-            BlueprintName = "Jaccuweather"
+            BlueprintIdentifier = "C3914D07CC34728CD9BFE4EA"
+            BuildableName = "JaccuweatherWidgets.appex"
+            BlueprintName = "JaccuweatherWidgets"
             ReferencedContainer = "container:Jaccuweather.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
