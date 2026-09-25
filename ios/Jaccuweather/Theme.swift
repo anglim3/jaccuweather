@@ -39,6 +39,7 @@ struct JWPalette: Equatable {
 
 /// Scroll container that keeps the last card above the floating tab bar.
 struct TabScreenScroll<Content: View>: View {
+    @Environment(WeatherViewModel.self) private var model
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -55,6 +56,7 @@ struct TabScreenScroll<Content: View>: View {
             }
             .contentMargins(.bottom, 12, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize)
+            .refreshable { await model.refresh() }
         }
     }
 }
