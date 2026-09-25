@@ -13,6 +13,7 @@ enum APIEndpoints {
     static let noaaDatagetter = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
     static let rainViewerMaps = URL(string: "https://api.rainviewer.com/public/weather-maps.json")!
     static let rainViewerCredit = URL(string: "https://www.rainviewer.com/")!
+    static let noaaRadarCredit = URL(string: "https://www.weather.gov/disclaimer")!
 
     static let hourlyVars = [
         "temperature_2m", "relative_humidity_2m", "weather_code", "wind_speed_10m",

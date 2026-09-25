@@ -1,8 +1,10 @@
 # Native iOS radar
 
-The Radar tab draws **RainViewer past-radar tiles** on one MapKit `MKTileOverlay`. Worldwide, no API key, with play/pause and a scrubber over the last two hours.
+The Radar tab draws **RainViewer past-radar tiles** on one MapKit `MKTileOverlay` by default. Worldwide, no API key, with play/pause and a scrubber over the last two hours.
 
-Tile images are drawn by MapKit (`RainViewerRadarOverlay` in `ios/Jaccuweather/Services/NWSRadarOverlay.swift`, UI in `RadarView.swift`). The website’s Ventusky iframe is unchanged. The NOAA section at the bottom is research only and is not in the app.
+Inside a NOAA mosaic (CONUS, Alaska, Hawaii, the Caribbean, or Guam) the same tab offers **US (NOAA)**: MRMS base reflectivity as one WMS `GetMap` image for the visible region. RainViewer stays selected until that control is used. Outside those boxes the control is hidden and RainViewer is the only source.
+
+Tile images for RainViewer are drawn by MapKit (`RainViewerRadarOverlay` in `ios/Jaccuweather/Services/NWSRadarOverlay.swift`, UI in `RadarView.swift`). NOAA lives in `NOAARadarModel.swift` and `NOAARadarOverlay.swift`. The website’s Ventusky iframe is unchanged.
 
 ## Why this one
 
@@ -16,7 +18,7 @@ Verified on 2026-09-24:
 - Color-scheme ids `0` through `8` returned byte-identical PNGs (Universal Blue only). `1_0` (smoothed) differed from `0_0`. The snow flag did not (`1_0` matched `1_1`).
 - Zoom 8 and zoom 9 of the same geographic tile were the **same 1,370-byte PNG**. The documented maximum zoom is 7. Requesting a higher z does not overzoom; it repeats one placeholder. The app has to crop.
 
-NOAA MRMS is the stronger *United States* picture (about a 2-minute cadence, 1 km, public domain, no vendor). It does not cover Europe, Asia, Africa, or South America, and it is a WMS `GetMap`, not an XYZ tile. The recipe is complete below so it can be built without another research pass. It is the fallback, not the default.
+NOAA MRMS is the stronger *United States* picture (about a 2-minute cadence, 1 km, public domain, no vendor). It does not cover Europe, Asia, Africa, or South America, and it is a WMS `GetMap`, not an XYZ tile. It is the optional US source, not the default.
 
 WeatherKit does not serve radar imagery, and it needs a paid Apple Developer Program membership. This app is a free-Apple-ID sideload. Open-Meteo precipitation values are point forecasts the app already shows; they are not a radar image.
 
@@ -25,7 +27,7 @@ WeatherKit does not serve radar imagery, and it needs a paid Apple Developer Pro
 | Source | Coverage | Frames | Key | What you would actually ship |
 |---|---|---|---|---|
 | **RainViewer Weather Maps API** | Global composite (1,200+ radars claimed; US/EU/JP/AU tiles verified) | Past 2 h, 13 frames, 10 min. Nowcast and satellite arrays were empty | None | **Shipped.** `MKTileOverlay` + scrubber. Personal/educational terms. Credit link on the radar tab. |
-| **NOAA opengeo MRMS WMS** | CONUS, Alaska, Hawaii, Caribbean, Guam. Five separate layers | ~60 stamps, ~2 min, ~2 h, per mosaic. `TIME=` verified | None | Not built. Recipe kept below if a later pass wants official US-only radar. |
+| **NOAA opengeo MRMS WMS** | CONUS, Alaska, Hawaii, Caribbean, Guam. Five separate layers | ~60 stamps, ~2 min, ~2 h, per mosaic. Playback uses every other stamp (~4 min). `TIME=` verified | None | **Shipped as an optional US source.** RainViewer remains the default. One EPSG:3857 `GetMap` for the visible region, reloaded when the frame or the settled region changes. |
 | **IEM tile cache** (`mesonet.agron.iastate.edu`) | US NEXRAD composite (CONUS/AK/HI/PR/GU) | Current, plus `m05m`…`m55m` (5 min steps). Current and `-m20m` tiles returned PNG | None | Courtesy GIS service. Their page says it is as-is and asks apps not to put thousands of users on it. A single phone is inside that, and it is still a worse fit than NOAA (official) or RainViewer (global, published app API). |
 | **WeatherKit** | Global *points* where Apple has weather | Minute precip for the next hour in some regions. No tiles | Paid Developer Program + WeatherKit entitlement, 500k calls/month included | No radar product in the API. Skip. |
 | **Open-Meteo / WeatherKit precip points** | Global points | Hourly (and, for WeatherKit, next-hour minutes) | Open-Meteo: none | Already on the forecast tab. A grid of points is a different product. Do not draw a fake radar from it. |
@@ -42,7 +44,7 @@ The tile URL is `{host}{path}/256/{z}/{x}/{y}/2/1_0.png` (color scheme 2, smooth
 
 Play steps one frame at a time, waits until that frame’s tile batch settles (or 4 seconds), and holds the frame at least about 0.85 seconds. The map recenters only when the selected coordinate changes, not when the frame changes.
 
-The bar under the map has play/pause, the scrubber, the frame clock in the location’s `utc_offset_seconds`, and a link labeled “Radar from RainViewer” to `https://www.rainviewer.com/`. There is no Ventusky control and no WKWebView.
+The bar under the map has play/pause, the scrubber, and the frame clock in the location’s `utc_offset_seconds`. RainViewer shows a link labeled “Radar from RainViewer” to `https://www.rainviewer.com/`. NOAA shows “NOAA / NWS MRMS”, linking to the NWS disclaimer. When the selected place is inside a mosaic, a two-way control reads “Global (RainViewer)” and “US (NOAA)”. Outside all five boxes that control is absent and a one-line caption names the NOAA coverage. There is no Ventusky control and no WKWebView.
 
 The old `nexrad-n0q-wmst` request is gone. On 2026-09-24 that layer returned `LayerNotDefined`.
 
@@ -101,13 +103,13 @@ Example that returned a PNG: `https://tilecache.rainviewer.com/v2/radar/e0fed87c
 - The Cloudflare Worker. There is no `/api/rainviewer`.
 - `public/app.js` Ventusky.
 - Pollen keys and `KeychainStore`. This source has no secret.
-- NOAA `GetMap`. The dead `nexrad-n0q-wmst` request is not still running.
+- The dead `nexrad-n0q-wmst` request. It is not still running. NOAA uses the `*_bref_qcd` mosaics below instead.
 
-## NOAA fallback (not in the app)
+## NOAA MRMS (optional US source)
 
-Kept so a later US-only pass does not need another research trip. The running app does not call these endpoints.
+Shown only after “US (NOAA)” is selected, and only when the place is inside one of the five boxes. The running app calls these endpoints with `Secrets.nwsUserAgent`.
 
-Directory (live): [opengeo.ncep.noaa.gov GeoServer layers](https://opengeo.ncep.noaa.gov/geoserver/www/). Composite products are MRMS. Each area has base reflectivity (`*_bref_qcd`), composite reflectivity (`*_cref_qcd`), echo tops (`*_neet_v18`), and precip type (`*_pcpn_typ`). Ship **base reflectivity**. It is the near-surface field radar.weather.gov is built on. Composite reflectivity shows more echo aloft; it is a one-string swap if you want the busier picture.
+Directory (live): [opengeo.ncep.noaa.gov GeoServer layers](https://opengeo.ncep.noaa.gov/geoserver/www/). Composite products are MRMS. Each area has base reflectivity (`*_bref_qcd`), composite reflectivity (`*_cref_qcd`), echo tops (`*_neet_v18`), and precip type (`*_pcpn_typ`). The app requests **base reflectivity**. It is the near-surface field radar.weather.gov is built on. Composite reflectivity shows more echo aloft; it is a one-string swap if you want the busier picture.
 
 | Area | GetCapabilities / GetMap endpoint | `LAYERS` | CRS:84 bounds (W, S, E, N) |
 |---|---|---|---|
@@ -117,9 +119,9 @@ Directory (live): [opengeo.ncep.noaa.gov GeoServer layers](https://opengeo.ncep.
 | Caribbean | `https://opengeo.ncep.noaa.gov/geoserver/carib/carib_bref_qcd/ows` | `carib_bref_qcd` | −90, 10, −60, 25 |
 | Guam | `https://opengeo.ncep.noaa.gov/geoserver/guam/guam_bref_qcd/ows` | `guam_bref_qcd` | 140, 9, 150, 18 |
 
-Bounds are `EX_GeographicBoundingBox` from each layer’s capabilities on 2026-09-24. Pick the mosaic that contains the coordinate. CONUS and the Caribbean overlap between 20–25°N and 90–60°W; prefer CONUS inside the CONUS box (Miami stays CONUS, Puerto Rico falls through to Caribbean). Outside all five boxes, show the map with no overlay and a one-line “US radar only” caption.
+Bounds are `EX_GeographicBoundingBox` from each layer’s capabilities on 2026-09-24. `NOAAMosaic.containing` picks the mosaic. CONUS and the Caribbean overlap between 20–25°N and 90–60°W; CONUS wins inside the CONUS box (Miami stays CONUS, Puerto Rico falls through to Caribbean). The same preference applies where CONUS overlaps Alaska. Outside all five boxes, RainViewer stays up and NOAA is not offered.
 
-`GetMap` for that future overlay:
+`GetMap` for the visible-region overlay:
 
 ```
 SERVICE=WMS
@@ -140,14 +142,16 @@ Verified:
 
 - `conus_bref_qcd` and `conus:conus_bref_qcd` on EPSG:3857 both returned a 256×256 RGBA PNG with real echo (about 3.5% non-transparent pixels on a central-US z=4 tile). `conus_cref_qcd` did too (about 4.6%).
 - The same bbox with `TIME=2026-09-24T18:06:09.000Z` returned a different PNG, so the time parameter is honored.
-- EPSG:4326 with longitude-first bbox returned a fully transparent PNG. WMS 1.3.0 axis order for 4326 is latitude, longitude. A future overlay should stay on EPSG:3857 (easting, northing). The old Web Mercator bbox math was removed with the dead layer.
+- EPSG:4326 with longitude-first bbox returned a fully transparent PNG. WMS 1.3.0 axis order for 4326 is latitude, longitude. The overlay stays on EPSG:3857 (easting, northing).
 - Alaska `GetMap` returned `image/png`.
 - Each layer’s capabilities `Dimension name="time"` was a comma-separated list of 60 ISO-8601 stamps covering roughly the last two hours, `nearestValue="1"`, and a `default` attribute equal to the newest stamp. Pass stamps through unchanged (they include milliseconds).
 - A latest-frame `GetMap` sent `Cache-Control: max-age=120`.
 - Capabilities said `Fees: none` and `AccessConstraints: none`.
 - Legend PNG (optional under the slider): `REQUEST=GetLegendGraphic&LAYER=conus_bref_qcd&FORMAT=image/png` on the CONUS endpoint. It returned `image/png`.
 
-Refresh the capabilities document when the tab opens and about every 5 minutes. Sixty stamps is a long slider; stepping every other stamp (~4 minutes) is a reasonable default play rate. Send `Secrets.nwsUserAgent` on these requests. NWS data is public domain; credit “NOAA / NWS MRMS” in the caption anyway, and show the frame time. Their [disclaimer](https://www.weather.gov/disclaimer) asks you not to imply NWS endorsement and to respect refresh cycles. A personal phone polling every few minutes is in bounds. There is still no published per-tile quota; don’t tight-loop retries.
+The overlay is one `MKOverlay` (`NOAAImageOverlay`), not an XYZ tile set. Each frame or settled pan requests a single `GetMap` whose bbox is the visible `MKMapRect` converted to EPSG:3857 (easting, northing). Pixel size follows the map view, capped at 1024 on the long side. The previous image stays pinned to its map rect while a pan is in progress; `regionDidChange` reloads it. Playback uses the same settle signal as RainViewer. A failed request is retried once after a second, and only for a timeout, 429, or 5xx. `URLCache` honors the response `Cache-Control` (about 2 minutes on a latest frame; longer on a stamped frame).
+
+Capabilities refresh when the Radar tab is visible and about every 5 minutes, for the mosaic that contains the place. The slider is every other stamp, newest included, so play steps about 4 minutes. Stamps are passed through unchanged, including milliseconds. NWS data is public domain; the caption still credits “NOAA / NWS MRMS” and the clock uses the location’s `utc_offset_seconds`. The [disclaimer](https://www.weather.gov/disclaimer) asks you not to imply NWS endorsement and to respect refresh cycles. A personal phone polling every few minutes is in bounds. There is still no published per-tile quota; don’t tight-loop retries.
 
 Single-site layers (`/geoserver/kdtw/ows` and the rest of the site list) are for one radar, not the national loop. Skip them.
 
