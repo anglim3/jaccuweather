@@ -21,6 +21,8 @@
 		F6B317328B853FA31DB7E01D /* HealthScores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */; };
 		92F7ADCB29C4651DA04E5F29 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466FF90FC174DD644889D6E5 /* KeychainStore.swift */; };
 		ABDBEAD51C35E420411C1C6A /* LogicEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */; };
+		054D85EA1F416B31C6A7E770 /* NOAARadarModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408B234880885A065E2D219A /* NOAARadarModel.swift */; };
+		481F3804F9E2AE4AA880367B /* NOAARadarOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */; };
 		8A1F618C8B3AD26579E99FFD /* NWSRadarOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E06DA91EB0A2D9B114E61F7 /* NWSRadarOverlay.swift */; };
 		E8FE8CBF284852501BFBE75B /* PollenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97846ABD5BF53CFC8DECDF4D /* PollenService.swift */; };
 		F7578858B0855FC838029A32 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1400281AE13B5127D8D53646 /* Secrets.swift */; };
@@ -108,6 +110,8 @@
 		5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthScores.swift; sourceTree = "<group>"; };
 		466FF90FC174DD644889D6E5 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicEngine.swift; sourceTree = "<group>"; };
+		408B234880885A065E2D219A /* NOAARadarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOAARadarModel.swift; sourceTree = "<group>"; };
+		49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOAARadarOverlay.swift; sourceTree = "<group>"; };
 		4E06DA91EB0A2D9B114E61F7 /* NWSRadarOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NWSRadarOverlay.swift; sourceTree = "<group>"; };
 		97846ABD5BF53CFC8DECDF4D /* PollenService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollenService.swift; sourceTree = "<group>"; };
 		1400281AE13B5127D8D53646 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
@@ -247,6 +251,8 @@
 				5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */,
 				466FF90FC174DD644889D6E5 /* KeychainStore.swift */,
 				1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */,
+				408B234880885A065E2D219A /* NOAARadarModel.swift */,
+				49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */,
 				4E06DA91EB0A2D9B114E61F7 /* NWSRadarOverlay.swift */,
 				97846ABD5BF53CFC8DECDF4D /* PollenService.swift */,
 				1400281AE13B5127D8D53646 /* Secrets.swift */,
@@ -395,6 +401,8 @@
 				F6B317328B853FA31DB7E01D /* HealthScores.swift in Sources */,
 				92F7ADCB29C4651DA04E5F29 /* KeychainStore.swift in Sources */,
 				ABDBEAD51C35E420411C1C6A /* LogicEngine.swift in Sources */,
+				054D85EA1F416B31C6A7E770 /* NOAARadarModel.swift in Sources */,
+				481F3804F9E2AE4AA880367B /* NOAARadarOverlay.swift in Sources */,
 				8A1F618C8B3AD26579E99FFD /* NWSRadarOverlay.swift in Sources */,
 				E8FE8CBF284852501BFBE75B /* PollenService.swift in Sources */,
 				F7578858B0855FC838029A32 /* Secrets.swift in Sources */,

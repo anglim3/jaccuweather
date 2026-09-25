@@ -639,7 +639,8 @@ if (!pbxproj.includes('name = Logic; path = Resources/Logic;')) {
 if (!pbxproj.includes('name = Icons; path = Resources/Icons;')) {
   throw new Error('Icons folder reference must copy to the app root, not Resources/');
 }
-if (/\bpath = Resources;/.test(pbxproj)) {
+const topLevelResources = ['path', '= Resources;'].join(' ');
+if (pbxproj.includes(topLevelResources)) {
   throw new Error('Do not add a top-level Resources directory inside the app bundle');
 }
 if (/DEVELOPMENT_TEAM = "[A-Za-z0-9]+"/.test(pbxproj)) {

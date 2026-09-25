@@ -217,11 +217,14 @@ test('website keeps Ventusky; iOS radar uses RainViewer tiles', () => {
   assert.doesNotMatch(endpoints, /ventusky\.com/);
   const radar = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Views/RadarView.swift'), 'utf8');
   assert.match(radar, /Radar from RainViewer/);
+  assert.match(radar, /Global \(RainViewer\)/);
+  assert.match(radar, /US \(NOAA\)/);
+  assert.match(radar, /NOAA \/ NWS MRMS/);
   assert.match(radar, /Pause radar/);
   assert.match(radar, /Radar time/);
   assert.doesNotMatch(radar, /[Vv]entusky/);
   assert.doesNotMatch(radar, /WKWebView/);
-  assert.match(radar, /appliedPrefix != framePrefix/);
+  assert.match(radar, /appliedPrefix != prefix/);
   const overlay = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Services/NWSRadarOverlay.swift'), 'utf8');
   assert.match(overlay, /RainViewerRadarOverlay/);
   assert.match(overlay, /nativeMaxZoom = 7/);
@@ -230,6 +233,12 @@ test('website keeps Ventusky; iOS radar uses RainViewer tiles', () => {
   assert.match(radar, /reloadData\(\)/);
   assert.doesNotMatch(overlay, /nexrad-n0q-wmst/);
   assert.doesNotMatch(overlay, /opengeo\.ncep\.noaa\.gov/);
+  const noaa = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Services/NOAARadarModel.swift'), 'utf8');
+  assert.match(noaa, /opengeo\.ncep\.noaa\.gov\/geoserver\/conus\/conus_bref_qcd\/ows/);
+  assert.match(noaa, /CRS=EPSG:3857/);
+  assert.doesNotMatch(noaa, /EPSG:4326/);
+  assert.doesNotMatch(noaa, /nexrad-n0q-wmst/);
+  assert.doesNotMatch(noaa, /[Vv]entusky/);
 });
 
 test('Secrets.xcconfig keeps pollen keys blank and documents NWS User-Agent', () => {
