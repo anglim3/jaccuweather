@@ -351,10 +351,12 @@ final class WeatherViewModel {
             }
             alertIconFiles = icons
             if let resolvedName, !resolvedName.isEmpty {
+                let nameChanged = resolvedName != locationName
                 locationName = resolvedName
                 if followsDeviceLocation && !sessionPinsLocation {
                     rememberDevicePlace()
                 }
+                if nameChanged { publishWidgetSnapshot() }
             }
             let scored = await Self.healthOffMain(weather: bundle, pollen: pollen)
             guard serial == refreshSerial else { return }
@@ -527,6 +529,44 @@ final class WeatherViewModel {
         currentUVDetail = derived.currentUVDetail
         lastFetchMs = Date().timeIntervalSince1970 * 1000
         tickLastUpdated()
+        publishWidgetSnapshot()
+    }
+
+    private func publishWidgetSnapshot() {
+        guard hasResolvedPlace, weather != nil || !hourlyRows.isEmpty else { return }
+        let current = weather?.current
+        let hour = hourlyRows.first
+        let today = dailyRows.first
+        let isDay: Bool = {
+            if let flag = current?.int("is_day") { return flag != 0 }
+            return hour?.isDay ?? true
+        }()
+        let code = current?.int("weather_code") ?? hour?.code
+        let upcoming = hourlyRows.dropFirst().prefix(4).map { row in
+            (label: row.clock, temp: row.temp, chance: row.precipChance)
+        }
+        var hint = WidgetClock.hint(times: Array(upcoming))
+        if hint.isEmpty { hint = precipTiming }
+        let name = locationName.isEmpty ? "Current location" : locationName
+        let fetchedAt = lastFetchMs > 0 ? Date(timeIntervalSince1970: lastFetchMs / 1000) : Date()
+        let snapshot = WidgetConditionsSnapshot(
+            locationId: String(format: "%.4f,%.4f", coordinate.latitude, coordinate.longitude),
+            locationName: name,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            temperatureF: current?.number("temperature_2m") ?? hour?.temp,
+            feelsLikeF: current?.number("apparent_temperature") ?? hour?.feels,
+            weatherCode: code,
+            isDay: isDay,
+            conditionText: WidgetWeatherCode.shortText(code),
+            symbolName: WidgetWeatherCode.symbol(code: code, isDay: isDay),
+            precipChance: hour?.precipChance,
+            highF: sun?.high ?? today?.high,
+            lowF: sun?.low ?? today?.low,
+            nextHoursHint: hint,
+            fetchedAt: fetchedAt
+        )
+        WidgetSnapshotStore.save(snapshot)
     }
 
     private func runSearch() async {

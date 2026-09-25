@@ -41,6 +41,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Pollen keys | **DONE** — Settings Keychain, else blank `Secrets.xcconfig`; empty keys stay on Open-Meteo |
 | Now tab clear of the tab bar | **DONE** — scroll content sits above the floating tab bar |
 | Favorites remove | **DONE** — swipe to remove in the location sheet |
+| Home Screen and Lock Screen widgets | **DONE** — `JaccuweatherWidgets` reads an App Group snapshot written on each successful forecast refresh. Small and medium home widgets, plus Lock Screen circular, rectangular, and inline accessories. SF Symbols from the WMO code. No SVG or WKWebView |
 
 ## Honest leftovers (not code gaps vs the site)
 
