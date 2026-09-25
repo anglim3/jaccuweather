@@ -20,8 +20,7 @@ struct CurrentConditionsView: View {
                 }
                 if !model.alerts.isEmpty { alertsCard }
                 atmosphere
-                health
-                pollen
+                moonCard
                 if let tides = model.tides { tidesCard(tides) }
             }
         }
@@ -82,77 +81,66 @@ struct CurrentConditionsView: View {
     private var atmosphere: some View {
         let current = model.weather?.current
         let pressure = model.pressureDisplay
-        let moon = model.moon
         let today = model.dailyRows.first
-        return WeatherCard(title: "Atmosphere") {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                metric("Feels like", temp(current?.number("apparent_temperature")), "thermometer")
-                metric("Humidity", current?.int("relative_humidity_2m").map { "\($0)%" } ?? "—", "humidity")
-                windMetric(current)
-                metric("UV", current?.number("uv_index").map { String(format: "%.0f · %@", $0, LogicEngine.shared.uvLabel($0)) } ?? "—", "uv-index")
-                metric("Pressure", "\(pressure.value) \(pressure.trend)", "barometer")
-                metric("Dew point", temp(current?.number("dewpoint_2m")), "humidity")
-                metric("Sunrise", today?.sunrise.map { LogicEngine.shared.string("formatIsoLocalClock", [$0]) ?? $0 } ?? "—", "sunrise")
-                metric("Sunset", today?.sunset.map { LogicEngine.shared.string("formatIsoLocalClock", [$0]) ?? $0 } ?? "—", "sunrise")
+        let uvValue = current?.number("uv_index")
+        let uvText = uvValue.map { String(format: "%.0f", $0) } ?? "—"
+        let uvDetail = uvValue.map { LogicEngine.shared.uvLabel($0) }
+        return VStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                metricCard("Feels like", temp(current?.number("apparent_temperature")), icon: "thermometer")
+                metricCard("Dew point", temp(current?.number("dewpoint_2m")), icon: "humidity")
             }
+            windCard(current)
+            HStack(alignment: .top, spacing: 12) {
+                metricCard("Humidity", current?.int("relative_humidity_2m").map { "\($0)%" } ?? "—", icon: "humidity")
+                metricCard("UV", uvText, detail: uvDetail, icon: "uv-index")
+            }
+            pressureCard(value: pressure.value, trend: pressure.trend)
+            HStack(alignment: .top, spacing: 12) {
+                metricCard(
+                    "Sunrise",
+                    today?.sunrise.map { LogicEngine.shared.string("formatIsoLocalClock", [$0]) ?? $0 } ?? "—",
+                    icon: "sunrise"
+                )
+                metricCard(
+                    "Sunset",
+                    today?.sunset.map { LogicEngine.shared.string("formatIsoLocalClock", [$0]) ?? $0 } ?? "—",
+                    icon: "clear-day"
+                )
+            }
+        }
+    }
+
+    private var moonCard: some View {
+        let moon = model.moon
+        return WeatherCard(title: "Moon") {
             Button { showMoon = true } label: {
-                HStack {
-                    SVGIconView(fileName: "starry-night.svg", folder: "cards", pointSize: 22).frame(width: 22, height: 22)
-                    Text("\(moon.emoji)  \(moon.name)")
-                    Spacer()
-                    Text("Rise \(moon.rise) · Set \(moon.set)").font(.caption).foregroundStyle(theme.muted)
+                HStack(alignment: .center, spacing: 14) {
+                    Text(moon.emoji)
+                        .font(.system(size: 52))
+                        .frame(width: 64, height: 64)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(moon.name).font(.title3.weight(.semibold))
+                        Text("\(moon.illumination) illuminated")
+                            .font(.subheadline)
+                            .foregroundStyle(theme.muted)
+                        Text("Rise \(moon.rise)  ·  Set \(moon.set)")
+                            .font(.subheadline)
+                        Text("Full \(moon.nextFull)  ·  New \(moon.nextNew)")
+                            .font(.caption)
+                            .foregroundStyle(theme.muted)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(theme.muted)
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("moon-card")
+            .accessibilityLabel("\(moon.name), \(moon.illumination) illuminated. Rise \(moon.rise), set \(moon.set)")
         }
-    }
-
-    private var health: some View {
-        guard let weather = model.weather else { return AnyView(EmptyView()) }
-        let sinus = HealthScores.sinus(from: weather)
-        let allergy = HealthScores.allergy(pollen: model.pollen, weather: weather)
-        let nice = HealthScores.niceWeather(from: weather)
-        return AnyView(WeatherCard(title: "Health") {
-            HStack(spacing: 10) {
-                NavigationLink { MethodologySheet(kind: .sinus, weather: weather, pollen: model.pollen) } label: {
-                    riskTile("Sinus", sinus.label, sinus.detail)
-                }
-                NavigationLink { MethodologySheet(kind: .allergy, weather: weather, pollen: model.pollen) } label: {
-                    riskTile("Allergy", allergy.label, allergy.detail)
-                }
-                NavigationLink { MethodologySheet(kind: .nice, weather: weather, pollen: model.pollen) } label: {
-                    riskTile("Nice", nice.score.map { "\($0)/10" } ?? "—", nice.label)
-                }
-            }
-        })
-    }
-
-    private var pollen: some View {
-        guard let pollen = model.pollen else {
-            return AnyView(WeatherCard(title: "Pollen") { Text("Open-Meteo fallback (no Google/Tomorrow keys).").foregroundStyle(theme.muted) })
-        }
-        let current = pollen.map("current")
-        let tree = LogicEngine.shared.number("maxAvailablePollen", [[current.number("tree_pollen") as Any, current.number("alder_pollen") as Any, current.number("birch_pollen") as Any, current.number("olive_pollen") as Any]])
-        let grass = current.number("grass_pollen")
-        let weed = LogicEngine.shared.number("maxAvailablePollen", [[current.number("weed_pollen") as Any, current.number("mugwort_pollen") as Any, current.number("ragweed_pollen") as Any]])
-        return AnyView(WeatherCard(title: "Pollen · \(pollen.string("pollen_source") ?? "open-meteo")") {
-            HStack {
-                pollenCol("Tree", tree, "pollen-tree")
-                pollenCol("Grass", grass, "pollen-grass")
-                pollenCol("Weed", weed, "pollen-weed")
-            }
-            if let aqi = current.number("us_aqi") {
-                let label = aqiLabel(aqi)
-                HStack(spacing: 8) {
-                    SVGIconView(fileName: "smoke.svg", folder: "cards", pointSize: 18).frame(width: 18, height: 18)
-                    Text("US AQI \(Int(aqi.rounded())) · \(label)").font(.caption).foregroundStyle(theme.muted)
-                }
-            }
-            speciesRow(current)
-            Text("Tree: Alder, Birch, Olive  ·  Grass: general  ·  Weed: Mugwort, Ragweed")
-                .font(.caption2)
-                .foregroundStyle(theme.muted)
-        })
     }
 
     private func tidesCard(_ tides: TideSnapshot) -> some View {
@@ -195,99 +183,105 @@ struct CurrentConditionsView: View {
         }
     }
 
-    private func pollenCol(_ name: String, _ value: Double?, _ icon: String) -> some View {
-        let level = JSONMap(LogicEngine.shared.object("getPollenLevel", [value as Any]))
-        return VStack {
-            SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 22).frame(width: 22, height: 22)
-            Text(name).font(.caption).foregroundStyle(theme.muted)
-            Text(value.map { "\(Int($0.rounded()))" } ?? "n/a").font(.headline)
-            Text(level.string("label") ?? "None").font(.caption2)
+    private func metricCard(_ title: String, _ value: String, detail: String? = nil, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 44)
+                .frame(width: 48, height: 48)
+            Text(title.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(theme.muted)
+                .tracking(0.6)
+                .lineLimit(1)
+            Text(value)
+                .font(.title2.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(detail ?? " ")
+                .font(.subheadline)
+                .foregroundStyle(detail == nil ? Color.clear : theme.muted)
+                .lineLimit(1)
+                .accessibilityHidden(detail == nil)
         }
-        .frame(maxWidth: .infinity)
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(theme.cardStroke, lineWidth: 1)
+        )
     }
 
-    private func speciesRow(_ current: JSONMap) -> some View {
-        let fields = [
-            ("Alder", "alder_pollen"),
-            ("Birch", "birch_pollen"),
-            ("Olive", "olive_pollen"),
-            ("Mugwort", "mugwort_pollen"),
-            ("Ragweed", "ragweed_pollen")
-        ]
-        return VStack(alignment: .leading, spacing: 6) {
-            Text("Species").font(.caption.weight(.semibold)).foregroundStyle(theme.muted)
-            ForEach(fields, id: \.0) { name, key in
-                let value = current.number(key)
-                let shown = LogicEngine.shared.string("formatPollenValue", [value as Any]) ?? "n/a"
-                HStack {
-                    Text(name)
-                    Spacer()
-                    Text(shown)
-                    Text(JSONMap(LogicEngine.shared.object("getPollenLevel", [value as Any])).string("label") ?? "")
-                        .foregroundStyle(theme.muted)
-                }
-                .font(.caption)
-            }
-        }
-        .padding(.top, 8)
-    }
-
-    private func riskTile(_ title: String, _ value: String, _ detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption).foregroundStyle(theme.muted)
-            Text(value).font(.headline)
-            Text(detail).font(.caption2).foregroundStyle(theme.muted).lineLimit(2)
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.tile, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private func windMetric(_ current: JSONMap?) -> some View {
+    private func windCard(_ current: JSONMap?) -> some View {
         let speed = current?.number("wind_speed_10m")
         let gust = current?.number("wind_gusts_10m")
         let dir = current?.number("wind_direction_10m")
         let speedText = speed.map { String(format: "%.0f mph", $0) } ?? "—"
         let detail: String = {
             var parts: [String] = []
-            if let dir { parts.append(WindCompass.label(dir)) }
-            if let gust { parts.append(String(format: "G%.0f", gust)) }
+            if let dir { parts.append("From \(WindCompass.label(dir))") }
+            if let gust { parts.append(String(format: "Gust %.0f", gust)) }
             return parts.joined(separator: " · ")
         }()
-        return HStack(alignment: .top, spacing: 8) {
-            SVGIconView(fileName: "wind.svg", folder: "cards", pointSize: 18).frame(width: 18, height: 18)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Wind").font(.caption).foregroundStyle(theme.muted)
-                HStack(spacing: 6) {
-                    if let dir {
-                        Image(systemName: "location.north.fill")
-                            .font(.caption)
-                            .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
-                            .accessibilityLabel("Wind from \(WindCompass.label(dir))")
-                    }
-                    Text(speedText).font(.subheadline.weight(.semibold))
-                }
+        return HStack(alignment: .center, spacing: 16) {
+            SVGIconView(fileName: "wind.svg", folder: "cards", pointSize: 52)
+                .frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("WIND")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.muted)
+                    .tracking(0.6)
+                Text(speedText)
+                    .font(.title.weight(.semibold))
                 if !detail.isEmpty {
-                    Text(detail).font(.caption2).foregroundStyle(theme.muted)
+                    Text(detail)
+                        .font(.subheadline)
+                        .foregroundStyle(theme.muted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
             }
+            Spacer(minLength: 8)
+            if let dir {
+                Image(systemName: "location.north.fill")
+                    .font(.system(size: 36, weight: .semibold))
+                    .foregroundStyle(theme.accent)
+                    .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
+                    .accessibilityLabel("Wind from \(WindCompass.label(dir))")
+            }
         }
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(theme.tile, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(theme.cardStroke, lineWidth: 1)
+        )
     }
 
-    private func metric(_ label: String, _ value: String, _ icon: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 18).frame(width: 18, height: 18)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label).font(.caption).foregroundStyle(theme.muted)
-                Text(value).font(.subheadline.weight(.semibold))
+    private func pressureCard(value: String, trend: String) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            SVGIconView(fileName: "barometer.svg", folder: "cards", pointSize: 52)
+                .frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("PRESSURE")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.muted)
+                    .tracking(0.6)
+                Text(value)
+                    .font(.title.weight(.semibold))
+                Text(trend)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(trend == "Falling" ? theme.gold : theme.accent)
             }
+            Spacer(minLength: 0)
         }
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(theme.tile, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(theme.cardStroke, lineWidth: 1)
+        )
     }
 
     private func severityColor(_ severity: String) -> Color {
@@ -296,17 +290,6 @@ struct CurrentConditionsView: View {
         case "moderate": return .orange
         case "minor": return theme.gold
         default: return theme.muted
-        }
-    }
-
-    private func aqiLabel(_ value: Double) -> String {
-        switch Int(value.rounded()) {
-        case ..<51: return "Good"
-        case ..<101: return "Moderate"
-        case ..<151: return "Unhealthy for sensitive groups"
-        case ..<201: return "Unhealthy"
-        case ..<301: return "Very unhealthy"
-        default: return "Hazardous"
         }
     }
 
