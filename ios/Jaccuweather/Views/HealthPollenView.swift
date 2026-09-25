@@ -8,22 +8,19 @@ struct HealthPollenView: View {
 
     var body: some View {
         TabScreenScroll {
-            VStack(alignment: .leading, spacing: 16) {
-                if let weather = model.weather {
-                    let sinus = HealthScores.sinus(from: weather)
-                    let allergy = HealthScores.allergy(pollen: model.pollen, weather: weather)
-                    let nice = HealthScores.niceWeather(from: weather)
-                    WeatherCard(title: "Scores") {
-                        NavigationLink { MethodologySheet(kind: .sinus, weather: weather, pollen: model.pollen) } label: {
-                            scoreRow("Sinus", sinus.label, sinus.detail)
-                        }
-                        NavigationLink { MethodologySheet(kind: .allergy, weather: weather, pollen: model.pollen) } label: {
-                            scoreRow("Allergy", allergy.label, allergy.detail)
-                        }
-                        NavigationLink { MethodologySheet(kind: .nice, weather: weather, pollen: model.pollen) } label: {
-                            scoreRow("Nice weather", nice.score.map { "\($0)/10 \(nice.label)" } ?? "—", "Same scoring as the website")
-                        }
+            if let weather = model.weather {
+                let health = model.health
+                WeatherCard(title: "Scores") {
+                    NavigationLink { MethodologySheet(kind: .sinus, weather: weather, pollen: model.pollen) } label: {
+                        scoreRow("Sinus", health?.sinusLabel ?? "—", health?.sinusDetail ?? "")
                     }
+                    NavigationLink { MethodologySheet(kind: .allergy, weather: weather, pollen: model.pollen) } label: {
+                        scoreRow("Allergy", health?.allergyLabel ?? "—", health?.allergyDetail ?? "")
+                    }
+                    NavigationLink { MethodologySheet(kind: .nice, weather: weather, pollen: model.pollen) } label: {
+                        scoreRow("Nice weather", health?.niceLine ?? "—", "Same scoring as the website")
+                    }
+                }
 
                     if let pollen = model.pollen {
                         let current = pollen.map("current")
@@ -64,7 +61,6 @@ struct HealthPollenView: View {
                 } else {
                     Text("Load a location first.").foregroundStyle(theme.muted)
                 }
-            }
         }
         .navigationTitle("Health")
         .navigationBarTitleDisplayMode(.inline)

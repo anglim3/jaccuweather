@@ -55,62 +55,18 @@ struct ForecastView: View {
 
     var body: some View {
         TabScreenScroll {
-            VStack(alignment: .leading, spacing: 16) {
-                WeatherCard(title: "Next 48 hours") {
-                    seriesMenu(selection: $hourlyMode, label: "48-hour chart")
-                    chart48
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(model.hourlyRows) { row in
-                                hourlyChip(row)
-                            }
-                        }
-                    }
-                }
+            WeatherCard(title: "Next 48 hours") {
+                seriesMenu(selection: $hourlyMode, label: "48-hour chart")
+                chart48
+                HourlyStrip(rows: model.hourlyRows, mode: hourlyMode, theme: theme)
+                    .equatable()
+            }
 
-                WeatherCard(title: "14-day") {
-                    seriesMenu(selection: $dailySeries, label: "14-day chart")
-                    dailyChart
-                    ForEach(model.dailyRows) { day in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(alignment: .center, spacing: 8) {
-                                Text(dayHeader(day))
-                                    .font(.subheadline.weight(.semibold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.65)
-                                    .layoutPriority(1)
-                                    .accessibilityIdentifier("forecast-day-header")
-                                SVGIconView(fileName: day.iconFile, folder: "weather", pointSize: 28)
-                                    .frame(width: 28, height: 28)
-                                Spacer(minLength: 6)
-                                Text(day.precipChance.map { "\($0)%" } ?? "")
-                                    .font(.caption).foregroundStyle(theme.muted)
-                                    .lineLimit(1)
-                                Text(day.uv.map { String(format: "UV %.0f", $0) } ?? "")
-                                    .font(.caption).foregroundStyle(theme.muted)
-                                    .lineLimit(1)
-                                Text(int(day.low)).foregroundStyle(theme.muted)
-                                    .lineLimit(1)
-                                    .frame(width: 36, alignment: .trailing)
-                                Text(int(day.high)).fontWeight(.semibold)
-                                    .lineLimit(1)
-                                    .frame(width: 40, alignment: .trailing)
-                            }
-                            HStack {
-                                Text(LogicEngine.shared.weatherDescription(day.code))
-                                if let feels = day.feelsHigh {
-                                    Text("Feels \(Int(feels.rounded()))°")
-                                }
-                                if let rise = day.sunrise {
-                                    Text(LogicEngine.shared.string("formatIsoLocalClock", [rise]) ?? "")
-                                }
-                            }
-                            .font(.caption2)
-                            .foregroundStyle(theme.muted)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
+            WeatherCard(title: "14-day") {
+                seriesMenu(selection: $dailySeries, label: "14-day chart")
+                dailyChart
+                DailyDetailList(days: model.dailyRows, theme: theme)
+                    .equatable()
             }
         }
         .navigationTitle("Forecast")
@@ -127,17 +83,6 @@ struct ForecastView: View {
             dailySelection = nil
             dailyTideSelection = nil
         }
-    }
-
-    /// Full weekday plus date, kept on one line (scales down instead of wrapping).
-    private func dayHeader(_ day: DayRow) -> String {
-        let parser = DateFormatter()
-        parser.locale = Locale(identifier: "en_US_POSIX")
-        parser.dateFormat = "yyyy-MM-dd"
-        guard let parsed = parser.date(from: day.date) else { return day.label }
-        parser.locale = Locale(identifier: "en_US")
-        parser.dateFormat = "EEEE MMM d"
-        return parser.string(from: parsed)
     }
 
     private func seriesMenu(selection: Binding<String>, label: String) -> some View {
@@ -210,7 +155,7 @@ struct ForecastView: View {
         } else if dailySeries == "wind" {
             scrubBanner(dailyScrubText)
             windChart(model.dailyRows.map { day in
-                WindSample(id: "d\(day.id)", axis: ForecastDates.day(day.date), speed: day.wind ?? 0, gust: dailyGust(day))
+                WindSample(id: "d\(day.id)", axis: ForecastDates.day(day.date), speed: day.wind ?? 0, gust: day.gust)
             }, hourly: false, selection: $dailySelection)
                 .accessibilityIdentifier("daily-chart")
         } else if dailySeries == "temp" || dailySeries == "feelslike" {
@@ -385,55 +330,6 @@ struct ForecastView: View {
         .frame(height: 220)
     }
 
-    private func hourlyChip(_ row: HourRow) -> some View {
-        VStack(spacing: 6) {
-            Text(row.clock).font(.caption2).foregroundStyle(theme.muted)
-            if hourlyMode != "wind" {
-                SVGIconView(fileName: row.iconFile, folder: "weather", pointSize: 28).frame(width: 28, height: 28)
-            }
-            switch hourlyMode {
-            case "precip":
-                Text(row.precip.map { String(format: "%.2f\"", $0) } ?? "0\"").font(.caption.weight(.semibold))
-                Text(row.precipChance.map { "\($0)%" } ?? "").font(.caption2).foregroundStyle(theme.muted)
-            case "wind":
-                if let dir = row.windDir {
-                    Image(systemName: "location.north.fill")
-                        .font(.caption)
-                        .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
-                        .accessibilityLabel("From \(WindCompass.label(dir))")
-                }
-                Text(row.wind.map { String(format: "%.0f", $0) } ?? "—").font(.caption.weight(.semibold))
-                Text(row.windGust.map { String(format: "mph G%.0f", $0) } ?? "mph")
-                    .font(.caption2)
-                    .foregroundStyle(theme.muted)
-            case "uv":
-                Text(row.uv.map { String(format: "%.0f", $0) } ?? "—").font(.caption.weight(.semibold))
-                Text(row.uv.map { LogicEngine.shared.uvLabel($0) } ?? "").font(.caption2).foregroundStyle(theme.muted)
-            case "humidity":
-                Text(row.humidity.map { "\(Int($0.rounded()))%" } ?? "—").font(.caption.weight(.semibold))
-            case "pressure":
-                Text(row.pressure.map { String(format: "%.2f\"", $0 * 0.02953) } ?? "—").font(.caption.weight(.semibold))
-            case "cloud":
-                Text(row.cloudLow.map { "L\(Int($0.rounded()))" } ?? "L—").font(.caption2)
-                Text(row.cloudMid.map { "M\(Int($0.rounded()))" } ?? "M—").font(.caption2).foregroundStyle(theme.muted)
-                Text(row.cloudHigh.map { "H\(Int($0.rounded()))" } ?? "H—").font(.caption2).foregroundStyle(theme.muted)
-            case "feelslike":
-                Text(row.feels.map { "\(Int($0.rounded()))°" } ?? "—").font(.caption.weight(.semibold))
-            case "snow":
-                Text(row.snow.map { String(format: "%.2f\"", $0) } ?? "0\"").font(.caption.weight(.semibold))
-            case "brightness":
-                Text("\(Int(hourlyBrightness(row).rounded()))%").font(.caption.weight(.semibold))
-            case "niceweather":
-                Text(String(format: "%.0f", niceScore(forHour: row.time))).font(.caption.weight(.semibold))
-            case "moon":
-                Text(String(format: "%.0f%%", moonPhase(row.time) * 100)).font(.caption.weight(.semibold))
-            default:
-                Text(row.temp.map { "\(Int($0.rounded()))°" } ?? "—").font(.caption.weight(.semibold))
-            }
-        }
-        .frame(width: 56)
-    }
-
     private var hourlyScrubText: String? {
         guard let axis = hourlySelection, let row = model.hourlyRows.first(where: { ForecastDates.sameHour($0.time, axis) }) else { return nil }
         let when = row.clock
@@ -463,11 +359,11 @@ struct ForecastView: View {
             let high = row.cloudHigh.map { "H \(Int($0.rounded()))%" } ?? "H —"
             return "\(when)  \(low)  \(mid)  \(high)"
         case "brightness":
-            return "\(when)  \(Int(hourlyBrightness(row).rounded()))%"
+            return "\(when)  \(Int(row.brightness.rounded()))%"
         case "niceweather":
-            return "\(when)  \(String(format: "%.0f / 10", niceScore(forHour: row.time)))"
+            return "\(when)  \(String(format: "%.0f / 10", row.niceScore))"
         case "moon":
-            return "\(when)  \(String(format: "%.0f%%", moonPhase(row.time) * 100))"
+            return "\(when)  \(String(format: "%.0f%%", row.moonPhase * 100))"
         default:
             return "\(when)  \(row.temp.map { "\(Int($0.rounded()))°" } ?? "—")"
         }
@@ -486,27 +382,27 @@ struct ForecastView: View {
             return "\(day.label)  \(amount)\(chance)"
         case "wind":
             let speed = day.wind.map { String(format: "%.0f mph", $0) } ?? "—"
-            let gust = String(format: " · gust %.0f", dailyGust(day))
+            let gust = String(format: " · gust %.0f", day.gust)
             return "\(day.label)  \(speed)\(gust)"
         case "uv":
             return "\(day.label)  \(day.uv.map { String(format: "UV %.0f", $0) } ?? "—")"
         case "humidity":
-            return "\(day.label)  \(Int(dailyAverage("relative_humidity_2m", day.date).rounded()))%"
+            return "\(day.label)  \(Int(day.humidityAvg.rounded()))%"
         case "pressure":
-            return "\(day.label)  \(String(format: "%.2f inHg", noonPressureInHg(day.date)))"
+            return "\(day.label)  \(String(format: "%.2f inHg", day.pressureInHg))"
         case "snow":
-            return "\(day.label)  \(String(format: "%.2f in", dailySnow(day)))"
+            return "\(day.label)  \(String(format: "%.2f in", day.snowSum))"
         case "cloud":
-            let low = Int(cloudAverage(day, "cloud_cover_low").rounded())
-            let mid = Int(cloudAverage(day, "cloud_cover_mid").rounded())
-            let high = Int(cloudAverage(day, "cloud_cover_high").rounded())
+            let low = Int(day.cloudLowAvg.rounded())
+            let mid = Int(day.cloudMidAvg.rounded())
+            let high = Int(day.cloudHighAvg.rounded())
             return "\(day.label)  L \(low)%  M \(mid)%  H \(high)%"
         case "brightness":
-            return "\(day.label)  \(Int(dailyBrightness(day.date).rounded()))%"
+            return "\(day.label)  \(Int(day.brightness.rounded()))%"
         case "niceweather":
-            return "\(day.label)  \(String(format: "%.0f / 10", niceScore(forDate: day.date, index: day.id)))"
+            return "\(day.label)  \(String(format: "%.0f / 10", day.niceScore))"
         case "moon":
-            return "\(day.label)  \(String(format: "%.0f%%", moonPhase(day.date + "T12:00") * 100))"
+            return "\(day.label)  \(String(format: "%.0f%%", day.moonPhase * 100))"
         default:
             return "\(day.label)  \(int(day.high))"
         }
@@ -570,9 +466,9 @@ struct ForecastView: View {
         case "uv": return row.uv ?? 0
         case "humidity": return row.humidity ?? 0
         case "pressure": return (row.pressure ?? 0) * 0.02953
-        case "niceweather": return niceScore(forHour: row.time)
-        case "brightness": return hourlyBrightness(row)
-        case "moon": return moonPhase(row.time)
+        case "niceweather": return row.niceScore
+        case "brightness": return row.brightness
+        case "moon": return row.moonPhase
         default: return row.temp ?? 0
         }
     }
@@ -580,13 +476,13 @@ struct ForecastView: View {
     private func dailyValue(_ day: DayRow) -> Double {
         switch dailySeries {
         case "precip": return day.precip ?? 0
-        case "snow": return dailySnow(day)
+        case "snow": return day.snowSum
         case "uv": return day.uv ?? 0
-        case "humidity": return dailyAverage("relative_humidity_2m", day.date)
-        case "pressure": return noonPressureInHg(day.date)
-        case "niceweather": return niceScore(forDate: day.date, index: day.id)
-        case "brightness": return dailyBrightness(day.date)
-        case "moon": return moonPhase(day.date + "T12:00")
+        case "humidity": return day.humidityAvg
+        case "pressure": return day.pressureInHg
+        case "niceweather": return day.niceScore
+        case "brightness": return day.brightness
+        case "moon": return day.moonPhase
         default: return day.high ?? 0
         }
     }
@@ -610,69 +506,6 @@ struct ForecastView: View {
         }
     }
 
-    private var maxHourlyRadiation: Double {
-        max(model.hourlyRows.map { $0.radiation ?? 0 }.max() ?? 0, 1)
-    }
-
-    private var maxDailyRadiation: Double {
-        let peak = model.dailyRows.map { dailyAverage("shortwave_radiation", $0.date) }.max() ?? 0
-        return max(peak, 1)
-    }
-
-    private func hourlyBrightness(_ row: HourRow) -> Double {
-        ((row.radiation ?? 0) / maxHourlyRadiation) * 100
-    }
-
-    private func dailyBrightness(_ date: String) -> Double {
-        (dailyAverage("shortwave_radiation", date) / maxDailyRadiation) * 100
-    }
-
-    private func dailyAverage(_ field: String, _ date: String) -> Double {
-        guard let weather = model.weather else { return 0 }
-        return LogicEngine.shared.number("getAverageHourlyValueForDate", [weather.hourly.raw, field, date]) ?? 0
-    }
-
-    private func noonPressureInHg(_ date: String) -> Double {
-        guard let weather = model.weather else { return 0 }
-        let times = weather.hourly.strings("time")
-        let pressures = weather.hourly.numbers("surface_pressure")
-        let noon = times.firstIndex { $0.hasPrefix(date) && $0.contains("T12:") } ?? times.firstIndex { $0.hasPrefix(date) }
-        guard let noon, noon < pressures.count, let hpa = pressures[noon] else { return 0 }
-        return hpa * 0.02953
-    }
-
-    private func dailySnow(_ day: DayRow) -> Double {
-        guard let weather = model.weather else { return 0 }
-        let values = weather.daily.numbers("snowfall_sum")
-        guard day.id < values.count, let snow = values[day.id] else { return 0 }
-        return snow
-    }
-
-    private func dailyGust(_ day: DayRow) -> Double {
-        guard let weather = model.weather else { return 0 }
-        let values = weather.daily.numbers("wind_gusts_10m_max")
-        guard day.id < values.count, let gust = values[day.id] else { return 0 }
-        return gust
-    }
-
-    private func niceScore(forDate date: String, index: Int) -> Double {
-        guard let weather = model.weather else { return 0 }
-        let avg = LogicEngine.shared.object("calculateDailyAveragesForDateString", [weather.hourly.raw, date]) as Any
-        let breakdown = LogicEngine.shared.object("getNiceWeatherBreakdown", [weather.root.raw, avg, index])
-        return JSONMap(breakdown).number("score") ?? 0
-    }
-
-    private func niceScore(forHour iso: String) -> Double {
-        let date = String(iso.prefix(10))
-        guard let day = model.dailyRows.first(where: { $0.date == date }) else { return 0 }
-        return niceScore(forDate: date, index: day.id)
-    }
-
-    private func moonPhase(_ iso: String) -> Double {
-        let ms = LogicEngine.shared.number("parseLocationLocalIso", [iso, model.weather?.utcOffset ?? 0]) ?? 0
-        return LogicEngine.shared.number("calculateMoonPhase", [ms]) ?? 0
-    }
-
     private var hourlyCloudSamples: [CloudSample] {
         model.hourlyRows.flatMap { row in
             [
@@ -686,16 +519,11 @@ struct ForecastView: View {
     private var dailyCloudSamples: [CloudSample] {
         model.dailyRows.flatMap { day in
             [
-                CloudSample(id: "\(day.id)-low", axis: ForecastDates.day(day.date), label: day.label, series: "Low", value: cloudAverage(day, "cloud_cover_low")),
-                CloudSample(id: "\(day.id)-mid", axis: ForecastDates.day(day.date), label: day.label, series: "Mid", value: cloudAverage(day, "cloud_cover_mid")),
-                CloudSample(id: "\(day.id)-high", axis: ForecastDates.day(day.date), label: day.label, series: "High", value: cloudAverage(day, "cloud_cover_high"))
+                CloudSample(id: "\(day.id)-low", axis: ForecastDates.day(day.date), label: day.label, series: "Low", value: day.cloudLowAvg),
+                CloudSample(id: "\(day.id)-mid", axis: ForecastDates.day(day.date), label: day.label, series: "Mid", value: day.cloudMidAvg),
+                CloudSample(id: "\(day.id)-high", axis: ForecastDates.day(day.date), label: day.label, series: "High", value: day.cloudHighAvg)
             ]
         }
-    }
-
-    private func cloudAverage(_ day: DayRow, _ field: String) -> Double {
-        guard let weather = model.weather else { return 0 }
-        return LogicEngine.shared.number("getAverageHourlyValueForDate", [weather.hourly.raw, field, day.date]) ?? 0
     }
 
     private func cloudChart(samples: [CloudSample], hourly: Bool, selection: Binding<Date?>) -> some View {
@@ -733,6 +561,132 @@ struct ForecastView: View {
     }
 
     private func int(_ value: Double?) -> String {
+        guard let value else { return "—" }
+        return "\(Int(value.rounded()))°"
+    }
+}
+
+/// Hour and day lists ignore chart scrubbing so icon rows are not rebuilt on each drag point.
+private struct HourlyStrip: View, Equatable {
+    let rows: [HourRow]
+    let mode: String
+    let theme: JWPalette
+
+    static func == (lhs: HourlyStrip, rhs: HourlyStrip) -> Bool {
+        lhs.mode == rhs.mode && lhs.rows == rhs.rows
+    }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 10) {
+                ForEach(rows) { row in
+                    chip(row)
+                }
+            }
+        }
+    }
+
+    private func chip(_ row: HourRow) -> some View {
+        VStack(spacing: 6) {
+            Text(row.clock).font(.caption2).foregroundStyle(theme.muted)
+            if mode != "wind" {
+                SVGIconView(fileName: row.iconFile, folder: "weather", pointSize: 28).frame(width: 28, height: 28)
+            }
+            switch mode {
+            case "precip":
+                Text(row.precip.map { String(format: "%.2f\"", $0) } ?? "0\"").font(.caption.weight(.semibold))
+                Text(row.precipChance.map { "\($0)%" } ?? "").font(.caption2).foregroundStyle(theme.muted)
+            case "wind":
+                if let dir = row.windDir {
+                    Image(systemName: "location.north.fill")
+                        .font(.caption)
+                        .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
+                        .accessibilityLabel("From \(WindCompass.label(dir))")
+                }
+                Text(row.wind.map { String(format: "%.0f", $0) } ?? "—").font(.caption.weight(.semibold))
+                Text(row.windGust.map { String(format: "mph G%.0f", $0) } ?? "mph")
+                    .font(.caption2)
+                    .foregroundStyle(theme.muted)
+            case "uv":
+                Text(row.uv.map { String(format: "%.0f", $0) } ?? "—").font(.caption.weight(.semibold))
+                Text(row.uvLabel).font(.caption2).foregroundStyle(theme.muted)
+            case "humidity":
+                Text(row.humidity.map { "\(Int($0.rounded()))%" } ?? "—").font(.caption.weight(.semibold))
+            case "pressure":
+                Text(row.pressure.map { String(format: "%.2f\"", $0 * 0.02953) } ?? "—").font(.caption.weight(.semibold))
+            case "cloud":
+                Text(row.cloudLow.map { "L\(Int($0.rounded()))" } ?? "L—").font(.caption2)
+                Text(row.cloudMid.map { "M\(Int($0.rounded()))" } ?? "M—").font(.caption2).foregroundStyle(theme.muted)
+                Text(row.cloudHigh.map { "H\(Int($0.rounded()))" } ?? "H—").font(.caption2).foregroundStyle(theme.muted)
+            case "feelslike":
+                Text(row.feels.map { "\(Int($0.rounded()))°" } ?? "—").font(.caption.weight(.semibold))
+            case "snow":
+                Text(row.snow.map { String(format: "%.2f\"", $0) } ?? "0\"").font(.caption.weight(.semibold))
+            case "brightness":
+                Text("\(Int(row.brightness.rounded()))%").font(.caption.weight(.semibold))
+            case "niceweather":
+                Text(String(format: "%.0f", row.niceScore)).font(.caption.weight(.semibold))
+            case "moon":
+                Text(String(format: "%.0f%%", row.moonPhase * 100)).font(.caption.weight(.semibold))
+            default:
+                Text(row.temp.map { "\(Int($0.rounded()))°" } ?? "—").font(.caption.weight(.semibold))
+            }
+        }
+        .frame(width: 56)
+    }
+}
+
+private struct DailyDetailList: View, Equatable {
+    let days: [DayRow]
+    let theme: JWPalette
+
+    static func == (lhs: DailyDetailList, rhs: DailyDetailList) -> Bool {
+        lhs.days == rhs.days
+    }
+
+    var body: some View {
+        ForEach(days) { day in
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .center, spacing: 8) {
+                    Text(day.fullLabel)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                        .layoutPriority(1)
+                        .accessibilityIdentifier("forecast-day-header")
+                    SVGIconView(fileName: day.iconFile, folder: "weather", pointSize: 28)
+                        .frame(width: 28, height: 28)
+                    Spacer(minLength: 6)
+                    Text(day.precipChance.map { "\($0)%" } ?? "")
+                        .font(.caption).foregroundStyle(theme.muted)
+                        .lineLimit(1)
+                    Text(day.uv.map { String(format: "UV %.0f", $0) } ?? "")
+                        .font(.caption).foregroundStyle(theme.muted)
+                        .lineLimit(1)
+                    Text(temp(day.low)).foregroundStyle(theme.muted)
+                        .lineLimit(1)
+                        .frame(width: 36, alignment: .trailing)
+                    Text(temp(day.high)).fontWeight(.semibold)
+                        .lineLimit(1)
+                        .frame(width: 40, alignment: .trailing)
+                }
+                HStack {
+                    Text(day.summary)
+                    if let feels = day.feelsHigh {
+                        Text("Feels \(Int(feels.rounded()))°")
+                    }
+                    if !day.sunriseClock.isEmpty {
+                        Text(day.sunriseClock)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(theme.muted)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    private func temp(_ value: Double?) -> String {
         guard let value else { return "—" }
         return "\(Int(value.rounded()))°"
     }
@@ -881,13 +835,15 @@ private struct SeriesScrubber: ViewModifier {
                                 guard frame.width > 0 else { return }
                                 let x = drag.location.x - frame.minX
                                 if let date: Date = proxy.value(atX: x) {
-                                    selection = dates.min {
+                                    let nearest = dates.min {
                                         abs($0.timeIntervalSince(date)) < abs($1.timeIntervalSince(date))
                                     }
+                                    if selection != nearest { selection = nearest }
                                 } else {
                                     let ratio = min(max((drag.location.x - frame.minX) / frame.width, 0), 1)
                                     let index = min(max(Int((ratio * CGFloat(dates.count - 1)).rounded()), 0), dates.count - 1)
-                                    selection = dates[index]
+                                    let nearest = dates[index]
+                                    if selection != nearest { selection = nearest }
                                 }
                             }
                     )

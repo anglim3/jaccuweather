@@ -368,7 +368,7 @@
 				INFOPLIST_FILE = Jaccuweather/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Jaccuweather;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Shows weather for your current location.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Jaccuweather uses your location to show weather where you are, unless you have chosen a saved place.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -398,7 +398,7 @@
 				INFOPLIST_FILE = Jaccuweather/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Jaccuweather;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Shows weather for your current location.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Jaccuweather uses your location to show weather where you are, unless you have chosen a saved place.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
