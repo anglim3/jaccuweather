@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Static deep-navy glass. Light and dark system appearances both use this palette.
 struct JWPalette: Equatable {
@@ -43,21 +44,79 @@ struct TabScreenScroll<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        ZStack {
-            JWPalette.dark.background.ignoresSafeArea()
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
-                    content
-                }
-                .padding(16)
-                .padding(.bottom, 28)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .foregroundStyle(JWPalette.dark.text)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 16) {
+                content
             }
-            .contentMargins(.bottom, 12, for: .scrollContent)
-            .scrollBounceBehavior(.basedOnSize)
-            .refreshable { await model.refresh() }
+            .padding(16)
+            .padding(.bottom, 28)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .foregroundStyle(JWPalette.dark.text)
+            .background {
+                PullRefreshInstaller { await model.refresh() }
+            }
         }
+        .contentMargins(.bottom, 12, for: .scrollContent)
+        .background(JWPalette.dark.background.ignoresSafeArea())
+    }
+}
+
+/// Hooks the tab scroll view up to a refresh control. `.refreshable` on this
+/// container only rubber-bands; the control is what reloads the forecast.
+private struct PullRefreshInstaller: UIViewRepresentable {
+    var action: @MainActor () async -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(action: action) }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.action = action
+        DispatchQueue.main.async {
+            guard let scroll = uiView.enclosingScrollView() else { return }
+            if scroll.refreshControl !== context.coordinator.control {
+                scroll.refreshControl = context.coordinator.control
+            }
+        }
+    }
+
+    final class Coordinator: NSObject {
+        var action: @MainActor () async -> Void
+        let control: UIRefreshControl
+
+        init(action: @escaping @MainActor () async -> Void) {
+            self.action = action
+            let control = UIRefreshControl()
+            control.tintColor = .white
+            self.control = control
+            super.init()
+            control.addTarget(self, action: #selector(fire), for: .valueChanged)
+        }
+
+        @objc private func fire() {
+            let action = action
+            let control = control
+            Task { @MainActor in
+                await action()
+                control.endRefreshing()
+            }
+        }
+    }
+}
+
+private extension UIView {
+    func enclosingScrollView() -> UIScrollView? {
+        var view: UIView? = self
+        while let current = view {
+            if let scroll = current as? UIScrollView { return scroll }
+            view = current.superview
+        }
+        return nil
     }
 }
 
