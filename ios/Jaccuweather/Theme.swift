@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Static deep-navy glass. Light and dark system appearances both use this palette.
-struct JWPalette {
+struct JWPalette: Equatable {
     let background: Color
     let card: Color
     let cardStroke: Color
@@ -45,10 +45,13 @@ struct TabScreenScroll<Content: View>: View {
         ZStack {
             JWPalette.dark.background.ignoresSafeArea()
             ScrollView {
-                content
-                    .padding(16)
-                    .padding(.bottom, 28)
-                    .foregroundStyle(JWPalette.dark.text)
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    content
+                }
+                .padding(16)
+                .padding(.bottom, 28)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .foregroundStyle(JWPalette.dark.text)
             }
             .contentMargins(.bottom, 12, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize)

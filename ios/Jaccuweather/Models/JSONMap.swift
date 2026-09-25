@@ -74,10 +74,10 @@ struct WeatherBundle {
 
     var todayIndex: Int {
         let times = daily.strings("time")
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(secondsFromGMT: utcOffset)
-        let today = formatter.string(from: Date())
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: utcOffset) ?? .gmt
+        let parts = calendar.dateComponents([.year, .month, .day], from: Date())
+        let today = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
         if let idx = times.firstIndex(of: today) { return idx }
         return min(2, max(0, times.count - 1))
     }

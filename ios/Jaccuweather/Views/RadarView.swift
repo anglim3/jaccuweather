@@ -5,6 +5,7 @@ import CoreLocation
 struct RadarView: View {
     @Environment(WeatherViewModel.self) private var model
     @Environment(\.colorScheme) private var colorScheme
+    var isActive = true
     @State private var host = ""
     @State private var frames: [RainViewerCatalog.Frame] = []
     @State private var frameIndex = 0
@@ -95,6 +96,13 @@ struct RadarView: View {
         .navigationTitle("Radar")
         .navigationBarTitleDisplayMode(.inline)
         .task { await refreshLoop() }
+        .onChange(of: isActive) { _, active in
+            if active {
+                Task { await refreshFrames() }
+            } else {
+                setPlaying(false)
+            }
+        }
         .onDisappear { setPlaying(false) }
     }
 
@@ -102,11 +110,15 @@ struct RadarView: View {
         guard frames.indices.contains(frameIndex) else {
             return loadError ?? "Loading radar…"
         }
+        return Self.timeFormatter(utcOffset: model.weather?.utcOffset ?? 0).string(from: frames[frameIndex].time)
+    }
+
+    private static func timeFormatter(utcOffset: Int) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US")
-        formatter.timeZone = TimeZone(secondsFromGMT: model.weather?.utcOffset ?? 0)
+        formatter.timeZone = TimeZone(secondsFromGMT: utcOffset)
         formatter.setLocalizedDateFormatFromTemplate("EEE h:mm a")
-        return formatter.string(from: frames[frameIndex].time)
+        return formatter
     }
 
     private func refreshLoop() async {
@@ -114,7 +126,7 @@ struct RadarView: View {
         while !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
             if Task.isCancelled { return }
-            await refreshFrames()
+            if isActive { await refreshFrames() }
         }
     }
 

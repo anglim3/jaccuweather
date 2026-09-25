@@ -1,5 +1,27 @@
 import Foundation
 
+struct CachedHealth: Equatable {
+    var sinusLabel: String
+    var sinusDetail: String
+    var allergyLabel: String
+    var allergyDetail: String
+    var niceLine: String
+
+    static func make(weather: WeatherBundle, pollen: JSONMap?) -> CachedHealth {
+        let sinus = HealthScores.sinus(from: weather)
+        let allergy = HealthScores.allergy(pollen: pollen, weather: weather)
+        let nice = HealthScores.niceWeather(from: weather)
+        let niceLine = nice.score.map { "\($0)/10 \(nice.label)" } ?? "—"
+        return CachedHealth(
+            sinusLabel: sinus.label,
+            sinusDetail: sinus.detail,
+            allergyLabel: allergy.label,
+            allergyDetail: allergy.detail,
+            niceLine: niceLine
+        )
+    }
+}
+
 enum HealthScores {
     static func sinus(from weather: WeatherBundle) -> (label: String, detail: String, score: Int?) {
         let daily = weather.daily

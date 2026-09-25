@@ -10,19 +10,17 @@ struct CurrentConditionsView: View {
 
     var body: some View {
         TabScreenScroll {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                if let message = model.errorMessage {
-                    Text(message).font(.footnote).foregroundStyle(.orange)
-                }
-                if let note = model.statusNote {
-                    Text(note).font(.footnote).foregroundStyle(theme.muted)
-                }
-                if !model.alerts.isEmpty { alertsCard }
-                atmosphere
-                moonCard
-                if let tides = model.tides { tidesCard(tides) }
+            header
+            if let message = model.errorMessage {
+                Text(message).font(.footnote).foregroundStyle(.orange)
             }
+            if let note = model.statusNote {
+                Text(note).font(.footnote).foregroundStyle(theme.muted)
+            }
+            if !model.alerts.isEmpty { alertsCard }
+            atmosphere
+            moonCard
+            if let tides = model.tides { tidesCard(tides) }
         }
         .navigationTitle("Now")
         .navigationBarTitleDisplayMode(.inline)
@@ -46,17 +44,15 @@ struct CurrentConditionsView: View {
 
     private var header: some View {
         let current = model.weather?.current
-        let desc = LogicEngine.shared.weatherDescription(current?.int("weather_code"))
-        let isDay = current?.int("is_day") != 0
-        let icon = LogicEngine.shared.weatherIconFile(code: current?.int("weather_code"), isDay: isDay)
+        let sun = model.sun
         return WeatherCard(title: model.locationName) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(temp(current?.number("temperature_2m")))
                         .font(.system(size: 64, weight: .light, design: .rounded))
-                    Text(desc).font(.title3.weight(.medium))
-                    if let today = model.dailyRows.first {
-                        Text("H:\(int(today.high))°  L:\(int(today.low))°").foregroundStyle(theme.muted)
+                    Text(model.conditionDescription).font(.title3.weight(.medium))
+                    if let sun {
+                        Text("H:\(int(sun.high))°  L:\(int(sun.low))°").foregroundStyle(theme.muted)
                     }
                     Text(model.precipTiming).font(.caption).foregroundStyle(theme.muted)
                     if !model.lastUpdatedLabel.isEmpty {
@@ -64,16 +60,13 @@ struct CurrentConditionsView: View {
                     }
                 }
                 Spacer()
-                SVGIconView(fileName: icon, folder: "weather", pointSize: 72)
+                SVGIconView(fileName: model.conditionIcon, folder: "weather", pointSize: 72, animates: true)
                     .frame(width: 72, height: 72)
             }
-            if let today = model.dailyRows.first {
-                SunArcView(
-                    sunriseIso: today.sunrise ?? "",
-                    sunsetIso: today.sunset ?? "",
-                    utcOffset: model.weather?.utcOffset ?? 0
-                )
-                .padding(.top, 8)
+            if let sun {
+                SunArcView(sun: sun)
+                    .frame(height: 64)
+                    .padding(.top, 8)
             }
         }
     }
@@ -81,10 +74,10 @@ struct CurrentConditionsView: View {
     private var atmosphere: some View {
         let current = model.weather?.current
         let pressure = model.pressureDisplay
-        let today = model.dailyRows.first
+        let sun = model.sun
         let uvValue = current?.number("uv_index")
         let uvText = uvValue.map { String(format: "%.0f", $0) } ?? "—"
-        let uvDetail = uvValue.map { LogicEngine.shared.uvLabel($0) }
+        let uvDetail = model.currentUVDetail.isEmpty ? nil : model.currentUVDetail
         return VStack(spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 metricCard("Feels like", temp(current?.number("apparent_temperature")), icon: "thermometer")
@@ -97,16 +90,8 @@ struct CurrentConditionsView: View {
             }
             pressureCard(value: pressure.value, trend: pressure.trend)
             HStack(alignment: .top, spacing: 12) {
-                metricCard(
-                    "Sunrise",
-                    today?.sunrise.map { LogicEngine.shared.string("formatIsoLocalClock", [$0]) ?? $0 } ?? "—",
-                    icon: "sunrise"
-                )
-                metricCard(
-                    "Sunset",
-                    today?.sunset.map { LogicEngine.shared.string("formatIsoLocalClock", [$0]) ?? $0 } ?? "—",
-                    icon: "clear-day"
-                )
+                metricCard("Sunrise", sun?.sunriseLabel ?? "—", icon: "sunrise")
+                metricCard("Sunset", sun?.sunsetLabel ?? "—", icon: "clear-day")
             }
         }
     }
@@ -164,7 +149,7 @@ struct CurrentConditionsView: View {
                 ForEach(model.alerts.prefix(5)) { alert in
                     Button { selectedAlert = alert } label: {
                         HStack(alignment: .top, spacing: 10) {
-                            SVGIconView(fileName: LogicEngine.shared.alertIconFile(alert.properties.event), folder: "alerts", pointSize: 28)
+                            SVGIconView(fileName: model.alertIconFiles[alert.properties.event ?? ""] ?? "weather-alarm.svg", folder: "alerts", pointSize: 28)
                                 .frame(width: 28, height: 28)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(alert.properties.event ?? "Alert").font(.subheadline.weight(.semibold))
@@ -306,9 +291,7 @@ struct CurrentConditionsView: View {
 
 struct SunArcView: View {
     @Environment(\.colorScheme) private var colorScheme
-    let sunriseIso: String
-    let sunsetIso: String
-    let utcOffset: Int
+    let sun: SunSnapshot
 
     private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
@@ -318,7 +301,7 @@ struct SunArcView: View {
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("SUNRISE").font(.caption2).foregroundStyle(theme.muted)
-                    Text(LogicEngine.shared.string("formatIsoLocalClock", [sunriseIso]) ?? sunriseIso)
+                    Text(sun.sunriseLabel)
                         .font(.caption.weight(.semibold))
                 }
                 .frame(width: 72, alignment: .leading)
@@ -344,7 +327,7 @@ struct SunArcView: View {
                 .frame(height: 48)
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("SUNSET").font(.caption2).foregroundStyle(theme.muted)
-                    Text(LogicEngine.shared.string("formatIsoLocalClock", [sunsetIso]) ?? sunsetIso)
+                    Text(sun.sunsetLabel)
                         .font(.caption.weight(.semibold))
                 }
                 .frame(width: 72, alignment: .trailing)
@@ -363,8 +346,8 @@ struct SunArcView: View {
 
     private func sunSample(at date: Date) -> (progress: CGFloat, isDay: Bool) {
         let now = date.timeIntervalSince1970 * 1000
-        let rise = LogicEngine.shared.number("parseLocationLocalIso", [sunriseIso, utcOffset]) ?? 0
-        let set = LogicEngine.shared.number("parseLocationLocalIso", [sunsetIso, utcOffset]) ?? 0
+        let rise = sun.sunriseMs
+        let set = sun.sunsetMs
         if set <= rise { return (0, false) }
         if now <= rise { return (0, false) }
         if now >= set { return (1, false) }

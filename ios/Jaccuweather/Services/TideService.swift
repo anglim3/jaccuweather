@@ -30,7 +30,11 @@ struct TideService {
     func load(latitude: Double, longitude: Double, elevation: Double?) async -> TideSnapshot? {
         guard let elevation, elevation <= maxElevationM else { return nil }
         guard let stations = try? await cachedStations() else { return nil }
+        let cosLat = max(0.25, cos(latitude * .pi / 180))
+        let latWindow = (maxDistanceKm * 1.15) / 111.0
+        let lonWindow = (maxDistanceKm * 1.15) / (111.0 * cosLat)
         let nearby = stations
+            .filter { abs($0.lat - latitude) <= latWindow && abs($0.lon - longitude) <= lonWindow }
             .map { station -> TideStation in
                 let d = haversineKm(latitude, longitude, station.lat, station.lon)
                 return TideStation(id: station.id, name: station.name, lat: station.lat, lon: station.lon, distance: d)
