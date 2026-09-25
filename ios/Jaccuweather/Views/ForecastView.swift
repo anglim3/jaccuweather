@@ -824,29 +824,23 @@ private struct SeriesScrubber: ViewModifier {
     func body(content: Content) -> some View {
         content.chartOverlay { proxy in
             GeometryReader { geo in
-                Rectangle()
-                    .fill(Color.white.opacity(0.001))
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { drag in
-                                guard !dates.isEmpty else { return }
-                                let frame = proxy.plotFrame.map { geo[$0] } ?? geo.frame(in: .local)
-                                guard frame.width > 0 else { return }
-                                let x = drag.location.x - frame.minX
-                                if let date: Date = proxy.value(atX: x) {
-                                    let nearest = dates.min {
-                                        abs($0.timeIntervalSince(date)) < abs($1.timeIntervalSince(date))
-                                    }
-                                    if selection != nearest { selection = nearest }
-                                } else {
-                                    let ratio = min(max((drag.location.x - frame.minX) / frame.width, 0), 1)
-                                    let index = min(max(Int((ratio * CGFloat(dates.count - 1)).rounded()), 0), dates.count - 1)
-                                    let nearest = dates[index]
-                                    if selection != nearest { selection = nearest }
-                                }
-                            }
-                    )
+                ChartScrubSurface { x in
+                    guard !dates.isEmpty else { return }
+                    let frame = proxy.plotFrame.map { geo[$0] } ?? geo.frame(in: .local)
+                    guard frame.width > 0 else { return }
+                    let localX = x - frame.minX
+                    if let date: Date = proxy.value(atX: localX) {
+                        let nearest = dates.min {
+                            abs($0.timeIntervalSince(date)) < abs($1.timeIntervalSince(date))
+                        }
+                        if selection != nearest { selection = nearest }
+                    } else {
+                        let ratio = min(max(localX / frame.width, 0), 1)
+                        let index = min(max(Int((ratio * CGFloat(dates.count - 1)).rounded()), 0), dates.count - 1)
+                        let nearest = dates[index]
+                        if selection != nearest { selection = nearest }
+                    }
+                }
             }
         }
     }
@@ -858,21 +852,68 @@ private struct DateScrubber: ViewModifier {
     func body(content: Content) -> some View {
         content.chartOverlay { proxy in
             GeometryReader { geo in
-                Rectangle()
-                    .fill(Color.white.opacity(0.001))
-                    .contentShape(Rectangle())
-                    .highPriorityGesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { drag in
-                                guard let plot = proxy.plotFrame else { return }
-                                let frame = geo[plot]
-                                let x = drag.location.x - frame.minX
-                                if let date: Date = proxy.value(atX: x) {
-                                    selection = date
-                                }
-                            }
-                    )
+                ChartScrubSurface { x in
+                    guard let plot = proxy.plotFrame else { return }
+                    let frame = geo[plot]
+                    let localX = x - frame.minX
+                    if let date: Date = proxy.value(atX: localX) {
+                        selection = date
+                    }
+                }
             }
         }
+    }
+}
+
+/// Horizontal chart scrub that leaves vertical drags to the scroll view, so pull-to-refresh still works.
+private struct ChartScrubSurface: UIViewRepresentable {
+    var onX: (CGFloat) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = UIColor.white.withAlphaComponent(0.001)
+        let pan = VerticalDeferringPan()
+        let coordinator = context.coordinator
+        pan.onX = { [weak pan, weak view] in
+            guard let pan, let view else { return }
+            coordinator.onX?(pan.location(in: view).x)
+        }
+        pan.delegate = pan
+        view.addGestureRecognizer(pan)
+        context.coordinator.pan = pan
+        context.coordinator.onX = onX
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onX = onX
+    }
+
+    final class Coordinator {
+        var onX: ((CGFloat) -> Void)?
+        weak var pan: VerticalDeferringPan?
+    }
+}
+
+private final class VerticalDeferringPan: UIPanGestureRecognizer, UIGestureRecognizerDelegate {
+    var onX: (() -> Void)?
+
+    override init(target: Any?, action: Selector?) {
+        super.init(target: target, action: action)
+        addTarget(self, action: #selector(handle))
+    }
+
+    convenience init() { self.init(target: nil, action: nil) }
+
+    @objc private func handle() {
+        guard state == .began || state == .changed else { return }
+        onX?()
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        let velocity = velocity(in: view)
+        return abs(velocity.x) >= abs(velocity.y)
     }
 }
