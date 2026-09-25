@@ -24,8 +24,9 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | AQI (US AQI from Open-Meteo air-quality) | **DONE** — shown when Open-Meteo (or merged) current has `us_aqi` |
 | NOAA tides (50 km / 20 m elevation, hilo + cosine interpolate) | **DONE** — Now list + Forecast tides chart |
 | MapKit default map | **DONE** — Radar tab |
-| RainViewer past-radar tiles on MapKit | **DONE** — one `MKTileOverlay`, play/pause, scrubber, frame time in the location offset, [RainViewer](https://www.rainviewer.com/) credit. Zoom above 7 crops the z=7 tile. See [native-ios-radar.md](native-ios-radar.md) |
-| NWS WMS `nexrad-n0q-wmst` | **Removed** — upstream `LayerNotDefined`. NOAA mosaic fallback was not built |
+| RainViewer past-radar tiles on MapKit | **DONE** — default global source. One `MKTileOverlay`, play/pause, scrubber, frame time in the location offset, [RainViewer](https://www.rainviewer.com/) credit. Zoom above 7 crops the z=7 tile. See [native-ios-radar.md](native-ios-radar.md) |
+| NOAA / NWS MRMS base reflectivity | **DONE** — optional “US (NOAA)” source when the place is inside CONUS, Alaska, Hawaii, Caribbean, or Guam. One EPSG:3857 `GetMap` per frame or settled pan, every-other-stamp scrubber, “NOAA / NWS MRMS” credit. Outside those boxes RainViewer only. See [native-ios-radar.md](native-ios-radar.md) |
+| NWS WMS `nexrad-n0q-wmst` | **Removed** — upstream `LayerNotDefined`. Replaced by the MRMS `*_bref_qcd` mosaics above |
 | Ventusky | **Removed from the app.** The website iframe is unchanged. No WKWebView |
 | City search (Open-Meteo geocoding) | **DONE** |
 | Reverse geocode (BigDataCloud) | **DONE** |
@@ -47,7 +48,6 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 |---|---|
 | Ventusky stays a Safari link | In-app iframe was intentionally not added. |
 | Google/Tomorrow species detail | Needs the owner’s **billing-capable** Google Pollen key (iOS-restricted). Blank keys → Open-Meteo, which is correct. |
-| NWS WMS empty outside CONUS | Same as the Worker tile layer. Use Ventusky Safari for global radar. |
 | Ventusky is not an in-app iframe | Intentional: Safari link-out preferred vs WKWebView/ToS. |
 | Free Apple ID re-sign every ~7 days | Personal Team limit. Not an app bug. |
 | ApexCharts / MathJax / Leaflet | Replaced by Swift Charts + methodology copy + MapKit. Scoring is the same JS. |
