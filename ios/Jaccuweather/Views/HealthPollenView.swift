@@ -10,6 +10,9 @@ struct HealthPollenView: View {
         TabScreenScroll {
             if let weather = model.weather {
                 let health = model.health
+                if let aqi = USAQIDisplay.from(pollen: model.pollen) {
+                    AirQualityCard(reading: aqi)
+                }
                 WeatherCard(title: "Scores") {
                     NavigationLink { MethodologySheet(kind: .sinus, weather: weather, pollen: model.pollen) } label: {
                         scoreRow("Sinus", health?.sinusLabel ?? "—", health?.sinusDetail ?? "")
@@ -146,5 +149,74 @@ struct HealthPollenView: View {
             Image(systemName: "chevron.right").foregroundStyle(theme.muted)
         }
         .padding(.vertical, 6)
+    }
+}
+
+struct AirQualityCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let reading: USAQIDisplay
+    var compact: Bool = false
+
+    private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
+
+    var body: some View {
+        Group {
+            if compact {
+                compactBody
+            } else {
+                healthBody
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(compact ? "now-air-quality" : "air-quality-card")
+        .accessibilityLabel("Air Quality \(reading.value), \(reading.category)")
+    }
+
+    private var healthBody: some View {
+        WeatherCard(title: "Air Quality") {
+            HStack(alignment: .center, spacing: 14) {
+                SVGIconView(fileName: "smoke.svg", folder: "cards", pointSize: 40)
+                    .frame(width: 40, height: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(reading.value)")
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .foregroundStyle(reading.tint)
+                    Text(reading.category)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(reading.tint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var compactBody: some View {
+        HStack(spacing: 12) {
+            SVGIconView(fileName: "smoke.svg", folder: "cards", pointSize: 36)
+                .frame(width: 36, height: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("AIR QUALITY")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.muted)
+                    .tracking(0.6)
+                Text(reading.category)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(reading.tint)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+            }
+            Spacer(minLength: 8)
+            Text("\(reading.value)")
+                .font(.title.weight(.semibold))
+                .foregroundStyle(reading.tint)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(theme.cardStroke, lineWidth: 1)
+        )
     }
 }

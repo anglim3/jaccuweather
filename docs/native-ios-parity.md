@@ -21,7 +21,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Google `TREE` → `tree_pollen` only (no species invention) | **DONE** — `normalizeGooglePollen` |
 | Species rows (alder/birch/olive/mugwort/ragweed) | **DONE** — Now + Health |
 | 5-day pollen forecast (daily max of hourly) | **DONE** |
-| AQI (US AQI from Open-Meteo air-quality) | **DONE** — shown when Open-Meteo (or merged) current has `us_aqi` |
+| AQI (US AQI from Open-Meteo air-quality) | **DONE** — Health card above Scores when current `us_aqi` is a number: integer plus the website category (Good through Hazardous) and the same green-to-maroon colors. Hidden when the value is missing. A compact Air Quality row on Now uses the same reading. Google/Tomorrow pollen keeps Open-Meteo `us_aqi` when those payloads omit it; no extra air-quality call when the pollen payload already has the number |
 | NOAA tides (50 km / 20 m elevation, hilo + cosine interpolate) | **DONE** — Now list + Forecast tides chart |
 | MapKit default map | **DONE** — Radar tab |
 | RainViewer past-radar tiles on MapKit | **DONE** — default global source. One `MKTileOverlay`, play/pause, scrubber, frame time in the location offset, [RainViewer](https://www.rainviewer.com/) credit. Zoom above 7 crops the z=7 tile. See [native-ios-radar.md](native-ios-radar.md) |

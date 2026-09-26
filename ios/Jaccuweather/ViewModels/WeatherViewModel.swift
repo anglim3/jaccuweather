@@ -340,7 +340,7 @@ final class WeatherViewModel {
             let resolvedName = await nameTask?.value
             guard serial == refreshSerial else { return }
 
-            self.pollen = pollen
+            self.pollen = LaunchArgs.omitAqi ? pollen.map(Self.strippingUsAqi) : pollen
             self.alerts = alerts
             var icons: [String: String] = [:]
             for alert in alerts {
@@ -583,6 +583,14 @@ final class WeatherViewModel {
                 await MainActor.run { self?.tickLastUpdated() }
             }
         }
+    }
+
+    private static func strippingUsAqi(_ pollen: JSONMap) -> JSONMap {
+        var root = pollen.raw
+        var current = JSONMap(root["current"]).raw
+        current.removeValue(forKey: "us_aqi")
+        root["current"] = current
+        return JSONMap(root)
     }
 
     private static func healthOffMain(weather: WeatherBundle, pollen: JSONMap?) async -> CachedHealth {
