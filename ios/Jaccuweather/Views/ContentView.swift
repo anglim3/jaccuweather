@@ -28,13 +28,15 @@ struct ContentView: View {
                 if model.hasResolvedPlace {
                     RadarView(isActive: tab == 3)
                 } else {
-                    theme.background
+                    HorizonBackground()
                 }
             }
             .tabItem { Label("Radar", systemImage: "map") }
             .tag(3)
         }
         .tint(theme.accent)
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+        .toolbarColorScheme(.dark, for: .tabBar)
         .task { await model.bootstrap() }
         .onChange(of: tab) { _, new in
             loadedTabs.insert(new)
@@ -57,7 +59,7 @@ struct ContentView: View {
                 if tabIsLoaded(tag) {
                     content()
                 } else {
-                    theme.background
+                    HorizonBackground()
                 }
             }
             .toolbar { locationToolbar }
@@ -97,20 +99,12 @@ struct ContentView: View {
             }
             .padding(20)
             .frame(maxWidth: 360, alignment: .leading)
-            .background(theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(theme.cardStroke, lineWidth: 1)
-            )
+            .jwGlass(.panel)
             .foregroundStyle(theme.text)
         } else if let message = model.blockingMessage {
             ProgressView(message)
                 .padding(20)
-                .background(theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(theme.cardStroke, lineWidth: 1)
-                )
+                .jwGlass(.panel)
                 .foregroundStyle(theme.text)
         }
     }

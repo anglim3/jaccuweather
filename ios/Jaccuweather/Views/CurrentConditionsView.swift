@@ -10,6 +10,7 @@ struct CurrentConditionsView: View {
 
     var body: some View {
         TabScreenScroll {
+            if !model.alerts.isEmpty { alertsCard }
             header
             if let message = model.errorMessage {
                 Text(message).font(.footnote).foregroundStyle(.orange)
@@ -17,8 +18,7 @@ struct CurrentConditionsView: View {
             if let note = model.statusNote {
                 Text(note).font(.footnote).foregroundStyle(theme.muted)
             }
-            if !model.alerts.isEmpty { alertsCard }
-            atmosphere
+            if !model.precipTiming.isEmpty { precipCard }
             moonCard
             if let tides = model.tides { tidesCard(tides) }
         }
@@ -45,55 +45,112 @@ struct CurrentConditionsView: View {
     private var header: some View {
         let current = model.weather?.current
         let sun = model.sun
-        return WeatherCard(title: model.locationName) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(temp(current?.number("temperature_2m")))
-                        .font(.system(size: 64, weight: .light, design: .rounded))
-                    Text(model.conditionDescription).font(.title3.weight(.medium))
+        let pressure = model.pressureDisplay
+        let uvValue = current?.number("uv_index")
+        let uvText = uvValue.map { String(format: "%.0f", $0) } ?? "—"
+        let uvDetail = model.currentUVDetail.isEmpty ? nil : model.currentUVDetail
+        let humidity = current?.int("relative_humidity_2m").map { "\($0)%" } ?? "—"
+        let dew = temp(current?.number("dewpoint_2m"))
+        return WeatherCard(title: "", prominence: .hero) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(model.locationName.isEmpty ? " " : model.locationName)
+                    .font(JWFont.location)
+                    .tracking(-0.6)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                if model.weather != nil {
+                    Text(locationDateLine)
+                        .font(.subheadline)
+                        .foregroundStyle(theme.muted)
+                }
+                if !model.lastUpdatedLabel.isEmpty {
+                    Text("Updated \(model.lastUpdatedLabel)")
+                        .font(.caption)
+                        .foregroundStyle(theme.faint)
+                        .padding(.top, 2)
+                }
+            }
+
+            HStack(alignment: .center, spacing: 10) {
+                SVGIconView(fileName: model.conditionIcon, folder: "weather", pointSize: 56)
+                    .frame(width: 56, height: 56)
+                    .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                Text(temp(current?.number("temperature_2m")))
+                    .font(JWFont.heroTemp)
+                    .tracking(-2.7)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .layoutPriority(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(model.conditionDescription)
+                        .font(.system(size: 18))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
                     if let sun {
-                        Text("H:\(int(sun.high))°  L:\(int(sun.low))°").foregroundStyle(theme.muted)
-                    }
-                    Text(model.precipTiming).font(.caption).foregroundStyle(theme.muted)
-                    if !model.lastUpdatedLabel.isEmpty {
-                        Text("Updated \(model.lastUpdatedLabel)").font(.caption2).foregroundStyle(theme.muted)
+                        Text("\(int(sun.high))°/\(int(sun.low))°")
+                            .font(.subheadline)
+                            .foregroundStyle(theme.muted)
+                            .monospacedDigit()
                     }
                 }
-                Spacer()
-                SVGIconView(fileName: model.conditionIcon, folder: "weather", pointSize: 72)
-                    .frame(width: 72, height: 72)
+                Spacer(minLength: 0)
             }
+            .padding(.top, 18)
+
             if let sun {
-                SunArcView(sun: sun)
-                    .frame(height: 64)
-                    .padding(.top, 8)
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(theme.divider)
+                        .frame(height: 1)
+                    SunArcView(sun: sun)
+                        .frame(height: 52)
+                        .padding(.top, 16)
+                }
+                .padding(.top, 22)
+            }
+
+            SectionEyebrow(title: "Conditions")
+                .padding(.top, 18)
+            VStack(spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    statTile(title: "Feels Like", value: temp(current?.number("apparent_temperature")), icon: "thermometer")
+                    statTile(title: "Humidity", value: humidity, detail: "Dew: \(dew)", icon: "humidity")
+                }
+                HStack(alignment: .top, spacing: 12) {
+                    windTile(current)
+                    statTile(title: "UV Index", value: uvText, detail: uvDetail, icon: "uv-index")
+                }
+            }
+
+            SectionEyebrow(title: "Atmosphere")
+                .padding(.top, 6)
+            HStack(alignment: .top, spacing: 12) {
+                sunTile(sun)
+                pressureTile(value: pressure.value, trend: pressure.trend)
             }
         }
     }
 
-    private var atmosphere: some View {
-        let current = model.weather?.current
-        let pressure = model.pressureDisplay
-        let sun = model.sun
-        let uvValue = current?.number("uv_index")
-        let uvText = uvValue.map { String(format: "%.0f", $0) } ?? "—"
-        let uvDetail = model.currentUVDetail.isEmpty ? nil : model.currentUVDetail
-        return VStack(spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                metricCard("Feels like", temp(current?.number("apparent_temperature")), icon: "thermometer")
-                metricCard("Dew point", temp(current?.number("dewpoint_2m")), icon: "humidity")
-            }
-            windCard(current)
-            HStack(alignment: .top, spacing: 12) {
-                metricCard("Humidity", current?.int("relative_humidity_2m").map { "\($0)%" } ?? "—", icon: "humidity")
-                metricCard("UV", uvText, detail: uvDetail, icon: "uv-index")
-            }
-            pressureCard(value: pressure.value, trend: pressure.trend)
-            HStack(alignment: .top, spacing: 12) {
-                metricCard("Sunrise", sun?.sunriseLabel ?? "—", icon: "sunrise")
-                metricCard("Sunset", sun?.sunsetLabel ?? "—", icon: "clear-day")
-            }
+    private var locationDateLine: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.dateFormat = "EEEE, MMMM d"
+        formatter.timeZone = TimeZone(secondsFromGMT: model.weather?.utcOffset ?? 0)
+        return formatter.string(from: Date())
+    }
+
+    private var precipCard: some View {
+        HStack(alignment: .center, spacing: 12) {
+            SVGIconView(fileName: "overcast-day-rain.svg", folder: "weather", pointSize: 28)
+                .frame(width: 28, height: 28)
+            Text(model.precipTiming)
+                .font(.body.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .jwGlass(.panel)
     }
 
     private var moonCard: some View {
@@ -168,35 +225,27 @@ struct CurrentConditionsView: View {
         }
     }
 
-    private func metricCard(_ title: String, _ value: String, detail: String? = nil, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 44)
-                .frame(width: 48, height: 48)
-            Text(title.uppercased())
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(theme.muted)
-                .tracking(0.6)
-                .lineLimit(1)
+    private func statTile(title: String, value: String, detail: String? = nil, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            StatLabel(title: title, icon: icon)
             Text(value)
-                .font(.title2.weight(.semibold))
+                .font(JWFont.statValue)
+                .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(detail ?? " ")
-                .font(.subheadline)
-                .foregroundStyle(detail == nil ? Color.clear : theme.muted)
-                .lineLimit(1)
+                .font(.system(size: 12))
+                .foregroundStyle(detail == nil ? Color.clear : theme.faint)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
                 .accessibilityHidden(detail == nil)
         }
         .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
-        .background(theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(theme.cardStroke, lineWidth: 1)
-        )
+        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+        .jwGlass(.stat)
     }
 
-    private func windCard(_ current: JSONMap?) -> some View {
+    private func windTile(_ current: JSONMap?) -> some View {
         let speed = current?.number("wind_speed_10m")
         let gust = current?.number("wind_gusts_10m")
         let dir = current?.number("wind_direction_10m")
@@ -207,66 +256,71 @@ struct CurrentConditionsView: View {
             if let gust { parts.append(String(format: "Gust %.0f", gust)) }
             return parts.joined(separator: " · ")
         }()
-        return HStack(alignment: .center, spacing: 16) {
-            SVGIconView(fileName: "wind.svg", folder: "cards", pointSize: 52)
-                .frame(width: 56, height: 56)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("WIND")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(theme.muted)
-                    .tracking(0.6)
+        return HStack(alignment: .center, spacing: 6) {
+            VStack(alignment: .leading, spacing: 6) {
+                StatLabel(title: "Wind", icon: "wind")
                 Text(speedText)
-                    .font(.title.weight(.semibold))
-                if !detail.isEmpty {
-                    Text(detail)
-                        .font(.subheadline)
-                        .foregroundStyle(theme.muted)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
+                    .font(JWFont.statValue)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(detail.isEmpty ? " " : detail)
+                    .font(.system(size: 12))
+                    .foregroundStyle(detail.isEmpty ? Color.clear : theme.faint)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
             }
-            Spacer(minLength: 8)
+            Spacer(minLength: 0)
             if let dir {
                 Image(systemName: "location.north.fill")
-                    .font(.system(size: 36, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(theme.accent)
                     .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
                     .accessibilityLabel("Wind from \(WindCompass.label(dir))")
             }
         }
         .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(theme.cardStroke, lineWidth: 1)
-        )
+        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+        .jwGlass(.stat)
     }
 
-    private func pressureCard(value: String, trend: String) -> some View {
-        HStack(alignment: .center, spacing: 16) {
-            SVGIconView(fileName: "barometer.svg", folder: "cards", pointSize: 52)
-                .frame(width: 56, height: 56)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("PRESSURE")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(theme.muted)
-                    .tracking(0.6)
-                Text(value)
-                    .font(.title.weight(.semibold))
-                Text(trend)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(trend == "Falling" ? theme.gold : theme.accent)
+    private func sunTile(_ sun: SunSnapshot?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            StatLabel(title: "Sun", icon: "sunrise")
+            HStack(spacing: 6) {
+                Text("↑").font(.caption).foregroundStyle(theme.gold)
+                Text(sun?.sunriseLabel ?? "—")
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
             }
-            Spacer(minLength: 0)
+            HStack(spacing: 6) {
+                Text("↓").font(.caption).foregroundStyle(.orange)
+                Text(sun?.sunsetLabel ?? "—")
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+            }
         }
         .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(theme.cardStroke, lineWidth: 1)
-        )
+        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+        .jwGlass(.stat)
+    }
+
+    private func pressureTile(value: String, trend: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            StatLabel(title: "Pressure", icon: "barometer")
+            Text(value)
+                .font(JWFont.statValue)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+            Text(trend)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(trend == "Falling" ? theme.gold : theme.accent)
+                .lineLimit(1)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+        .jwGlass(.stat)
     }
 
     private func severityColor(_ severity: String) -> Color {
@@ -300,9 +354,13 @@ struct SunArcView: View {
             let sample = sunSample(at: context.date)
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("SUNRISE").font(.caption2).foregroundStyle(theme.muted)
+                    Text("SUNRISE")
+                        .font(.caption2.weight(.medium))
+                        .tracking(0.7)
+                        .foregroundStyle(theme.faint)
                     Text(sun.sunriseLabel)
                         .font(.caption.weight(.semibold))
+                        .monospacedDigit()
                 }
                 .frame(width: 72, alignment: .leading)
                 GeometryReader { geo in
@@ -326,9 +384,13 @@ struct SunArcView: View {
                 }
                 .frame(height: 48)
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("SUNSET").font(.caption2).foregroundStyle(theme.muted)
+                    Text("SUNSET")
+                        .font(.caption2.weight(.medium))
+                        .tracking(0.7)
+                        .foregroundStyle(theme.faint)
                     Text(sun.sunsetLabel)
                         .font(.caption.weight(.semibold))
+                        .monospacedDigit()
                 }
                 .frame(width: 72, alignment: .trailing)
             }
@@ -401,7 +463,7 @@ struct AlertDetailSheet: View {
                 .padding(16)
                 .foregroundStyle(theme.text)
             }
-            .background(theme.background.ignoresSafeArea())
+            .background { HorizonBackground() }
             .navigationTitle("Alert")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
