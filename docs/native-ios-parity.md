@@ -14,6 +14,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Meteocons fill weather icons (SMIL in WKWebView wrappers) | **DONE** — `Resources/Icons/weather` |
 | Static card-header Meteocons | **DONE** — `Resources/Icons/cards` |
 | NWS alerts + Meteocons alarm icons | **DONE** — list plus detail sheet (severity, instruction, ends) |
+| Weekly Snow Totals | **DONE** — Now card groups ensemble `daily.snowfall_sum` after the two past days into consecutive 14-day periods (nearest 0.1 in, single-day and multi-day copy). Optional NWS 48h `snowfallAmount` line (`NWS 48h forecast: X.X in`) for the same US box as alerts, via the alerts User-Agent and `HTTPClient`. Failures stay silent and the card hides when the window has no snow |
 | Sinus risk + methodology | **DONE** — same `calculateSinusRisk` |
 | Allergy risk + methodology | **DONE** — same `calculateAllergyRisk` |
 | Nice-weather index + methodology | **DONE** — same `getNiceWeatherBreakdown` |

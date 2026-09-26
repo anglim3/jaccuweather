@@ -204,6 +204,7 @@ final class WeatherViewModel {
     var dailyRows: [DayRow] = []
     var sun: SunSnapshot?
     var precipTiming = ""
+    var weeklySnow: WeeklySnowSummary?
     var pressureText = "—"
     var pressureTrend = "Steady"
     var moon = MoonSnapshot()
@@ -229,6 +230,7 @@ final class WeatherViewModel {
     private var locationTries = 0
     private var lastFix: CLLocationCoordinate2D?
     private var refreshSerial = 0
+    private var snowTask: Task<Void, Never>?
 
     var currentPlace: GeoResult {
         GeoResult(name: locationName, latitude: coordinate.latitude, longitude: coordinate.longitude, admin1: nil, country: nil)
@@ -330,6 +332,7 @@ final class WeatherViewModel {
             let (bundle, derived) = try await weatherTask.value
             guard serial == refreshSerial else { return }
             apply(derived, bundle: bundle)
+            publishSnow(from: derived.daily, latitude: lat, longitude: lon, serial: serial)
             if followsDeviceLocation && !sessionPinsLocation {
                 rememberDevicePlace()
             }
@@ -391,6 +394,7 @@ final class WeatherViewModel {
         searchQuery = ""
         searchResults = []
         statusNote = nil
+        weeklySnow = nil
         await refresh()
     }
 
@@ -467,6 +471,7 @@ final class WeatherViewModel {
             locationName = "Current location"
         }
         statusNote = nil
+        weeklySnow = nil
         Task { await refresh() }
     }
 
@@ -513,6 +518,24 @@ final class WeatherViewModel {
         preference.followsDeviceLocation = true
         preference.lastKnown = GeoResult(name: name, latitude: coordinate.latitude, longitude: coordinate.longitude, admin1: nil, country: nil)
         PlaceStore.save(preference)
+    }
+
+    private func publishSnow(from days: [DayRow], latitude: Double, longitude: Double, serial: Int) {
+        snowTask?.cancel()
+        snowTask = nil
+        let periods = WeeklySnowTotals.periods(days: days.prefix(14).map { (date: $0.date, snowfall: $0.snowSum) })
+        guard !periods.isEmpty else {
+            weeklySnow = nil
+            return
+        }
+        weeklySnow = WeeklySnowSummary(periods: periods, nwsInches: nil)
+        snowTask = Task {
+            let inches = await Task.detached(priority: .userInitiated) {
+                await NWSSnowService.inchesNext48Hours(latitude: latitude, longitude: longitude)
+            }.value
+            guard !Task.isCancelled, serial == refreshSerial else { return }
+            weeklySnow?.nwsInches = inches
+        }
     }
 
     private func apply(_ derived: DerivedForecast, bundle: WeatherBundle) {
