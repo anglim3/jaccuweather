@@ -42,6 +42,7 @@
 		9A0BDCD75A45B4A3E9E7B1C6 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */; };
 		79350FEBEC637061A4916F18 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */; };
 		FBCBE0834429F765CC79BF61 /* ConditionsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */; };
+		8AEAB17810648F85943328C1 /* WidgetPlaceIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */; };
 		30EF19BC0E8BF883B15132EB /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */; };
 		CE384A472CA2A63A67229074 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28B01C556BF8BAF9FCD4AD00 /* Assets.xcassets */; };
 		F7D9B7E256FF1B1064F57C30 /* Logic in Resources */ = {isa = PBXBuildFile; fileRef = 4738D6F0D0A8E8FF49AA5DEC /* Logic */; };
@@ -130,6 +131,7 @@
 		A1C4782339DE4F8305360CDF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsWidget.swift; sourceTree = "<group>"; };
+		605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPlaceIntent.swift; sourceTree = "<group>"; };
 		55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRefresh.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -202,6 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */,
+				605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */,
 				55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */,
 				A2678C0ED86FC2DB2E682103 /* Info.plist */,
 				A0FD9FB2CDBCC4C1D12149B6 /* JaccuweatherWidgets.entitlements */,
@@ -428,6 +431,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FBCBE0834429F765CC79BF61 /* ConditionsWidget.swift in Sources */,
+				8AEAB17810648F85943328C1 /* WidgetPlaceIntent.swift in Sources */,
 				30EF19BC0E8BF883B15132EB /* WidgetRefresh.swift in Sources */,
 				79350FEBEC637061A4916F18 /* WidgetSnapshot.swift in Sources */,
 			);

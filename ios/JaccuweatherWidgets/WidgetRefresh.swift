@@ -1,8 +1,17 @@
 import Foundation
 
-/// One small Open-Meteo forecast call when the App Group snapshot is older than ~40 minutes.
+/// One small Open-Meteo forecast call for a configured place, or to refresh a stale App Group snapshot.
 /// Failures leave the caller on the last snapshot.
 enum WidgetCurrentRefresh {
+    static func fetch(name: String, latitude: Double, longitude: Double, locationId: String) async -> WidgetConditionsSnapshot? {
+        await refresh(.shell(
+            locationId: locationId,
+            locationName: name,
+            latitude: latitude,
+            longitude: longitude
+        ))
+    }
+
     static func refresh(_ snapshot: WidgetConditionsSnapshot) async -> WidgetConditionsSnapshot? {
         guard let url = forecastURL(for: snapshot) else { return nil }
         var request = URLRequest(url: url, timeoutInterval: 12)
