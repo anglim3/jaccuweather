@@ -14,15 +14,16 @@ struct ConditionsProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: PlaceWidgetIntent, in context: Context) async -> ConditionsEntry {
+        let place = Self.chosenPlace(configuration)
         let stored = WidgetSnapshotStore.load()
         if let stored {
             return ConditionsEntry(date: Date(), snapshot: stored, unavailablePlaceName: nil)
         }
         if context.isPreview {
-            let sample = configuration.place.map(WidgetConditionsSnapshot.preview(for:)) ?? .gallery
+            let sample = place.map(WidgetConditionsSnapshot.preview(for:)) ?? .gallery
             return ConditionsEntry(date: Date(), snapshot: sample, unavailablePlaceName: nil)
         }
-        if let place = configuration.place {
+        if let place {
             return ConditionsEntry(
                 date: Date(),
                 snapshot: .shell(
@@ -38,7 +39,7 @@ struct ConditionsProvider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: PlaceWidgetIntent, in context: Context) async -> Timeline<ConditionsEntry> {
-        let loaded = await WidgetTimelineLoader.load(place: configuration.place)
+        let loaded = await WidgetTimelineLoader.load(place: Self.chosenPlace(configuration))
         let entry = ConditionsEntry(
             date: Date(),
             snapshot: loaded.snapshot,
@@ -46,6 +47,17 @@ struct ConditionsProvider: AppIntentTimelineProvider {
         )
         let interval: TimeInterval = loaded.snapshot == nil ? 5 * 60 : 20 * 60
         return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(interval)))
+    }
+
+    /// The place from Edit Widget. Debug builds can also read a JSON stand-in
+    /// while the App Group container is forced off.
+    static func chosenPlace(_ configuration: PlaceWidgetIntent) -> WidgetPlace? {
+        if let place = configuration.place { return place }
+        #if DEBUG
+        return WidgetPlace.debugOverride()
+        #else
+        return nil
+        #endif
     }
 }
 

@@ -102,6 +102,31 @@ struct WidgetPlaceQuery: EntityStringQuery {
     }
 }
 
+#if DEBUG
+extension WidgetPlace {
+    /// When the no-container marker is present, this JSON file in the same App
+    /// Group stands in for the place chosen in Edit Widget:
+    /// `{ "name": "Miami, Florida", "latitude": 25.7617, "longitude": -80.1918 }`.
+    static func debugOverride() -> WidgetPlace? {
+        guard WidgetSnapshotStore.debugContainerSuppressed() else { return nil }
+        guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: WidgetSnapshotStore.appGroupID) else {
+            return nil
+        }
+        let url = group.appendingPathComponent("jaccuweather-widget-debug-place.json", isDirectory: false)
+        guard let data = try? Data(contentsOf: url),
+              let payload = try? JSONDecoder().decode(DebugPlaceFile.self, from: data),
+              !payload.name.isEmpty else { return nil }
+        return make(name: payload.name, latitude: payload.latitude, longitude: payload.longitude)
+    }
+}
+
+private struct DebugPlaceFile: Decodable {
+    var name: String
+    var latitude: Double
+    var longitude: Double
+}
+#endif
+
 struct PlaceWidgetIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Current conditions"
     static var description = IntentDescription("Weather for a chosen place. A fresh reading from the app is used when sharing is available.")
