@@ -7,6 +7,8 @@ enum LaunchArgs {
     static var latitude: Double? { value("lat").flatMap(Double.init) }
     static var longitude: Double? { value("lon").flatMap(Double.init) }
     static var placeName: String? { value("name") }
+    /// Simulator-only: drop `us_aqi` so the Air Quality card stays hidden.
+    static var omitAqi: Bool { value("aqi") == "omit" }
 
     static func value(_ name: String) -> String? {
         let args = ProcessInfo.processInfo.arguments

@@ -2064,6 +2064,49 @@ function buildPollenForecastDays(aqiData) {
   });
 }
 
+// Same bands as displayAirQuality() in public/app.js. The value shown is the
+// rounded US AQI so the category matches the integer on screen.
+function usAqiDisplay(pollenOrCurrent) {
+  const current = pollenOrCurrent && pollenOrCurrent.current ? pollenOrCurrent.current : pollenOrCurrent;
+  const raw = current ? current.us_aqi : null;
+  if (!hasPollenValue(raw)) return null;
+  const value = Math.round(Number(raw));
+  let category;
+  let color;
+  if (value <= 50) {
+    category = 'Good';
+    color = 'green';
+  } else if (value <= 100) {
+    category = 'Moderate';
+    color = 'yellow';
+  } else if (value <= 150) {
+    category = 'Unhealthy for Sensitive Groups';
+    color = 'orange';
+  } else if (value <= 200) {
+    category = 'Unhealthy';
+    color = 'red';
+  } else if (value <= 300) {
+    category = 'Very Unhealthy';
+    color = 'purple';
+  } else {
+    category = 'Hazardous';
+    color = 'maroon';
+  }
+  return { value: value, category: category, color: color };
+}
+
+// Google and Tomorrow payloads leave us_aqi null. Copy Open-Meteo's number
+// without replacing pollen fields or the pollen source label.
+function mergeOpenMeteoUsAqi(primary, openMeteo) {
+  if (!primary || typeof primary !== 'object' || !primary.current) return primary || null;
+  if (hasPollenValue(primary.current.us_aqi)) return primary;
+  const fallback = openMeteo && openMeteo.current ? openMeteo.current.us_aqi : null;
+  if (!hasPollenValue(fallback)) return primary;
+  const merged = JSON.parse(JSON.stringify(primary));
+  merged.current.us_aqi = Number(fallback);
+  return merged;
+}
+
 
 
 var JaccuweatherLogic = {
@@ -2110,6 +2153,8 @@ var JaccuweatherLogic = {
   normalizeGooglePollen: normalizeGooglePollen,
   normalizeTomorrowPollen: normalizeTomorrowPollen,
   hasAnyUsablePollen: hasAnyUsablePollen,
+  usAqiDisplay: usAqiDisplay,
+  mergeOpenMeteoUsAqi: mergeOpenMeteoUsAqi,
   haversineKm: haversineKm,
   normalizeNoaaStations: normalizeNoaaStations,
   interpolateTideCurve: interpolateTideCurve,

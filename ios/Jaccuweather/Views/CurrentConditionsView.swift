@@ -93,6 +93,9 @@ struct CurrentConditionsView: View {
                 metricCard("Sunrise", sun?.sunriseLabel ?? "—", icon: "sunrise")
                 metricCard("Sunset", sun?.sunsetLabel ?? "—", icon: "clear-day")
             }
+            if let aqi = USAQIDisplay.from(pollen: model.pollen) {
+                AirQualityCard(reading: aqi, compact: true)
+            }
         }
     }
 

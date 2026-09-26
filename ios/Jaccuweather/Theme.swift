@@ -38,6 +38,27 @@ struct JWPalette: Equatable {
     static func forScheme(_: ColorScheme) -> JWPalette { .dark }
 }
 
+extension USAQIDisplay {
+    /// Tailwind shades used by the website: green-400, yellow-400, orange-400,
+    /// red-400, purple-400, and red-600 for Hazardous.
+    var tint: Color {
+        switch colorToken {
+        case "green":
+            return Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)
+        case "yellow":
+            return Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)
+        case "orange":
+            return Color(red: 251 / 255, green: 146 / 255, blue: 60 / 255)
+        case "red":
+            return Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)
+        case "purple":
+            return Color(red: 192 / 255, green: 132 / 255, blue: 252 / 255)
+        default:
+            return Color(red: 220 / 255, green: 38 / 255, blue: 38 / 255)
+        }
+    }
+}
+
 /// Scroll container that keeps the last card above the floating tab bar.
 struct TabScreenScroll<Content: View>: View {
     @Environment(WeatherViewModel.self) private var model

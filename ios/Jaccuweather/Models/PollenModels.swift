@@ -108,6 +108,21 @@ struct OpenMeteoAirQuality: Decodable {
     }
 }
 
+/// Integer US AQI plus the website category. Nil when `current.us_aqi` is missing.
+struct USAQIDisplay: Equatable {
+    let value: Int
+    let category: String
+    let colorToken: String
+
+    static func from(pollen: JSONMap?) -> USAQIDisplay? {
+        guard let pollen else { return nil }
+        guard let raw = LogicEngine.shared.object("usAqiDisplay", [pollen.raw]) else { return nil }
+        let map = JSONMap(raw)
+        guard let value = map.int("value"), let category = map.string("category") else { return nil }
+        return USAQIDisplay(value: value, category: category, colorToken: map.string("color") ?? "green")
+    }
+}
+
 private extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
