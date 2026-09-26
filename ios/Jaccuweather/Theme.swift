@@ -101,7 +101,7 @@ enum JWChart {
 
     static func area(_ color: Color) -> LinearGradient {
         LinearGradient(
-            colors: [color.opacity(0.40), color.opacity(0.02)],
+            colors: [color.opacity(0.32), color.opacity(0.02)],
             startPoint: .top,
             endPoint: .bottom
         )
@@ -109,12 +109,12 @@ enum JWChart {
 }
 
 enum JWFont {
-    static let location = Font.system(size: 30, weight: .regular, design: .serif)
-    static let heroTemp = Font.system(size: 68, weight: .light)
-    static let section = Font.system(size: 17, weight: .semibold)
-    static let eyebrow = Font.system(size: 13, weight: .semibold)
+    static let location = Font.system(size: 28, weight: .regular, design: .serif)
+    static let heroTemp = Font.system(size: 72, weight: .light)
+    static let section = Font.system(size: 16, weight: .semibold)
+    static let eyebrow = Font.system(size: 12, weight: .semibold)
     static let statValue = Font.system(size: 20, weight: .bold)
-    static let chipTime = Font.system(size: 14, weight: .regular)
+    static let chipTime = Font.system(size: 13, weight: .medium)
     static let chipValue = Font.system(size: 18, weight: .bold)
     static let dayName = Font.system(size: 16, weight: .semibold)
     static let dayHigh = Font.system(size: 18, weight: .bold)
@@ -123,9 +123,10 @@ enum JWFont {
 enum JWMetrics {
     static let radius: CGFloat = 20
     static let radiusSm: CGFloat = 12
+    static let radiusChip: CGFloat = 8
     static let panelPadding: CGFloat = 20
-    static let heroPadding: CGFloat = 24
-    static let sectionGap: CGFloat = 24
+    static let heroPadding: CGFloat = 22
+    static let sectionGap: CGFloat = 20
 }
 
 /// Website `.bg-layer` without a weather class: navy gradient plus three glows.
@@ -203,15 +204,15 @@ private struct GlassBackground: ViewModifier {
             .background {
                 ZStack {
                     if role == .hero || role == .panel {
-                        shape.fill(.ultraThinMaterial).opacity(0.42)
+                        shape.fill(.ultraThinMaterial).opacity(role == .hero ? 0.22 : 0.16)
                     }
                     shape.fill(fill)
-                    if role == .hero || role == .panel {
+                    if role == .hero {
                         shape.fill(
                             LinearGradient(
-                                colors: [Color.white.opacity(role == .hero ? 0.10 : 0.06), .clear],
+                                colors: [Color.white.opacity(0.05), .clear],
                                 startPoint: .top,
-                                endPoint: UnitPoint(x: 0.5, y: 0.42)
+                                endPoint: UnitPoint(x: 0.5, y: 0.38)
                             )
                         )
                     }
@@ -231,8 +232,8 @@ private struct GlassBackground: ViewModifier {
                                 endRadius: 160
                             )
                         )
-                        .frame(width: 320, height: 320)
-                        .offset(x: 110, y: -150)
+                        .frame(width: 280, height: 280)
+                        .offset(x: 70, y: -90)
                         .allowsHitTesting(false)
                 }
             }
@@ -257,7 +258,7 @@ struct SectionEyebrow: View {
     var body: some View {
         Text(title.uppercased())
             .font(JWFont.eyebrow)
-            .tracking(1)
+            .tracking(1.1)
             .foregroundStyle(JWPalette.dark.muted)
     }
 }
@@ -274,7 +275,7 @@ struct StatLabel: View {
             }
             Text(title)
                 .font(.system(size: 12))
-                .foregroundStyle(JWPalette.dark.muted)
+                .foregroundStyle(Color(red: 156 / 255, green: 163 / 255, blue: 175 / 255))
                 .lineLimit(1)
         }
     }
@@ -283,21 +284,35 @@ struct StatLabel: View {
 /// Scroll container that keeps the last card above the floating tab bar.
 struct TabScreenScroll<Content: View>: View {
     @Environment(WeatherViewModel.self) private var model
+    var scrollTo: String? = nil
     @ViewBuilder var content: Content
 
+    private func revealAnchor(_ proxy: ScrollViewProxy) {
+        guard let scrollTo else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            proxy.scrollTo(scrollTo, anchor: .top)
+        }
+    }
+
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: JWMetrics.sectionGap) {
-                content
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: JWMetrics.sectionGap) {
+                    content
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 4)
+                .padding(.bottom, 88)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .foregroundStyle(JWPalette.dark.text)
+                .background {
+                    PullRefreshInstaller { await model.refresh() }
+                }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 8)
-            .padding(.bottom, 36)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .foregroundStyle(JWPalette.dark.text)
-            .background {
-                PullRefreshInstaller { await model.refresh() }
-            }
+            .onAppear { revealAnchor(proxy) }
+            .onChange(of: scrollTo) { _, _ in revealAnchor(proxy) }
+            .onChange(of: model.dailyRows.count) { _, _ in revealAnchor(proxy) }
         }
         .scrollContentBackground(.hidden)
         .contentMargins(.bottom, 12, for: .scrollContent)
@@ -376,7 +391,7 @@ struct WeatherCard<Content: View>: View {
             if !title.isEmpty {
                 Text(title)
                     .font(JWFont.section)
-                    .tracking(-0.34)
+                    .tracking(-0.32)
                     .foregroundStyle(JWPalette.dark.text)
             }
             content
@@ -404,7 +419,7 @@ struct ForecastPanel<Accessory: View, Content: View>: View {
             HStack(alignment: .center, spacing: 12) {
                 Text(title)
                     .font(JWFont.section)
-                    .tracking(-0.34)
+                    .tracking(-0.32)
                     .foregroundStyle(JWPalette.dark.text)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)

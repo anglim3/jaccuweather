@@ -54,7 +54,7 @@ struct ForecastView: View {
     private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
     var body: some View {
-        TabScreenScroll {
+        TabScreenScroll(scrollTo: LaunchArgs.anchor) {
             ForecastPanel(title: "48-Hour Forecast") {
                 seriesMenu(selection: $hourlyMode, label: "48-hour chart")
             } content: {
@@ -62,6 +62,7 @@ struct ForecastView: View {
                 HourlyStrip(rows: model.hourlyRows, mode: hourlyMode, theme: theme)
                     .equatable()
             }
+            .id("hourly")
 
             ForecastPanel(title: "14-Day Forecast") {
                 seriesMenu(selection: $dailySeries, label: "14-day chart")
@@ -70,6 +71,7 @@ struct ForecastView: View {
                 DailyDetailList(days: model.dailyRows, theme: theme)
                     .equatable()
             }
+            .id("daily")
         }
         .navigationTitle("Forecast")
         .navigationBarTitleDisplayMode(.inline)
@@ -97,19 +99,20 @@ struct ForecastView: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Text(current.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(theme.muted)
             }
             .foregroundStyle(theme.text)
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(theme.tile, in: RoundedRectangle(cornerRadius: JWMetrics.radiusSm, style: .continuous))
+            .padding(.vertical, 6)
+            .background(theme.tile, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: JWMetrics.radiusSm, style: .continuous)
+                RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous)
                     .stroke(theme.cardStroke, lineWidth: 1)
             )
         }
@@ -305,22 +308,26 @@ struct ForecastView: View {
                 AreaMark(
                     x: .value("t", sample.axis),
                     yStart: .value("base", span.lowerBound),
-                    yEnd: .value("°", sample.high)
+                    yEnd: .value("high", sample.high)
                 )
-                .foregroundStyle(JWChart.area(highColor))
+                .foregroundStyle(by: .value("band", "HighFill"))
                 .interpolationMethod(.monotone)
+            }
+            ForEach(samples) { sample in
                 AreaMark(
                     x: .value("t", sample.axis),
                     yStart: .value("base", span.lowerBound),
-                    yEnd: .value("°", sample.low)
+                    yEnd: .value("low", sample.low)
                 )
-                .foregroundStyle(JWChart.area(lowColor))
+                .foregroundStyle(by: .value("band", "LowFill"))
                 .interpolationMethod(.monotone)
-                LineMark(x: .value("t", sample.axis), y: .value("°", sample.high))
+            }
+            ForEach(samples) { sample in
+                LineMark(x: .value("t", sample.axis), y: .value("high", sample.high))
                     .foregroundStyle(by: .value("series", "High"))
                     .interpolationMethod(.monotone)
                     .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
-                LineMark(x: .value("t", sample.axis), y: .value("°", sample.low))
+                LineMark(x: .value("t", sample.axis), y: .value("low", sample.low))
                     .foregroundStyle(by: .value("series", "Low"))
                     .interpolationMethod(.monotone)
                     .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
@@ -338,8 +345,19 @@ struct ForecastView: View {
             }
         }
         .chartYScale(domain: span)
-        .chartForegroundStyleScale(["High": highColor, "Low": lowColor])
-        .chartLegend(position: .top, alignment: .leading, spacing: 8)
+        .chartForegroundStyleScale([
+            "HighFill": highColor.opacity(0.22),
+            "LowFill": lowColor.opacity(0.18),
+            "High": highColor,
+            "Low": lowColor
+        ])
+        .chartLegend(position: .top, alignment: .leading) {
+            HStack(spacing: 14) {
+                seriesKey("High", highColor)
+                seriesKey("Low", lowColor)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
         .chartYAxisLabel("°F")
         .modifier(ForecastAxisStyle(theme: theme, hourly: hourly))
         .modifier(SeriesScrubber(dates: axes, selection: selection))
@@ -380,6 +398,15 @@ struct ForecastView: View {
         .modifier(ForecastAxisStyle(theme: theme, hourly: hourly))
         .modifier(SeriesScrubber(dates: axes, selection: selection))
         .frame(height: 236)
+    }
+
+    private func seriesKey(_ title: String, _ color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(theme.text)
+        }
     }
 
     private func chartDomain(_ values: [Double], includeZero: Bool) -> ClosedRange<Double> {
@@ -643,19 +670,19 @@ private struct HourlyStrip: View, Equatable {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 12) {
-                ForEach(rows) { row in
-                    chip(row)
+                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                    chip(row, emphasized: index == 0)
                 }
             }
             .padding(.vertical, 2)
         }
     }
 
-    private func chip(_ row: HourRow) -> some View {
+    private func chip(_ row: HourRow, emphasized: Bool) -> some View {
         VStack(spacing: 6) {
             Text(row.clock)
                 .font(JWFont.chipTime)
-                .foregroundStyle(theme.muted)
+                .foregroundStyle(emphasized ? theme.text : theme.muted)
             if mode != "wind" {
                 SVGIconView(fileName: row.iconFile, folder: "weather", pointSize: 32).frame(width: 32, height: 32)
             }
@@ -707,12 +734,12 @@ private struct HourlyStrip: View, Equatable {
             }
         }
         .padding(.vertical, 12)
-        .padding(.horizontal, 8)
-        .frame(minWidth: 80, minHeight: 128)
-        .background(theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusSm, style: .continuous))
+        .padding(.horizontal, 10)
+        .frame(minWidth: 80, minHeight: 138)
+        .background(emphasized ? theme.tile : theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: JWMetrics.radiusSm, style: .continuous)
-                .stroke(theme.chipStroke, lineWidth: 1)
+            RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous)
+                .stroke(emphasized ? theme.cardStroke : theme.chipStroke, lineWidth: 1)
         )
     }
 }
@@ -753,10 +780,10 @@ private struct DailyDetailList: View, Equatable {
         let parts = day.label.split(separator: " ", maxSplits: 1).map(String.init)
         let weekday = parts.first ?? day.label
         let dateLabel = parts.count > 1 ? parts[1] : day.date
-        return HStack(alignment: .center, spacing: 10) {
-            SVGIconView(fileName: day.iconFile, folder: "weather", pointSize: 32)
-                .frame(width: 32, height: 32)
-            VStack(alignment: .leading, spacing: 1) {
+        return HStack(alignment: .center, spacing: 12) {
+            SVGIconView(fileName: day.iconFile, folder: "weather", pointSize: 28)
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 0) {
                 Text(weekday)
                     .font(JWFont.dayName)
                     .lineLimit(1)
@@ -801,11 +828,12 @@ private struct DailyDetailList: View, Equatable {
             .monospacedDigit()
             .frame(minWidth: 58, alignment: .trailing)
         }
-        .padding(14)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusSm, style: .continuous))
+        .background(theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: JWMetrics.radiusSm, style: .continuous)
+            RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous)
                 .stroke(theme.chipStroke, lineWidth: 1)
         )
     }

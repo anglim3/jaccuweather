@@ -84,7 +84,7 @@ struct CurrentConditionsView: View {
                     .layoutPriority(1)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(model.conditionDescription)
-                        .font(.system(size: 18))
+                        .font(.system(size: 17))
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
                     if let sun {
@@ -96,7 +96,7 @@ struct CurrentConditionsView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.top, 18)
+            .padding(.top, 14)
 
             if let sun {
                 VStack(spacing: 0) {
@@ -104,14 +104,14 @@ struct CurrentConditionsView: View {
                         .fill(theme.divider)
                         .frame(height: 1)
                     SunArcView(sun: sun)
-                        .frame(height: 52)
-                        .padding(.top, 16)
+                        .frame(height: 48)
+                        .padding(.top, 14)
                 }
-                .padding(.top, 22)
+                .padding(.top, 16)
             }
 
             SectionEyebrow(title: "Conditions")
-                .padding(.top, 18)
+                .padding(.top, 14)
             VStack(spacing: 12) {
                 HStack(alignment: .top, spacing: 12) {
                     statTile(title: "Feels Like", value: temp(current?.number("apparent_temperature")), icon: "thermometer")
@@ -240,8 +240,8 @@ struct CurrentConditionsView: View {
                 .minimumScaleFactor(0.8)
                 .accessibilityHidden(detail == nil)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .jwGlass(.stat)
     }
 
@@ -279,8 +279,8 @@ struct CurrentConditionsView: View {
                     .accessibilityLabel("Wind from \(WindCompass.label(dir))")
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .jwGlass(.stat)
     }
 
@@ -300,8 +300,8 @@ struct CurrentConditionsView: View {
                     .monospacedDigit()
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .jwGlass(.stat)
     }
 
@@ -318,8 +318,8 @@ struct CurrentConditionsView: View {
                 .foregroundStyle(trend == "Falling" ? theme.gold : theme.accent)
                 .lineLimit(1)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .jwGlass(.stat)
     }
 
@@ -378,7 +378,7 @@ struct SunArcView: View {
                     Circle()
                         .fill(sample.isDay ? theme.gold : theme.moon)
                         .frame(width: 12, height: 12)
-                        .shadow(color: (sample.isDay ? theme.gold : theme.moon).opacity(0.7), radius: 6)
+                        .shadow(color: (sample.isDay ? theme.gold : theme.moon).opacity(0.55), radius: 6)
                         .position(point)
                         .accessibilityLabel(sample.isDay ? "Sun position" : "Moon, sun is down")
                 }
