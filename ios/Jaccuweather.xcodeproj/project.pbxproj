@@ -12,6 +12,7 @@
 		7555123B372881C47953EDC3 /* JSONMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = E475830E4EDFD882495F41E9 /* JSONMap.swift */; };
 		21AFE9BCF2D9CE21099732B3 /* LocationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E0C247796501AB54D84C34 /* LocationModels.swift */; };
 		D3118620AF38BED6FA129BD5 /* PollenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174579754A439E10066DBB45 /* PollenModels.swift */; };
+		9254F1714FB82272F401A69B /* SnowTotals.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59CD4308BDF6199AF5B8708 /* SnowTotals.swift */; };
 		8D208DE728F7FB1A8A14EE70 /* WeatherModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D01D0D3412D27FD04EB979 /* WeatherModels.swift */; };
 		70557A3A40C925D7172A2D21 /* APIEndpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF4402717F7DBD5E8BC5CC0D /* APIEndpoints.swift */; };
 		9CB6E1620584C8B37D777686 /* AlertsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3790FBD1C49350AD71C40786 /* AlertsService.swift */; };
@@ -24,6 +25,7 @@
 		054D85EA1F416B31C6A7E770 /* NOAARadarModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408B234880885A065E2D219A /* NOAARadarModel.swift */; };
 		481F3804F9E2AE4AA880367B /* NOAARadarOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */; };
 		8A1F618C8B3AD26579E99FFD /* NWSRadarOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E06DA91EB0A2D9B114E61F7 /* NWSRadarOverlay.swift */; };
+		0526AB5A85B6215554516A3B /* NWSSnowService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3802906A37E724FC79B9578B /* NWSSnowService.swift */; };
 		E8FE8CBF284852501BFBE75B /* PollenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97846ABD5BF53CFC8DECDF4D /* PollenService.swift */; };
 		F7578858B0855FC838029A32 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1400281AE13B5127D8D53646 /* Secrets.swift */; };
 		9D3305E4D6BDCD81CC03B3B4 /* TideService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B84D783BC13F0FD22FC6C88 /* TideService.swift */; };
@@ -101,6 +103,7 @@
 		E475830E4EDFD882495F41E9 /* JSONMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONMap.swift; sourceTree = "<group>"; };
 		44E0C247796501AB54D84C34 /* LocationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationModels.swift; sourceTree = "<group>"; };
 		174579754A439E10066DBB45 /* PollenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollenModels.swift; sourceTree = "<group>"; };
+		F59CD4308BDF6199AF5B8708 /* SnowTotals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnowTotals.swift; sourceTree = "<group>"; };
 		72D01D0D3412D27FD04EB979 /* WeatherModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherModels.swift; sourceTree = "<group>"; };
 		AF4402717F7DBD5E8BC5CC0D /* APIEndpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIEndpoints.swift; sourceTree = "<group>"; };
 		3790FBD1C49350AD71C40786 /* AlertsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsService.swift; sourceTree = "<group>"; };
@@ -113,6 +116,7 @@
 		408B234880885A065E2D219A /* NOAARadarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOAARadarModel.swift; sourceTree = "<group>"; };
 		49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOAARadarOverlay.swift; sourceTree = "<group>"; };
 		4E06DA91EB0A2D9B114E61F7 /* NWSRadarOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NWSRadarOverlay.swift; sourceTree = "<group>"; };
+		3802906A37E724FC79B9578B /* NWSSnowService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NWSSnowService.swift; sourceTree = "<group>"; };
 		97846ABD5BF53CFC8DECDF4D /* PollenService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollenService.swift; sourceTree = "<group>"; };
 		1400281AE13B5127D8D53646 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		9B84D783BC13F0FD22FC6C88 /* TideService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TideService.swift; sourceTree = "<group>"; };
@@ -235,6 +239,7 @@
 				E475830E4EDFD882495F41E9 /* JSONMap.swift */,
 				44E0C247796501AB54D84C34 /* LocationModels.swift */,
 				174579754A439E10066DBB45 /* PollenModels.swift */,
+				F59CD4308BDF6199AF5B8708 /* SnowTotals.swift */,
 				72D01D0D3412D27FD04EB979 /* WeatherModels.swift */,
 			);
 			path = Models;
@@ -254,6 +259,7 @@
 				408B234880885A065E2D219A /* NOAARadarModel.swift */,
 				49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */,
 				4E06DA91EB0A2D9B114E61F7 /* NWSRadarOverlay.swift */,
+				3802906A37E724FC79B9578B /* NWSSnowService.swift */,
 				97846ABD5BF53CFC8DECDF4D /* PollenService.swift */,
 				1400281AE13B5127D8D53646 /* Secrets.swift */,
 				9B84D783BC13F0FD22FC6C88 /* TideService.swift */,
@@ -392,6 +398,7 @@
 				7555123B372881C47953EDC3 /* JSONMap.swift in Sources */,
 				21AFE9BCF2D9CE21099732B3 /* LocationModels.swift in Sources */,
 				D3118620AF38BED6FA129BD5 /* PollenModels.swift in Sources */,
+				9254F1714FB82272F401A69B /* SnowTotals.swift in Sources */,
 				8D208DE728F7FB1A8A14EE70 /* WeatherModels.swift in Sources */,
 				70557A3A40C925D7172A2D21 /* APIEndpoints.swift in Sources */,
 				9CB6E1620584C8B37D777686 /* AlertsService.swift in Sources */,
@@ -404,6 +411,7 @@
 				054D85EA1F416B31C6A7E770 /* NOAARadarModel.swift in Sources */,
 				481F3804F9E2AE4AA880367B /* NOAARadarOverlay.swift in Sources */,
 				8A1F618C8B3AD26579E99FFD /* NWSRadarOverlay.swift in Sources */,
+				0526AB5A85B6215554516A3B /* NWSSnowService.swift in Sources */,
 				E8FE8CBF284852501BFBE75B /* PollenService.swift in Sources */,
 				F7578858B0855FC838029A32 /* Secrets.swift in Sources */,
 				9D3305E4D6BDCD81CC03B3B4 /* TideService.swift in Sources */,

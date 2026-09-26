@@ -79,6 +79,7 @@ Xcode still injects `GOOGLE_POLLEN_API_KEY`, `TOMORROW_API_KEY`, and `NWS_USER_A
 | Reverse | BigDataCloud `reverse-geocode-client` |
 | Pollen / AQI | Google Pollen → Tomorrow.io → Open-Meteo air-quality |
 | US alerts | `api.weather.gov` (User-Agent required) |
+| US 48h snow | `api.weather.gov` points → `forecastGridData` `snowfallAmount` (same User-Agent as alerts) |
 | Radar | RainViewer Weather Maps (`api.rainviewer.com/public/weather-maps.json`) past tiles on MapKit. See [`docs/native-ios-radar.md`](../docs/native-ios-radar.md) |
 | Tides | NOAA `mdapi` + `datagetter` (coastal: ≤50 km + elevation ≤20 m) |
 | Widgets | App Group snapshot from the app. Stale refresh uses `api.open-meteo.com/v1/forecast` (current, a short hourly window, daily high/low) |

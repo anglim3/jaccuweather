@@ -19,6 +19,7 @@ struct CurrentConditionsView: View {
             }
             if !model.alerts.isEmpty { alertsCard }
             atmosphere
+            if let snow = model.weeklySnow, !snow.periods.isEmpty { snowCard(snow) }
             moonCard
             if let tides = model.tides { tidesCard(tides) }
         }
@@ -94,6 +95,34 @@ struct CurrentConditionsView: View {
                 metricCard("Sunset", sun?.sunsetLabel ?? "—", icon: "clear-day")
             }
         }
+    }
+
+    private func snowCard(_ snow: WeeklySnowSummary) -> some View {
+        WeatherCard(title: "Weekly Snow Totals") {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(snow.periods) { period in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(period.headline)
+                            .font(.subheadline.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let breakdown = period.breakdown {
+                            Text(breakdown)
+                                .font(.caption)
+                                .foregroundStyle(theme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                if let nwsLine = snow.nwsLine {
+                    Text(nwsLine)
+                        .font(.caption)
+                        .foregroundStyle(theme.muted)
+                        .padding(.top, 2)
+                        .accessibilityIdentifier("weekly-snow-nws")
+                }
+            }
+        }
+        .accessibilityIdentifier("weekly-snow-card")
     }
 
     private var moonCard: some View {
