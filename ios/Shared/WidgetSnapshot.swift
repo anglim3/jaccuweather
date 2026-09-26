@@ -26,18 +26,63 @@ struct WidgetConditionsSnapshot: Codable, Equatable {
 
     var age: TimeInterval { Date().timeIntervalSince(fetchedAt) }
     var isFresh: Bool { age < Self.refetchAfter }
+
+    /// Placeholder used before a forecast response fills the reading.
+    static func shell(locationId: String, locationName: String, latitude: Double, longitude: Double) -> WidgetConditionsSnapshot {
+        WidgetConditionsSnapshot(
+            locationId: locationId,
+            locationName: locationName,
+            latitude: latitude,
+            longitude: longitude,
+            temperatureF: nil,
+            feelsLikeF: nil,
+            weatherCode: nil,
+            isDay: true,
+            conditionText: "",
+            symbolName: "cloud.fill",
+            precipChance: nil,
+            highF: nil,
+            lowF: nil,
+            nextHoursHint: "",
+            fetchedAt: .distantPast
+        )
+    }
 }
 
 enum WidgetSnapshotStore {
     static let appGroupID = "group.cloud.janglim.jaccuweather"
     static let kind = "cloud.janglim.jaccuweather.conditions"
     private static let fileName = "widget-snapshot.json"
+    #if DEBUG
+    /// Empty file in the App Group container. Debug builds then behave as if
+    /// `containerURL` returned nil, which is what a free Personal Team does.
+    static let debugNoContainerMarker = "jaccuweather-widget-no-app-group"
+    #endif
 
+    /// Nil when App Groups are not provisioned. A free Personal Team cannot
+    /// create the container, so save and load no-op and the widget uses its
+    /// configured place instead.
     static func fileURL() -> URL? {
-        FileManager.default
+        #if DEBUG
+        if debugContainerSuppressed() { return nil }
+        #endif
+        return FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
             .appendingPathComponent(fileName, isDirectory: false)
     }
+
+    #if DEBUG
+    static func debugContainerSuppressed() -> Bool {
+        if ProcessInfo.processInfo.environment["JACCUWEATHER_WIDGET_NO_APP_GROUP"] == "1" {
+            return true
+        }
+        guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
+            return false
+        }
+        let marker = group.appendingPathComponent(debugNoContainerMarker, isDirectory: false)
+        return FileManager.default.fileExists(atPath: marker.path)
+    }
+    #endif
 
     static func load() -> WidgetConditionsSnapshot? {
         guard let url = fileURL(), let data = try? Data(contentsOf: url) else { return nil }

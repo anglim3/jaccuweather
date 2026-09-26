@@ -4,52 +4,108 @@ import WidgetKit
 struct ConditionsEntry: TimelineEntry {
     let date: Date
     let snapshot: WidgetConditionsSnapshot?
+    /// Set when a place is chosen but Open-Meteo did not return a reading.
+    let unavailablePlaceName: String?
 }
 
-struct ConditionsProvider: TimelineProvider {
+struct ConditionsProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> ConditionsEntry {
-        ConditionsEntry(date: Date(), snapshot: nil)
+        ConditionsEntry(date: Date(), snapshot: .gallery, unavailablePlaceName: nil)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (ConditionsEntry) -> Void) {
+    func snapshot(for configuration: PlaceWidgetIntent, in context: Context) async -> ConditionsEntry {
+        let place = Self.chosenPlace(configuration)
         let stored = WidgetSnapshotStore.load()
-        if context.isPreview, stored == nil {
-            completion(ConditionsEntry(date: Date(), snapshot: .gallery))
-            return
+        if let stored {
+            return ConditionsEntry(date: Date(), snapshot: stored, unavailablePlaceName: nil)
         }
-        completion(ConditionsEntry(date: Date(), snapshot: stored))
+        if context.isPreview {
+            let sample = place.map(WidgetConditionsSnapshot.preview(for:)) ?? .gallery
+            return ConditionsEntry(date: Date(), snapshot: sample, unavailablePlaceName: nil)
+        }
+        if let place {
+            return ConditionsEntry(
+                date: Date(),
+                snapshot: .shell(
+                    locationId: place.id,
+                    locationName: place.name,
+                    latitude: place.latitude,
+                    longitude: place.longitude
+                ),
+                unavailablePlaceName: nil
+            )
+        }
+        return ConditionsEntry(date: Date(), snapshot: nil, unavailablePlaceName: nil)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<ConditionsEntry>) -> Void) {
-        Task {
-            let snapshot = await WidgetTimelineLoader.load()
-            let entry = ConditionsEntry(date: Date(), snapshot: snapshot)
-            let next = Date().addingTimeInterval(20 * 60)
-            completion(Timeline(entries: [entry], policy: .after(next)))
-        }
+    func timeline(for configuration: PlaceWidgetIntent, in context: Context) async -> Timeline<ConditionsEntry> {
+        let loaded = await WidgetTimelineLoader.load(place: Self.chosenPlace(configuration))
+        let entry = ConditionsEntry(
+            date: Date(),
+            snapshot: loaded.snapshot,
+            unavailablePlaceName: loaded.unavailablePlaceName
+        )
+        let interval: TimeInterval = loaded.snapshot == nil ? 5 * 60 : 20 * 60
+        return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(interval)))
+    }
+
+    /// The place from Edit Widget. Debug builds can also read a JSON stand-in
+    /// while the App Group container is forced off.
+    static func chosenPlace(_ configuration: PlaceWidgetIntent) -> WidgetPlace? {
+        if let place = configuration.place { return place }
+        #if DEBUG
+        return WidgetPlace.debugOverride()
+        #else
+        return nil
+        #endif
     }
 }
 
 enum WidgetTimelineLoader {
-    static func load() async -> WidgetConditionsSnapshot? {
-        guard let stored = WidgetSnapshotStore.load() else { return nil }
-        if stored.isFresh { return stored }
-        if let refreshed = await WidgetCurrentRefresh.refresh(stored) {
-            WidgetSnapshotStore.save(refreshed, reloadWidgets: false)
-            return refreshed
+    struct Loaded {
+        var snapshot: WidgetConditionsSnapshot?
+        var unavailablePlaceName: String?
+    }
+
+    /// Fresh App Group snapshot wins. Otherwise fetch the configured place.
+    /// A missing container (Personal Team) skips the snapshot and uses that place.
+    static func load(place: WidgetPlace?) async -> Loaded {
+        let stored = WidgetSnapshotStore.load()
+        if let stored, stored.isFresh {
+            return Loaded(snapshot: stored, unavailablePlaceName: nil)
         }
-        if stored.age < WidgetConditionsSnapshot.showStaleUntil { return stored }
-        return nil
+        if let place,
+           let fetched = await WidgetCurrentRefresh.fetch(
+               name: place.name,
+               latitude: place.latitude,
+               longitude: place.longitude,
+               locationId: place.id
+           ) {
+            return Loaded(snapshot: fetched, unavailablePlaceName: nil)
+        }
+        if let stored {
+            if let refreshed = await WidgetCurrentRefresh.refresh(stored) {
+                WidgetSnapshotStore.save(refreshed, reloadWidgets: false)
+                return Loaded(snapshot: refreshed, unavailablePlaceName: nil)
+            }
+            if stored.age < WidgetConditionsSnapshot.showStaleUntil {
+                return Loaded(snapshot: stored, unavailablePlaceName: nil)
+            }
+        }
+        if let place {
+            return Loaded(snapshot: nil, unavailablePlaceName: place.name)
+        }
+        return Loaded(snapshot: nil, unavailablePlaceName: nil)
     }
 }
 
 struct ConditionsWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: WidgetSnapshotStore.kind, provider: ConditionsProvider()) { entry in
+        AppIntentConfiguration(kind: WidgetSnapshotStore.kind, intent: PlaceWidgetIntent.self, provider: ConditionsProvider()) { entry in
             ConditionsWidgetView(entry: entry)
         }
         .configurationDisplayName("Current conditions")
-        .description("Temperature, sky, and rain chance for the place open in Jaccuweather.")
+        .description("Temperature and sky for a place you choose. A fresh reading from the app is used when sharing is available.")
         .supportedFamilies([
             .systemSmall,
             .systemMedium,
@@ -116,8 +172,10 @@ struct ConditionsWidgetView: View {
     private var content: some View {
         if let snapshot = entry.snapshot {
             populated(snapshot)
+        } else if let name = entry.unavailablePlaceName {
+            unavailable(name)
         } else {
-            placeholder
+            configurePrompt
         }
     }
 
@@ -256,44 +314,101 @@ struct ConditionsWidgetView: View {
     }
 
     @ViewBuilder
-    private var placeholder: some View {
+    private var configurePrompt: some View {
+        let hint = "Touch and hold, tap Edit Widget, then search for a city or enter coordinates."
         switch family {
         case .accessoryCircular:
             VStack(spacing: 1) {
-                Image(systemName: "cloud.sun.fill")
+                Image(systemName: "mappin.and.ellipse")
                     .font(.body)
-                Text("Open")
+                Text("Edit")
                     .font(.caption2.weight(.semibold))
             }
-            .accessibilityLabel("Open Jaccuweather")
+            .accessibilityLabel("Choose a place. \(hint)")
         case .accessoryInline:
-            Text("Open Jaccuweather")
+            Text("Choose a place")
+                .accessibilityLabel("Choose a place. \(hint)")
         case .accessoryRectangular:
             HStack(spacing: 8) {
-                Image(systemName: "cloud.sun.fill")
+                Image(systemName: "mappin.and.ellipse")
                     .font(.title3)
-                Text("Open Jaccuweather")
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Choose a place")
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text("Edit this widget")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Choose a place. \(hint)")
         default:
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: "cloud.sun.fill")
+            VStack(alignment: .leading, spacing: 6) {
+                Image(systemName: "mappin.and.ellipse")
                     .font(.title2)
                     .foregroundStyle(accessory || renderingMode == .accented ? Color.primary : accent)
                     .widgetAccentable()
-                Text("Open Jaccuweather")
+                Text("Choose a place")
+                    .font(.headline)
+                    .foregroundStyle(titleColor)
+                    .lineLimit(1)
+                Text(hint)
+                    .font(.caption2)
+                    .foregroundStyle(mutedColor)
+                    .lineLimit(4)
+                    .minimumScaleFactor(0.85)
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Choose a place. \(hint)")
+        }
+    }
+
+    @ViewBuilder
+    private func unavailable(_ name: String) -> some View {
+        switch family {
+        case .accessoryCircular:
+            VStack(spacing: 1) {
+                Image(systemName: "exclamationmark.icloud")
+                    .font(.body)
+                Text("—")
+                    .font(.caption2.weight(.semibold))
+            }
+            .accessibilityLabel("Couldn't load weather for \(name)")
+        case .accessoryInline:
+            Text(name)
+                .accessibilityLabel("Couldn't load weather for \(name)")
+        case .accessoryRectangular:
+            VStack(alignment: .leading, spacing: 1) {
+                Text(name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text("Couldn't load weather")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Couldn't load weather for \(name)")
+        default:
+            VStack(alignment: .leading, spacing: 6) {
+                Text(name)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(mutedColor)
+                    .lineLimit(1)
+                Text("Couldn't load weather")
                     .font(.headline)
                     .foregroundStyle(titleColor)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
-                Text("Refresh the app to fill this widget.")
-                    .font(.caption)
-                    .foregroundStyle(mutedColor)
-                    .lineLimit(2)
                 Spacer(minLength: 0)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Couldn't load weather for \(name)")
         }
     }
 
@@ -331,6 +446,15 @@ struct ConditionsWidgetView: View {
 }
 
 private extension WidgetConditionsSnapshot {
+    static func preview(for place: WidgetPlace) -> WidgetConditionsSnapshot {
+        var sample = gallery
+        sample.locationId = place.id
+        sample.locationName = place.name
+        sample.latitude = place.latitude
+        sample.longitude = place.longitude
+        return sample
+    }
+
     static let gallery = WidgetConditionsSnapshot(
         locationId: "47.6062,-122.3321",
         locationName: "Seattle",
