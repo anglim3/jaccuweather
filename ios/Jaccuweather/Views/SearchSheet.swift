@@ -82,41 +82,43 @@ struct SearchSheet: View {
                         }
                     }
 
-                    Section {
-                        if model.isSearching {
-                            HStack {
-                                ProgressView()
-                                    .tint(theme.accent)
-                                Text("Searching")
-                                    .font(.subheadline)
-                                    .foregroundStyle(theme.muted)
-                            }
-                            .listRowBackground(rowFill)
-                        }
-                        ForEach(model.searchResults) { place in
-                            Button {
-                                Task {
-                                    await model.select(place)
-                                    dismiss()
-                                }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(place.name)
-                                        .foregroundStyle(theme.text)
-                                    Text(place.displayName)
-                                        .font(.caption)
+                    if model.isSearching || model.searchResults.isEmpty == false || model.searchQuery.count >= 2 {
+                        Section {
+                            if model.isSearching {
+                                HStack {
+                                    ProgressView()
+                                        .tint(theme.accent)
+                                    Text("Searching")
+                                        .font(.subheadline)
                                         .foregroundStyle(theme.muted)
                                 }
-                            }
-                            .listRowBackground(rowFill)
-                        }
-                        if model.searchQuery.count >= 2 && model.searchResults.isEmpty && model.isSearching == false {
-                            Text("No matches")
-                                .foregroundStyle(theme.faint)
                                 .listRowBackground(rowFill)
+                            }
+                            ForEach(model.searchResults) { place in
+                                Button {
+                                    Task {
+                                        await model.select(place)
+                                        dismiss()
+                                    }
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(place.name)
+                                            .foregroundStyle(theme.text)
+                                        Text(place.displayName)
+                                            .font(.caption)
+                                            .foregroundStyle(theme.muted)
+                                    }
+                                }
+                                .listRowBackground(rowFill)
+                            }
+                            if model.searchQuery.count >= 2 && model.searchResults.isEmpty && model.isSearching == false {
+                                Text("No matches")
+                                    .foregroundStyle(theme.faint)
+                                    .listRowBackground(rowFill)
+                            }
+                        } header: {
+                            SectionEyebrow(title: "Results")
                         }
-                    } header: {
-                        SectionEyebrow(title: "Results")
                     }
                 }
                 .listStyle(.insetGrouped)
