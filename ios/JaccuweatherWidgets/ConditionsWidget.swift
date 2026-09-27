@@ -113,16 +113,16 @@ struct ConditionsWidget: Widget {
             .accessoryRectangular,
             .accessoryInline
         ])
+        .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
 
 struct ConditionsWidgetView: View {
     @Environment(\.widgetFamily) private var family
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.showsWidgetContainerBackground) private var showsBackground
     var entry: ConditionsEntry
-
-    private var navy: Color { Color(red: 13 / 255, green: 33 / 255, blue: 55 / 255) }
-    private var accent: Color { Color(red: 125 / 255, green: 211 / 255, blue: 252 / 255) }
 
     private var accessory: Bool {
         switch family {
@@ -133,16 +133,39 @@ struct ConditionsWidgetView: View {
         }
     }
 
+    /// Full-color home widgets, and any accessory context that still paints a background.
+    private var fullColor: Bool {
+        showsBackground && renderingMode == .fullColor && family != .accessoryInline
+    }
+
     private var titleColor: Color {
-        accessory || renderingMode == .accented ? .primary : .white
+        fullColor ? WidgetHorizon.text : .primary
     }
 
     private var mutedColor: Color {
-        accessory || renderingMode == .accented ? .secondary : Color.white.opacity(0.65)
+        fullColor ? WidgetHorizon.muted : .secondary
+    }
+
+    private var accentColor: Color {
+        fullColor ? WidgetHorizon.accent : .primary
+    }
+
+    private var contentPadding: EdgeInsets {
+        switch family {
+        case .systemSmall:
+            return EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
+        case .systemMedium:
+            return EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14)
+        case .accessoryRectangular:
+            return EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4)
+        default:
+            return EdgeInsets()
+        }
     }
 
     var body: some View {
         content
+            .padding(contentPadding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
             .containerBackground(for: .widget) { background }
     }
@@ -159,12 +182,15 @@ struct ConditionsWidgetView: View {
     @ViewBuilder
     private var background: some View {
         switch family {
-        case .accessoryCircular:
-            AccessoryWidgetBackground()
-        case .accessoryRectangular, .accessoryInline:
+        case .accessoryInline:
             Color.clear
+        case .accessoryCircular:
+            ZStack {
+                AccessoryWidgetBackground()
+                WidgetHorizonBackground()
+            }
         default:
-            navy
+            WidgetHorizonBackground()
         }
     }
 
@@ -196,78 +222,69 @@ struct ConditionsWidgetView: View {
     }
 
     private func small(_ snapshot: WidgetConditionsSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(snapshot.locationName)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(mutedColor)
+                .font(WidgetHorizon.placeFont(size: 15))
+                .foregroundStyle(titleColor)
                 .lineLimit(1)
-            HStack(alignment: .center, spacing: 8) {
+                .minimumScaleFactor(0.7)
+            HStack(alignment: .center, spacing: 6) {
                 Text(degrees(snapshot.temperatureF))
-                    .font(.system(size: 40, weight: .light, design: .rounded))
+                    .font(WidgetHorizon.tempFont(size: 42))
+                    .tracking(-1.4)
                     .foregroundStyle(titleColor)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                     .widgetAccentable()
                 Spacer(minLength: 0)
-                symbol(snapshot.symbolName, size: 28)
+                symbolBadge(snapshot.symbolName, diameter: 36)
             }
-            Text(snapshot.conditionText)
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(titleColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            if let chance = snapshot.precipChance {
-                Text("\(chance)% precip")
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(mutedColor)
+            if !snapshot.conditionText.isEmpty {
+                Text(snapshot.conditionText)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(titleColor)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             Spacer(minLength: 0)
+            summaryBar(snapshot)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(snapshot))
     }
 
     private func medium(_ snapshot: WidgetConditionsSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(snapshot.locationName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(mutedColor)
-                        .lineLimit(1)
-                    Text(degrees(snapshot.temperatureF))
-                        .font(.system(size: 44, weight: .light, design: .rounded))
-                        .foregroundStyle(titleColor)
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(1)
-                        .widgetAccentable()
+        VStack(alignment: .leading, spacing: 6) {
+            Text(snapshot.locationName)
+                .font(WidgetHorizon.placeFont(size: 17))
+                .foregroundStyle(titleColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            HStack(alignment: .center, spacing: 8) {
+                Text(degrees(snapshot.temperatureF))
+                    .font(WidgetHorizon.tempFont(size: 36))
+                    .tracking(-1.4)
+                    .foregroundStyle(titleColor)
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+                    .widgetAccentable()
+                if !snapshot.conditionText.isEmpty {
                     Text(snapshot.conditionText)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(titleColor)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-                Spacer(minLength: 0)
-                symbol(snapshot.symbolName, size: 40)
+                Spacer(minLength: 4)
+                symbolBadge(snapshot.symbolName, diameter: 36)
             }
-            HStack(spacing: 12) {
-                Text("Feels \(degrees(snapshot.feelsLikeF))")
-                Text("H \(degrees(snapshot.highF))")
-                Text("L \(degrees(snapshot.lowF))")
-                if let chance = snapshot.precipChance {
-                    Text("\(chance)%")
-                }
-            }
-            .font(.caption.weight(.medium))
-            .foregroundStyle(mutedColor)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            chipRow(snapshot)
             if !snapshot.nextHoursHint.isEmpty {
                 Text(snapshot.nextHoursHint)
                     .font(.caption2)
-                    .foregroundStyle(mutedColor)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+                    .foregroundStyle(fullColor ? WidgetHorizon.faint : mutedColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
             }
             Spacer(minLength: 0)
         }
@@ -277,7 +294,7 @@ struct ConditionsWidgetView: View {
 
     private func circular(_ snapshot: WidgetConditionsSnapshot) -> some View {
         VStack(spacing: 1) {
-            symbol(snapshot.symbolName, size: 16)
+            symbolBadge(snapshot.symbolName, diameter: 20, icon: 15)
             Text(degrees(snapshot.temperatureF))
                 .font(.caption.weight(.bold))
                 .minimumScaleFactor(0.6)
@@ -289,16 +306,22 @@ struct ConditionsWidgetView: View {
 
     private func rectangular(_ snapshot: WidgetConditionsSnapshot) -> some View {
         HStack(spacing: 8) {
-            symbol(snapshot.symbolName, size: 22)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("\(degrees(snapshot.temperatureF))  \(snapshot.locationName)")
-                    .font(.headline)
+            symbolBadge(snapshot.symbolName, diameter: 28)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(snapshot.locationName)
+                    .font(WidgetHorizon.placeFont(size: 12))
+                    .foregroundStyle(mutedColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(degrees(snapshot.temperatureF))
+                    .font(WidgetHorizon.tempFont(size: 22))
+                    .foregroundStyle(titleColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .widgetAccentable()
                 Text(detailLine(snapshot))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(mutedColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -347,12 +370,9 @@ struct ConditionsWidgetView: View {
             .accessibilityLabel("Choose a place. \(hint)")
         default:
             VStack(alignment: .leading, spacing: 6) {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.title2)
-                    .foregroundStyle(accessory || renderingMode == .accented ? Color.primary : accent)
-                    .widgetAccentable()
+                symbolBadge("mappin.and.ellipse", diameter: 32)
                 Text("Choose a place")
-                    .font(.headline)
+                    .font(WidgetHorizon.placeFont(size: 17))
                     .foregroundStyle(titleColor)
                     .lineLimit(1)
                 Text(hint)
@@ -397,11 +417,11 @@ struct ConditionsWidgetView: View {
         default:
             VStack(alignment: .leading, spacing: 6) {
                 Text(name)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(mutedColor)
+                    .font(WidgetHorizon.placeFont(size: 15))
+                    .foregroundStyle(titleColor)
                     .lineLimit(1)
                 Text("Couldn't load weather")
-                    .font(.headline)
+                    .font(.headline.weight(.medium))
                     .foregroundStyle(titleColor)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
@@ -412,13 +432,81 @@ struct ConditionsWidgetView: View {
         }
     }
 
-    private func symbol(_ name: String, size: CGFloat) -> some View {
+    private func symbolBadge(_ name: String, diameter: CGFloat, icon: CGFloat? = nil) -> some View {
         Image(systemName: name)
-            .font(.system(size: size, weight: .medium))
+            .font(.system(size: icon ?? diameter * 0.56, weight: .medium))
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(accessory || renderingMode == .accented ? Color.primary : accent)
+            .foregroundStyle(accentColor)
             .widgetAccentable()
+            .frame(width: diameter, height: diameter)
+            .background {
+                if fullColor {
+                    Circle()
+                        .fill(WidgetHorizon.glassStrong)
+                        .overlay {
+                            Circle().strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1)
+                        }
+                        .overlay {
+                            Circle().fill(
+                                RadialGradient(
+                                    colors: [WidgetHorizon.accent.opacity(0.35), .clear],
+                                    center: .center,
+                                    startRadius: 2,
+                                    endRadius: diameter * 0.72
+                                )
+                            )
+                        }
+                }
+            }
             .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func summaryBar(_ snapshot: WidgetConditionsSnapshot) -> some View {
+        let bits = summaryBits(snapshot)
+        if !bits.isEmpty {
+            WidgetGlassLabel(
+                text: bits.joined(separator: "   "),
+                fullColor: fullColor,
+                foreground: fullColor ? WidgetHorizon.text : mutedColor
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func chipRow(_ snapshot: WidgetConditionsSnapshot) -> some View {
+        let bits = chipBits(snapshot)
+        if !bits.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(bits, id: \.self) { bit in
+                    WidgetGlassLabel(text: bit, fullColor: fullColor, foreground: titleColor)
+                }
+            }
+            .lineLimit(1)
+        }
+    }
+
+    private func summaryBits(_ snapshot: WidgetConditionsSnapshot) -> [String] {
+        var bits: [String] = []
+        if snapshot.highF != nil {
+            bits.append("H \(degrees(snapshot.highF))")
+        }
+        if snapshot.lowF != nil {
+            bits.append("L \(degrees(snapshot.lowF))")
+        }
+        if let chance = snapshot.precipChance {
+            bits.append("\(chance)%")
+        }
+        return bits
+    }
+
+    private func chipBits(_ snapshot: WidgetConditionsSnapshot) -> [String] {
+        var bits: [String] = []
+        if snapshot.feelsLikeF != nil {
+            bits.append("Feels \(degrees(snapshot.feelsLikeF))")
+        }
+        bits.append(contentsOf: summaryBits(snapshot))
+        return bits
     }
 
     private func degrees(_ value: Double?) -> String {

@@ -42,7 +42,7 @@ Pick any iPhone simulator and Run. **Features → Location → Custom Location**
 
 ### Home Screen and Lock Screen widgets
 
-`JaccuweatherWidgets` shows current conditions on the Home Screen (small and medium) and the Lock Screen (circular, rectangular, and inline). It reloads about every 20 minutes.
+`JaccuweatherWidgets` shows current conditions on the Home Screen (small and medium) and the Lock Screen (circular, rectangular, and inline). It reloads about every 20 minutes. Home Screen widgets use the website Horizon background — navy gradient, cyan, gold, and indigo glows — plus glass chips and a serif place name. Lock Screen accessories use that same hierarchy, and the Horizon fill when the system draws a widget background.
 
 **Paid Apple Developer team.** The app and the extension share the App Group `group.cloud.janglim.jaccuweather`. After a forecast refresh, the app writes the active place and current conditions there. A snapshot newer than about 40 minutes is what the widget shows, even if the widget also has a chosen place. When that snapshot is older, the extension can refresh it from Open-Meteo.
 
