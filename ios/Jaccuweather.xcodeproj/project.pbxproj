@@ -44,6 +44,7 @@
 		FBCBE0834429F765CC79BF61 /* ConditionsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */; };
 		8AEAB17810648F85943328C1 /* WidgetPlaceIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */; };
 		30EF19BC0E8BF883B15132EB /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */; };
+		B8D4F02C5E3A7192B6C0D1F5 /* WidgetHorizon.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C3E91B4D2F6081A5B9C0E4 /* WidgetHorizon.swift */; };
 		CE384A472CA2A63A67229074 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28B01C556BF8BAF9FCD4AD00 /* Assets.xcassets */; };
 		F7D9B7E256FF1B1064F57C30 /* Logic in Resources */ = {isa = PBXBuildFile; fileRef = 4738D6F0D0A8E8FF49AA5DEC /* Logic */; };
 		428FF652C950A1850CEBA352 /* Icons in Resources */ = {isa = PBXBuildFile; fileRef = 534073A59D268F18C1B1F5BF /* Icons */; };
@@ -133,6 +134,7 @@
 		495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsWidget.swift; sourceTree = "<group>"; };
 		605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPlaceIntent.swift; sourceTree = "<group>"; };
 		55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRefresh.swift; sourceTree = "<group>"; };
+		A7C3E91B4D2F6081A5B9C0E4 /* WidgetHorizon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetHorizon.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -204,6 +206,7 @@
 			isa = PBXGroup;
 			children = (
 				495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */,
+				A7C3E91B4D2F6081A5B9C0E4 /* WidgetHorizon.swift */,
 				605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */,
 				55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */,
 				A2678C0ED86FC2DB2E682103 /* Info.plist */,
@@ -431,6 +434,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FBCBE0834429F765CC79BF61 /* ConditionsWidget.swift in Sources */,
+				B8D4F02C5E3A7192B6C0D1F5 /* WidgetHorizon.swift in Sources */,
 				8AEAB17810648F85943328C1 /* WidgetPlaceIntent.swift in Sources */,
 				30EF19BC0E8BF883B15132EB /* WidgetRefresh.swift in Sources */,
 				79350FEBEC637061A4916F18 /* WidgetSnapshot.swift in Sources */,
