@@ -6,6 +6,7 @@ struct NWSPointResponse: Decodable {
 
 struct NWSPointProperties: Decodable {
     let forecastZone: String?
+    let forecastGridData: String?
 }
 
 struct NWSAlertsResponse: Decodable {

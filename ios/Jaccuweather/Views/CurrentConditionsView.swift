@@ -19,6 +19,7 @@ struct CurrentConditionsView: View {
                 Text(note).font(.footnote).foregroundStyle(theme.muted)
             }
             if !model.precipTiming.isEmpty { precipCard }
+            if let snow = model.weeklySnow, !snow.periods.isEmpty { snowCard(snow) }
             moonCard
             if let tides = model.tides { tidesCard(tides) }
         }
@@ -151,6 +152,46 @@ struct CurrentConditionsView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .jwGlass(.panel)
+    }
+
+    private func snowCard(_ snow: WeeklySnowSummary) -> some View {
+        WeatherCard(title: "Weekly Snow Totals") {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(snow.periods) { period in
+                    snowPeriod(period)
+                }
+                if let nwsLine = snow.nwsLine {
+                    Text(nwsLine)
+                        .font(.system(size: 14))
+                        .foregroundStyle(theme.faint)
+                        .padding(.top, 4)
+                        .accessibilityIdentifier("weekly-snow-nws")
+                }
+            }
+        }
+        .accessibilityIdentifier("weekly-snow-card")
+    }
+
+    private func snowPeriod(_ period: SnowPeriod) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(period.headline)
+                .font(JWFont.dayName)
+                .foregroundStyle(theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+            if let breakdown = period.breakdown {
+                Text(breakdown)
+                    .font(.system(size: 14))
+                    .foregroundStyle(theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous)
+                .stroke(theme.chipStroke, lineWidth: 1)
+        )
     }
 
     private var moonCard: some View {
