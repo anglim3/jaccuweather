@@ -4,6 +4,7 @@ enum LaunchArgs {
     static var tab: Int { value("tab").flatMap(Int.init) ?? 0 }
     static var hourly: String { value("hourly") ?? "conditions" }
     static var daily: String { value("daily") ?? "temp" }
+    static var anchor: String? { value("anchor") }
     static var latitude: Double? { value("lat").flatMap(Double.init) }
     static var longitude: Double? { value("lon").flatMap(Double.init) }
     static var placeName: String? { value("name") }

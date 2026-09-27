@@ -4,8 +4,13 @@ import Foundation
 struct AlertsService {
     static let conus = (minLat: 24.0, maxLat: 50.0, minLon: -125.0, maxLon: -66.0)
 
+    static func isLikelyUS(latitude: Double, longitude: Double) -> Bool {
+        latitude >= conus.minLat && latitude <= conus.maxLat
+            && longitude >= conus.minLon && longitude <= conus.maxLon
+    }
+
     func alerts(latitude: Double, longitude: Double) async -> [NWSAlertFeature] {
-        guard isLikelyUS(latitude: latitude, longitude: longitude) else { return [] }
+        guard Self.isLikelyUS(latitude: latitude, longitude: longitude) else { return [] }
         do {
             let nwsHeaders = ["Accept": "application/geo+json"]
             let point = try await HTTPClient.getJSON(
@@ -27,10 +32,5 @@ struct AlertsService {
         } catch {
             return []
         }
-    }
-
-    private func isLikelyUS(latitude: Double, longitude: Double) -> Bool {
-        latitude >= Self.conus.minLat && latitude <= Self.conus.maxLat
-            && longitude >= Self.conus.minLon && longitude <= Self.conus.maxLon
     }
 }
