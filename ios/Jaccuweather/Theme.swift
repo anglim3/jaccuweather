@@ -108,12 +108,46 @@ enum JWChart {
     }
 }
 
+/// Website risk and pollen label colors (`text-green-400` and the rest).
+enum JWTone {
+    static let green = Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)
+    static let lime = Color(red: 163 / 255, green: 230 / 255, blue: 53 / 255)
+    static let yellow = Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)
+    static let orange = Color(red: 251 / 255, green: 146 / 255, blue: 60 / 255)
+    static let red = Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)
+    static let blue = Color(red: 147 / 255, green: 197 / 255, blue: 253 / 255)
+
+    static func color(forColorClass colorClass: String?) -> Color {
+        switch colorClass {
+        case "text-green-400", "text-green-300": return green
+        case "text-lime-400": return lime
+        case "text-yellow-400", "text-yellow-300": return yellow
+        case "text-orange-400", "text-orange-300": return orange
+        case "text-red-400", "text-red-300", "text-red-600": return red
+        case "text-blue-300": return blue
+        default: return JWPalette.dark.muted
+        }
+    }
+
+    static func color(forLabel label: String) -> Color {
+        switch label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "low", "excellent": return green
+        case "nice": return lime
+        case "moderate", "elevated", "fair": return yellow
+        case "high": return orange
+        case "very high", "poor": return red
+        default: return JWPalette.dark.faint
+        }
+    }
+}
+
 enum JWFont {
     static let location = Font.system(size: 28, weight: .regular, design: .serif)
     static let heroTemp = Font.system(size: 72, weight: .light)
     static let section = Font.system(size: 16, weight: .semibold)
     static let eyebrow = Font.system(size: 12, weight: .semibold)
     static let statValue = Font.system(size: 20, weight: .bold)
+    static let body = Font.system(size: 15, weight: .regular)
     static let chipTime = Font.system(size: 13, weight: .medium)
     static let chipValue = Font.system(size: 18, weight: .bold)
     static let dayName = Font.system(size: 16, weight: .semibold)
@@ -250,6 +284,20 @@ extension View {
     func jwGlass(_ role: GlassRole) -> some View {
         modifier(GlassBackground(role: role))
     }
+
+    func jwScreenChrome() -> some View {
+        self
+            .foregroundStyle(JWPalette.dark.text)
+            .background { HorizonBackground() }
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .tint(JWPalette.dark.accent)
+    }
+}
+
+enum CardTitleStyle {
+    case eyebrow
+    case section
 }
 
 struct SectionEyebrow: View {
@@ -383,22 +431,36 @@ private extension UIView {
 
 struct WeatherCard<Content: View>: View {
     var title: String
+    var titleStyle: CardTitleStyle = .section
     var prominence: GlassRole = .panel
     @ViewBuilder var content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if !title.isEmpty {
-                Text(title)
-                    .font(JWFont.section)
-                    .tracking(-0.32)
-                    .foregroundStyle(JWPalette.dark.text)
+                titleLabel
             }
             content
         }
         .padding(prominence == .hero ? JWMetrics.heroPadding : JWMetrics.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .jwGlass(prominence)
+    }
+
+    @ViewBuilder
+    private var titleLabel: some View {
+        switch titleStyle {
+        case .eyebrow:
+            Text(title.uppercased())
+                .font(JWFont.eyebrow)
+                .tracking(0.8)
+                .foregroundStyle(JWPalette.dark.muted)
+        case .section:
+            Text(title)
+                .font(JWFont.section)
+                .tracking(-0.32)
+                .foregroundStyle(JWPalette.dark.text)
+        }
     }
 }
 
