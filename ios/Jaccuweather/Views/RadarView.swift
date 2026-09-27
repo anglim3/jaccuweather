@@ -63,7 +63,7 @@ struct RadarView: View {
     private var frameIndex: Int { showingNOAA ? noaaIndex : rainIndex }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 12) {
             RadarMapView(
                 coordinate: model.coordinate,
                 title: model.locationName,
@@ -72,9 +72,31 @@ struct RadarView: View {
                     if token == settleToken { tilesSettled = true }
                 }
             )
-            .ignoresSafeArea(edges: .top)
+            .clipShape(RoundedRectangle(cornerRadius: JWMetrics.radius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: JWMetrics.radius, style: .continuous)
+                    .stroke(theme.cardStroke, lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .topLeading) {
+                Text(model.locationName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(theme.text)
+                    .lineLimit(1)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().stroke(theme.cardStroke, lineWidth: 1))
+                    .padding(12)
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 4)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Weather Radar")
+                    .font(JWFont.section)
+                    .tracking(-0.32)
+
                 if mosaic != nil {
                     sourceSwitch
                 }
@@ -87,11 +109,12 @@ struct RadarView: View {
                             .font(.body.weight(.semibold))
                             .foregroundStyle(theme.text)
                             .frame(width: 36, height: 36)
-                            .background(theme.tile, in: Circle())
+                            .background(theme.glassStrong, in: Circle())
                             .overlay(Circle().stroke(theme.cardStroke, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                     .disabled(activeCount < 2)
+                    .opacity(activeCount < 2 ? 0.45 : 1)
                     .accessibilityLabel(playing ? "Pause radar" : "Play radar")
 
                     if activeCount > 1 {
@@ -119,6 +142,8 @@ struct RadarView: View {
                     .font(.subheadline.weight(.medium).monospacedDigit())
                     .foregroundStyle(theme.text)
 
+                intensityLegend
+
                 if showingNOAA {
                     Link(destination: APIEndpoints.noaaRadarCredit) {
                         Text("NOAA / NWS MRMS")
@@ -142,20 +167,17 @@ struct RadarView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(16)
-            .padding(.bottom, 8)
+            .padding(JWMetrics.panelPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(theme.card)
-            .overlay(alignment: .top) {
-                Rectangle().fill(theme.cardStroke).frame(height: 1)
-            }
+            .jwGlass(.panel)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
         }
-        .safeAreaPadding(.bottom, 4)
-        .background {
-            theme.background.ignoresSafeArea()
-        }
+        .background { HorizonBackground() }
         .navigationTitle("Radar")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .task { await refreshLoop() }
         .onChange(of: isActive) { _, active in
             if active {
@@ -185,10 +207,13 @@ struct RadarView: View {
     }
 
     private var sourceSwitch: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             sourceChip("Global (RainViewer)", value: .rainViewer)
             sourceChip("US (NOAA)", value: .noaa)
         }
+        .padding(3)
+        .background(theme.card, in: Capsule())
+        .overlay(Capsule().stroke(theme.cardStroke, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Radar source")
     }
@@ -200,21 +225,52 @@ struct RadarView: View {
         } label: {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(selected ? Color(red: 13 / 255, green: 33 / 255, blue: 55 / 255) : theme.text)
+                .foregroundStyle(selected ? theme.text : theme.muted)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .background(
-                    selected ? theme.accent : theme.tile,
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(theme.cardStroke, lineWidth: 1)
+                    selected ? Color.white.opacity(0.22) : Color.clear,
+                    in: Capsule()
                 )
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
+
+    /// Qualitative echo key. Both sources paint heavier precipitation in warmer colors.
+    private var intensityLegend: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("INTENSITY")
+                .font(JWFont.eyebrow)
+                .tracking(1.1)
+                .foregroundStyle(theme.muted)
+            HStack(spacing: 4) {
+                ForEach(Self.legendStops, id: \.label) { stop in
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(stop.color)
+                        .frame(height: 8)
+                        .accessibilityHidden(true)
+                }
+            }
+            HStack {
+                Text("Light")
+                Spacer()
+                Text("Heavy")
+            }
+            .font(.caption2)
+            .foregroundStyle(theme.faint)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Precipitation intensity from light to heavy")
+    }
+
+    private static let legendStops: [(label: String, color: Color)] = [
+        ("Light", Color(red: 110 / 255, green: 210 / 255, blue: 235 / 255)),
+        ("Moderate", Color(red: 80 / 255, green: 200 / 255, blue: 90 / 255)),
+        ("Steady", Color(red: 250 / 255, green: 214 / 255, blue: 60 / 255)),
+        ("Heavy", Color(red: 245 / 255, green: 130 / 255, blue: 40 / 255)),
+        ("Intense", Color(red: 230 / 255, green: 50 / 255, blue: 55 / 255))
+    ]
 
     private var statusLine: String {
         if showingNOAA {
@@ -380,7 +436,10 @@ struct RadarMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
-        map.pointOfInterestFilter = .excludingAll
+        map.overrideUserInterfaceStyle = .dark
+        let config = MKStandardMapConfiguration(emphasisStyle: .muted)
+        config.pointOfInterestFilter = .excludingAll
+        map.preferredConfiguration = config
         return map
     }
 
