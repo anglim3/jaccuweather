@@ -155,7 +155,7 @@ struct ConditionsWidgetView: View {
         case .systemSmall:
             return EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
         case .systemMedium:
-            return EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14)
+            return EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14)
         case .accessoryRectangular:
             return EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4)
         default:
@@ -255,37 +255,36 @@ struct ConditionsWidgetView: View {
 
     private func medium(_ snapshot: WidgetConditionsSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(snapshot.locationName)
-                        .font(WidgetHorizon.placeFont(size: 18))
+            Text(snapshot.locationName)
+                .font(WidgetHorizon.placeFont(size: 17))
+                .foregroundStyle(titleColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            HStack(alignment: .center, spacing: 8) {
+                Text(degrees(snapshot.temperatureF))
+                    .font(WidgetHorizon.tempFont(size: 36))
+                    .tracking(-1.4)
+                    .foregroundStyle(titleColor)
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+                    .widgetAccentable()
+                if !snapshot.conditionText.isEmpty {
+                    Text(snapshot.conditionText)
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(titleColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                    Text(degrees(snapshot.temperatureF))
-                        .font(WidgetHorizon.tempFont(size: 40))
-                        .tracking(-1.6)
-                        .foregroundStyle(titleColor)
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(1)
-                        .widgetAccentable()
-                    if !snapshot.conditionText.isEmpty {
-                        Text(snapshot.conditionText)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(titleColor)
-                            .lineLimit(1)
-                    }
                 }
-                Spacer(minLength: 0)
-                symbolBadge(snapshot.symbolName, diameter: 44)
+                Spacer(minLength: 4)
+                symbolBadge(snapshot.symbolName, diameter: 36)
             }
             chipRow(snapshot)
             if !snapshot.nextHoursHint.isEmpty {
                 Text(snapshot.nextHoursHint)
                     .font(.caption2)
                     .foregroundStyle(fullColor ? WidgetHorizon.faint : mutedColor)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
             }
             Spacer(minLength: 0)
         }
