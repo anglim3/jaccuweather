@@ -1,8 +1,9 @@
 import SwiftUI
 import UIKit
 
-/// Horizon tokens from the website (`:root` in `public/index.html`).
-/// Light and dark system appearances both use this static navy glass palette.
+/// Horizon glass tokens from the website (`:root` in `public/index.html`).
+/// Both appearances keep this white-on-glass palette. Dark paints the static
+/// navy field; light paints a weather sky behind the same cards.
 struct JWPalette: Equatable {
     let backgroundTop: Color
     let background: Color
@@ -54,7 +55,73 @@ struct JWPalette: Equatable {
         moon: Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255)
     )
 
+    /// Ignores the system scheme. The app forces dark chrome so type stays white
+    /// on both the navy field and the weather skies.
     static func forScheme(_: ColorScheme) -> JWPalette { .dark }
+}
+
+/// Website `localStorage` key `jaccuweather-theme`. Missing or unknown values stay dark.
+enum JWAppearance: String {
+    case dark
+    case light
+
+    static let storageKey = "jaccuweather-theme"
+
+    static var stored: JWAppearance {
+        UserDefaults.standard.string(forKey: storageKey) == JWAppearance.light.rawValue ? .light : .dark
+    }
+}
+
+/// Website `.bg-layer` class names from `WMO_THEMES` / `setTheme`.
+enum JWSky: Hashable {
+    case navy
+    case sunny
+    case clearNight
+    case cloudy
+    case rainy
+    case storm
+    case snow
+    case fog
+
+    var title: String {
+        switch self {
+        case .navy: return "Navy"
+        case .sunny: return "Clear"
+        case .clearNight: return "Clear night"
+        case .cloudy: return "Cloudy"
+        case .rainy: return "Rain"
+        case .storm: return "Storm"
+        case .snow: return "Snow"
+        case .fog: return "Fog"
+        }
+    }
+
+    /// Snow and fog gradients are light enough that glass needs a darker frost.
+    var needsDarkerGlass: Bool { self == .snow || self == .fog }
+
+    /// Same mapping as `WMO_THEMES`, including clear / mainly clear at night.
+    static func matching(weatherCode: Int?, isDay: Bool) -> JWSky {
+        guard let weatherCode else { return .cloudy }
+        if !isDay && (weatherCode == 0 || weatherCode == 1) {
+            return .clearNight
+        }
+        switch weatherCode {
+        case 0, 1:
+            return .sunny
+        case 2, 3:
+            return .cloudy
+        case 45, 48:
+            return .fog
+        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81:
+            return .rainy
+        case 71, 73, 75, 77, 85, 86:
+            return .snow
+        case 82, 95, 96, 99:
+            return .storm
+        default:
+            return .cloudy
+        }
+    }
 }
 
 /// ApexCharts series colors from the website forecast modals.
@@ -163,8 +230,27 @@ enum JWMetrics {
     static let sectionGap: CGFloat = 20
 }
 
-/// Website `.bg-layer` without a weather class: navy gradient plus three glows.
+/// Page background. Dark is the static navy `.bg-layer`. Light uses the weather class.
 struct HorizonBackground: View {
+    @Environment(WeatherViewModel.self) private var model
+
+    var body: some View {
+        let sky = model.pageSky
+        ZStack {
+            NavyHorizonFill()
+                .opacity(sky == .navy ? 1 : 0)
+            ForEach(JWSky.weatherSkies, id: \.self) { candidate in
+                WeatherSkyFill(sky: candidate)
+                    .opacity(candidate == sky ? 1 : 0)
+            }
+        }
+        .ignoresSafeArea()
+        .animation(.easeInOut(duration: 1.2), value: sky)
+    }
+}
+
+/// Website `.bg-layer` without a weather class: navy gradient plus three glows.
+private struct NavyHorizonFill: View {
     var body: some View {
         let theme = JWPalette.dark
         ZStack {
@@ -196,8 +282,219 @@ struct HorizonBackground: View {
                 endRadius: 320
             )
         }
-        .ignoresSafeArea()
     }
+}
+
+/// Website `.bg-layer.sunny` and the other weather classes.
+private struct WeatherSkyFill: View {
+    var sky: JWSky
+
+    var body: some View {
+        let paint = sky.paint
+        GeometryReader { geo in
+            let width = geo.size.width
+            let height = geo.size.height
+            ZStack {
+                LinearGradient(stops: paint.stops, startPoint: paint.start, endPoint: paint.end)
+                skyGlow(paint.primary, width: width, height: height)
+                if let secondary = paint.secondary {
+                    skyGlow(secondary, width: width, height: height)
+                }
+            }
+        }
+    }
+
+    private func skyGlow(_ glow: SkyGlow, width: CGFloat, height: CGFloat) -> some View {
+        RadialGradient(
+            colors: [glow.color, .clear],
+            center: glow.center,
+            startRadius: 0,
+            endRadius: max(width * glow.radiusX, height * glow.radiusY) * glow.fade
+        )
+    }
+}
+
+private struct SkyGlow {
+    var color: Color
+    var center: UnitPoint
+    var radiusX: CGFloat
+    var radiusY: CGFloat
+    var fade: CGFloat
+}
+
+private struct SkyPaint {
+    var stops: [Gradient.Stop]
+    var start: UnitPoint
+    var end: UnitPoint
+    var primary: SkyGlow
+    var secondary: SkyGlow?
+}
+
+private extension JWSky {
+    static let weatherSkies: [JWSky] = [.sunny, .clearNight, .cloudy, .rainy, .storm, .snow, .fog]
+
+    var paint: SkyPaint {
+        switch self {
+        case .sunny:
+            return SkyPaint(
+                stops: [
+                    .init(color: skyRGB(59, 130, 246), location: 0),
+                    .init(color: skyRGB(14, 165, 233), location: 0.40),
+                    .init(color: skyRGB(3, 105, 161), location: 1)
+                ],
+                start: cssGradientStart(160),
+                end: cssGradientEnd(160),
+                primary: SkyGlow(
+                    color: skyRGB(251, 191, 36, 0.45),
+                    center: UnitPoint(x: 0.70, y: 0),
+                    radiusX: 0.90,
+                    radiusY: 0.70,
+                    fade: 0.50
+                ),
+                secondary: SkyGlow(
+                    color: skyRGB(56, 189, 248, 0.25),
+                    center: UnitPoint(x: 0.10, y: 0.80),
+                    radiusX: 0.60,
+                    radiusY: 0.40,
+                    fade: 0.50
+                )
+            )
+        case .clearNight:
+            return SkyPaint(
+                stops: [
+                    .init(color: skyRGB(15, 23, 42), location: 0),
+                    .init(color: skyRGB(30, 27, 75), location: 0.50),
+                    .init(color: skyRGB(12, 10, 29), location: 1)
+                ],
+                start: cssGradientStart(165),
+                end: cssGradientEnd(165),
+                primary: SkyGlow(
+                    color: Color.white.opacity(0.15),
+                    center: UnitPoint(x: 0.80, y: 0.15),
+                    radiusX: 0.40,
+                    radiusY: 0.30,
+                    fade: 0.40
+                ),
+                secondary: SkyGlow(
+                    color: skyRGB(99, 102, 241, 0.35),
+                    center: UnitPoint(x: 0.20, y: 0.70),
+                    radiusX: 0.70,
+                    radiusY: 0.50,
+                    fade: 0.50
+                )
+            )
+        case .rainy:
+            return SkyPaint(
+                stops: [
+                    .init(color: skyRGB(30, 58, 95), location: 0),
+                    .init(color: skyRGB(15, 39, 68), location: 0.40),
+                    .init(color: skyRGB(12, 25, 41), location: 1)
+                ],
+                start: cssGradientStart(165),
+                end: cssGradientEnd(165),
+                primary: SkyGlow(
+                    color: skyRGB(100, 116, 139, 0.40),
+                    center: UnitPoint(x: 0.50, y: 0),
+                    radiusX: 0.70,
+                    radiusY: 0.50,
+                    fade: 0.50
+                ),
+                secondary: nil
+            )
+        case .storm:
+            return SkyPaint(
+                stops: [
+                    .init(color: skyRGB(30, 27, 75), location: 0),
+                    .init(color: skyRGB(15, 23, 42), location: 0.50),
+                    .init(color: skyRGB(2, 6, 23), location: 1)
+                ],
+                start: cssGradientStart(165),
+                end: cssGradientEnd(165),
+                primary: SkyGlow(
+                    color: skyRGB(139, 92, 246, 0.30),
+                    center: UnitPoint(x: 0.70, y: 0.30),
+                    radiusX: 0.60,
+                    radiusY: 0.40,
+                    fade: 0.50
+                ),
+                secondary: nil
+            )
+        case .snow:
+            return SkyPaint(
+                stops: [
+                    .init(color: skyRGB(148, 163, 184), location: 0),
+                    .init(color: skyRGB(100, 116, 139), location: 0.40),
+                    .init(color: skyRGB(51, 65, 85), location: 1)
+                ],
+                start: cssGradientStart(165),
+                end: cssGradientEnd(165),
+                primary: SkyGlow(
+                    color: skyRGB(226, 232, 240, 0.40),
+                    center: UnitPoint(x: 0.40, y: 0.10),
+                    radiusX: 0.80,
+                    radiusY: 0.50,
+                    fade: 0.50
+                ),
+                secondary: nil
+            )
+        case .fog:
+            return SkyPaint(
+                stops: [
+                    .init(color: skyRGB(100, 116, 139), location: 0),
+                    .init(color: skyRGB(71, 85, 105), location: 0.50),
+                    .init(color: skyRGB(51, 65, 85), location: 1)
+                ],
+                start: cssGradientStart(165),
+                end: cssGradientEnd(165),
+                primary: SkyGlow(
+                    color: skyRGB(203, 213, 225, 0.25),
+                    center: UnitPoint(x: 0.50, y: 0.40),
+                    radiusX: 1.0,
+                    radiusY: 0.60,
+                    fade: 0.60
+                ),
+                secondary: nil
+            )
+        case .cloudy, .navy:
+            return SkyPaint(
+                stops: [
+                    .init(color: skyRGB(71, 85, 105), location: 0),
+                    .init(color: skyRGB(51, 65, 85), location: 0.50),
+                    .init(color: skyRGB(30, 41, 59), location: 1)
+                ],
+                start: cssGradientStart(165),
+                end: cssGradientEnd(165),
+                primary: SkyGlow(
+                    color: skyRGB(148, 163, 184, 0.35),
+                    center: UnitPoint(x: 0.30, y: 0.20),
+                    radiusX: 0.80,
+                    radiusY: 0.50,
+                    fade: 0.50
+                ),
+                secondary: nil
+            )
+        }
+    }
+}
+
+/// CSS `linear-gradient` angle: 0° points up, clockwise. 165° runs down and slightly right.
+private func cssGradientStart(_ degrees: Double) -> UnitPoint {
+    let vector = cssGradientVector(degrees)
+    return UnitPoint(x: 0.5 - vector.dx * 0.5, y: 0.5 - vector.dy * 0.5)
+}
+
+private func cssGradientEnd(_ degrees: Double) -> UnitPoint {
+    let vector = cssGradientVector(degrees)
+    return UnitPoint(x: 0.5 + vector.dx * 0.5, y: 0.5 + vector.dy * 0.5)
+}
+
+private func cssGradientVector(_ degrees: Double) -> (dx: CGFloat, dy: CGFloat) {
+    let radians = degrees * .pi / 180
+    return (dx: CGFloat(sin(radians)), dy: CGFloat(-cos(radians)))
+}
+
+private func skyRGB(_ red: Double, _ green: Double, _ blue: Double, _ alpha: Double = 1) -> Color {
+    Color(red: red / 255, green: green / 255, blue: blue / 255, opacity: alpha)
 }
 
 enum GlassRole {
@@ -205,6 +502,7 @@ enum GlassRole {
 }
 
 private struct GlassBackground: ViewModifier {
+    @Environment(WeatherViewModel.self) private var model
     var role: GlassRole
     var theme: JWPalette = .dark
 
@@ -239,6 +537,9 @@ private struct GlassBackground: ViewModifier {
                 ZStack {
                     if role == .hero || role == .panel {
                         shape.fill(.ultraThinMaterial).opacity(role == .hero ? 0.22 : 0.16)
+                    }
+                    if model.pageSky.needsDarkerGlass && (role == .hero || role == .panel) {
+                        shape.fill(Color.black.opacity(0.42))
                     }
                     shape.fill(fill)
                     if role == .hero {

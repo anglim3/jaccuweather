@@ -16,6 +16,23 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: JWMetrics.sectionGap) {
+                    WeatherCard(title: "Appearance", titleStyle: .section) {
+                        Text("Dark keeps the navy glass. Light follows the forecast and paints the same sky as the website.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 4) {
+                            appearanceChoice(.dark, title: "Dark", systemImage: "moon.fill")
+                            appearanceChoice(.light, title: "Light", systemImage: "sun.max.fill")
+                        }
+                        .padding(4)
+                        .jwGlass(.stat)
+                        Text(skyLine)
+                            .font(.footnote)
+                            .foregroundStyle(theme.faint)
+                            .accessibilityIdentifier("appearance-sky")
+                    }
+
                     WeatherCard(title: "On this device", titleStyle: .section) {
                         Text("Keys stay in this device’s Keychain. Blank pollen keys keep the Open-Meteo fallback. Nothing here is written into the project.")
                             .font(.footnote)
@@ -100,6 +117,40 @@ struct SettingsView: View {
             }
             .onAppear(perform: load)
         }
+    }
+
+    private var skyLine: String {
+        if model.appearance == .light {
+            if model.weather == nil { return "The sky fills in when the forecast loads." }
+            return "Sky: \(model.pageSky.title)"
+        }
+        return "Navy background"
+    }
+
+    private func appearanceChoice(_ value: JWAppearance, title: String, systemImage: String) -> some View {
+        let selected = model.appearance == value
+        return Button {
+            model.setAppearance(value)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                Text(title)
+                    .font(.body.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .foregroundStyle(selected ? theme.text : theme.muted)
+            .background {
+                if selected {
+                    RoundedRectangle(cornerRadius: JWMetrics.radiusSm, style: .continuous)
+                        .fill(Color.white.opacity(0.22))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier(value == .light ? "appearance-light" : "appearance-dark")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func field<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {

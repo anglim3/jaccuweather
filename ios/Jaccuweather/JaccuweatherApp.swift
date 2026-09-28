@@ -25,6 +25,8 @@ struct JaccuweatherApp: App {
         WindowGroup {
             ContentView()
                 .environment(model)
+                // The site toggle is separate from the system appearance.
+                // Dark chrome keeps glass type white on the navy field and on weather skies.
                 .preferredColorScheme(.dark)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {

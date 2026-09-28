@@ -36,7 +36,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Stale-tab refresh (15 min + 30s last-updated tick) | **DONE** — `shouldRefetchStaleForecast` on `scenePhase == .active` |
 | Cloud low / mid / high | **DONE** — ensemble layers kept on hourly rows; 48h and 14-day charts are three line series (daily values are that day’s hourly average) |
 | Wind direction + gusts | **DONE** — circular-mean direction and mean gusts; Now shows from-direction + gust; Forecast wind chips use an arrow opposite of FROM plus gust |
-| Theme / glass UI | **DONE** — static deep-navy glass cards. The app forces dark appearance; there is no pale light skin or weather-sky background |
+| Theme / glass UI | **DONE** — Dark (default) is the static deep-navy Horizon glass. Light is a Settings control, with the same sun/moon button beside search, stored in UserDefaults `jaccuweather-theme`. Light paints the website WMO classes (`sunny`, `clear-night`, `cloudy`, `rainy`, `storm`, `snow`, `fog`); clear and mainly clear at night use `clear-night`. Cards stay white glass type on every sky. Widgets stay navy. The app does not follow the system Light/Dark setting |
 | 1024 app icon from `public/favicon.svg` | **DONE** |
 | NWS User-Agent (editable) | **DONE** — Settings stores it in the Keychain; blank xcconfig uses a built-in identifier with no email |
 | Pollen keys | **DONE** — Settings Keychain, else blank `Secrets.xcconfig`; empty keys stay on Open-Meteo |

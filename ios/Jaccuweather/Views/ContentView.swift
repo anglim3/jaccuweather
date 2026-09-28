@@ -76,6 +76,13 @@ struct ContentView: View {
             .accessibilityLabel("Search")
         }
         ToolbarItem(placement: .topBarTrailing) {
+            Button { model.toggleAppearance() } label: {
+                Image(systemName: model.appearance == .light ? "moon.fill" : "sun.max.fill")
+            }
+            .accessibilityLabel("Toggle dark/light mode")
+            .accessibilityIdentifier("appearance-toggle")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
             Button { showSettings = true } label: {
                 Image(systemName: "gearshape")
             }
