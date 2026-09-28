@@ -8,6 +8,7 @@ enum LaunchArgs {
     static var latitude: Double? { value("lat").flatMap(Double.init) }
     static var longitude: Double? { value("lon").flatMap(Double.init) }
     static var placeName: String? { value("name") }
+    static var showSettings: Bool { value("settings") == "1" }
 
     static func value(_ name: String) -> String? {
         let args = ProcessInfo.processInfo.arguments

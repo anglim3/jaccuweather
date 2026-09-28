@@ -38,6 +38,9 @@ struct ContentView: View {
         .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .toolbarColorScheme(.dark, for: .tabBar)
         .task { await model.bootstrap() }
+        .onAppear {
+            if LaunchArgs.showSettings { showSettings = true }
+        }
         .onChange(of: tab) { _, new in
             loadedTabs.insert(new)
         }
