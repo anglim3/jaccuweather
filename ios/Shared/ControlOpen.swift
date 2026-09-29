@@ -2,6 +2,39 @@ import Foundation
 
 /// `jaccuweather://now` opens the Now tab for the place already loaded.
 enum NowLink {
+    static let opened = Notification.Name("jaccuweather.openNow")
+    private static let darwinName = "cloud.janglim.jaccuweather.open-now" as CFString
+    private static var observing = false
+
+    /// Reaches the app whether the intent runs there or in the widget extension.
+    static func postOpen() {
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName(darwinName),
+            nil,
+            nil,
+            true
+        )
+        NotificationCenter.default.post(name: opened, object: nil)
+    }
+
+    static func startObserving() {
+        guard !observing else { return }
+        observing = true
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            nil,
+            { _, _, _, _, _ in
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NowLink.opened, object: nil)
+                }
+            },
+            darwinName,
+            nil,
+            .deliverImmediately
+        )
+    }
+
     static let scheme = "jaccuweather"
 
     static var url: URL {

@@ -42,7 +42,7 @@ private struct OpenNowControlLabel: View {
 struct OpenNowControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: WidgetSnapshotStore.openControlKind, provider: OpenNowValueProvider()) { face in
-            ControlWidgetButton(action: OpenURLIntent(NowLink.url)) {
+            ControlWidgetButton(action: OpenNowIntent()) {
                 OpenNowControlLabel(face: face)
             }
         }

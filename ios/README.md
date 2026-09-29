@@ -56,7 +56,7 @@ Install the app, then:
 
 ### Control Center
 
-iOS 18 and later. The same widget extension provides an **Open Jaccuweather** control. Add it from Control Center’s control gallery (open Control Center, touch and hold, then add a control, and search Jaccuweather). Tapping it opens the Now tab for the place the app already has loaded.
+iOS 18 and later. The same widget extension provides an **Open Jaccuweather** control. Add it from Control Center’s control gallery (open Control Center, touch and hold, then add a control, and search Jaccuweather). Tapping it runs an app intent that opens the Now tab for the place the app already has loaded. The URL `jaccuweather://now` selects that same tab.
 
 When the App Group snapshot is readable, the control label shows that temperature. A free Personal Team cannot provision the App Group, so the container is missing, the label stays **Open**, and the control still launches Now. No extra entitlement is required for that fallback.
 
