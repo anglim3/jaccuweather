@@ -44,6 +44,12 @@ struct ContentView: View {
         .onChange(of: tab) { _, new in
             loadedTabs.insert(new)
         }
+        .onChange(of: model.routedAlert?.id) { _, id in
+            guard id != nil else { return }
+            tab = 0
+            showSettings = false
+            showSearch = false
+        }
         .sheet(isPresented: $showSearch) {
             SearchSheet().environment(model)
         }
