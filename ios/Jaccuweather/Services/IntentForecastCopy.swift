@@ -104,13 +104,15 @@ enum IntentForecastCopy {
     }
 
     static func supportingLine(
+        placeName: String,
         temperatureF: Double,
         conditionText: String,
         feelsLikeF: Double?
     ) -> String {
+        let place = cleaned(placeName) ?? "This place"
         let condition = cleaned(conditionText) ?? "Unknown"
         let feels = feelsLikeF.map { "Feels like \(degrees($0))°" } ?? "Feels like —"
-        return "\(degrees(temperatureF))° · \(condition) · \(feels)"
+        return "\(place) · \(degrees(temperatureF))° · \(condition) · \(feels)"
     }
 
     private static func degrees(_ value: Double) -> Int {

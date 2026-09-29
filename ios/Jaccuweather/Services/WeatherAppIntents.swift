@@ -296,6 +296,7 @@ struct GetCurrentWeather: AppIntent {
             stale: stale
         )
         let supporting = IntentForecastCopy.supportingLine(
+            placeName: reading.placeName,
             temperatureF: reading.temperatureF,
             conditionText: reading.conditionText,
             feelsLikeF: reading.feelsLikeF

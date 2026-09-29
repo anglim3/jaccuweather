@@ -65,8 +65,13 @@ func run() {
     check(missingFeels.contains("Feels like —"), "missing feels-like stays visible")
     check(missingFeels.contains("Unknown"), "blank condition becomes Unknown")
 
-    let line = IntentForecastCopy.supportingLine(temperatureF: 61.6, conditionText: "Partly cloudy", feelsLikeF: 59.2)
-    check(line == "62° · Partly cloudy · Feels like 59°", "supporting line, got \(line)")
+    let line = IntentForecastCopy.supportingLine(
+        placeName: "Seattle",
+        temperatureF: 61.6,
+        conditionText: "Partly cloudy",
+        feelsLikeF: 59.2
+    )
+    check(line == "Seattle · 62° · Partly cloudy · Feels like 59°", "supporting line, got \(line)")
 
     print("ok")
 }
