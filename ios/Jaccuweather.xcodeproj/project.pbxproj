@@ -22,6 +22,7 @@
 		42F9365675371095E8A3D15D /* GeocodingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */; };
 		99CEBE136A51A373A97C9359 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C99827EB911E5D31727ED5D2 /* HTTPClient.swift */; };
 		F6B317328B853FA31DB7E01D /* HealthScores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */; };
+		17F58A684B4297B3A083C98B /* IntentForecastCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0CE03BF0E6E5A51E8C929F8 /* IntentForecastCopy.swift */; };
 		92F7ADCB29C4651DA04E5F29 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466FF90FC174DD644889D6E5 /* KeychainStore.swift */; };
 		ABDBEAD51C35E420411C1C6A /* LogicEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */; };
 		054D85EA1F416B31C6A7E770 /* NOAARadarModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408B234880885A065E2D219A /* NOAARadarModel.swift */; };
@@ -31,6 +32,7 @@
 		E8FE8CBF284852501BFBE75B /* PollenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97846ABD5BF53CFC8DECDF4D /* PollenService.swift */; };
 		F7578858B0855FC838029A32 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1400281AE13B5127D8D53646 /* Secrets.swift */; };
 		9D3305E4D6BDCD81CC03B3B4 /* TideService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B84D783BC13F0FD22FC6C88 /* TideService.swift */; };
+		6CF03E23834F10E6294FABFE /* WeatherAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82629D46251AC101F093AA24 /* WeatherAppIntents.swift */; };
 		1873D5E11EF79B11C7E6E26D /* WeatherLiveActivitySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7F33AD19FEF448D5B6E720 /* WeatherLiveActivitySync.swift */; };
 		7CD61B65CFA9EAB9757315D4 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3525B2B1489EDA95EB64E3 /* WeatherService.swift */; };
 		55B66771D05CEA751D959A12 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF468FD4D08486EDF5453F3 /* Theme.swift */; };
@@ -121,6 +123,7 @@
 		8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingService.swift; sourceTree = "<group>"; };
 		C99827EB911E5D31727ED5D2 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthScores.swift; sourceTree = "<group>"; };
+		F0CE03BF0E6E5A51E8C929F8 /* IntentForecastCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentForecastCopy.swift; sourceTree = "<group>"; };
 		466FF90FC174DD644889D6E5 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicEngine.swift; sourceTree = "<group>"; };
 		408B234880885A065E2D219A /* NOAARadarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOAARadarModel.swift; sourceTree = "<group>"; };
@@ -130,6 +133,7 @@
 		97846ABD5BF53CFC8DECDF4D /* PollenService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollenService.swift; sourceTree = "<group>"; };
 		1400281AE13B5127D8D53646 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		9B84D783BC13F0FD22FC6C88 /* TideService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TideService.swift; sourceTree = "<group>"; };
+		82629D46251AC101F093AA24 /* WeatherAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherAppIntents.swift; sourceTree = "<group>"; };
 		9A7F33AD19FEF448D5B6E720 /* WeatherLiveActivitySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherLiveActivitySync.swift; sourceTree = "<group>"; };
 		CA3525B2B1489EDA95EB64E3 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		CEF468FD4D08486EDF5453F3 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -275,6 +279,7 @@
 				8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */,
 				C99827EB911E5D31727ED5D2 /* HTTPClient.swift */,
 				5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */,
+				F0CE03BF0E6E5A51E8C929F8 /* IntentForecastCopy.swift */,
 				466FF90FC174DD644889D6E5 /* KeychainStore.swift */,
 				1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */,
 				408B234880885A065E2D219A /* NOAARadarModel.swift */,
@@ -284,6 +289,7 @@
 				97846ABD5BF53CFC8DECDF4D /* PollenService.swift */,
 				1400281AE13B5127D8D53646 /* Secrets.swift */,
 				9B84D783BC13F0FD22FC6C88 /* TideService.swift */,
+				82629D46251AC101F093AA24 /* WeatherAppIntents.swift */,
 				9A7F33AD19FEF448D5B6E720 /* WeatherLiveActivitySync.swift */,
 				CA3525B2B1489EDA95EB64E3 /* WeatherService.swift */,
 			);
@@ -430,6 +436,7 @@
 				42F9365675371095E8A3D15D /* GeocodingService.swift in Sources */,
 				99CEBE136A51A373A97C9359 /* HTTPClient.swift in Sources */,
 				F6B317328B853FA31DB7E01D /* HealthScores.swift in Sources */,
+				17F58A684B4297B3A083C98B /* IntentForecastCopy.swift in Sources */,
 				92F7ADCB29C4651DA04E5F29 /* KeychainStore.swift in Sources */,
 				ABDBEAD51C35E420411C1C6A /* LogicEngine.swift in Sources */,
 				054D85EA1F416B31C6A7E770 /* NOAARadarModel.swift in Sources */,
@@ -439,6 +446,7 @@
 				E8FE8CBF284852501BFBE75B /* PollenService.swift in Sources */,
 				F7578858B0855FC838029A32 /* Secrets.swift in Sources */,
 				9D3305E4D6BDCD81CC03B3B4 /* TideService.swift in Sources */,
+				6CF03E23834F10E6294FABFE /* WeatherAppIntents.swift in Sources */,
 				1873D5E11EF79B11C7E6E26D /* WeatherLiveActivitySync.swift in Sources */,
 				7CD61B65CFA9EAB9757315D4 /* WeatherService.swift in Sources */,
 				55B66771D05CEA751D959A12 /* Theme.swift in Sources */,

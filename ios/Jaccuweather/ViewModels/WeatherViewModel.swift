@@ -177,6 +177,17 @@ private enum PlaceStore {
     }
 }
 
+enum SavedPlace {
+    /// The city last chosen in the app, or the last device fix it stored.
+    static func current() -> GeoResult? {
+        let preference = PlaceStore.load()
+        if preference.followsDeviceLocation == false, let explicit = preference.explicit {
+            return explicit
+        }
+        return preference.lastKnown ?? preference.explicit
+    }
+}
+
 @Observable
 @MainActor
 final class WeatherViewModel {
@@ -215,6 +226,8 @@ final class WeatherViewModel {
     var alertNotificationsOn = false
     var alertNotificationNote = ""
     var routedAlert: NWSAlertFeature?
+    /// Changes when Shortcuts asks the app to show Now.
+    var intentNowToken: String?
 
     let favorites = FavoritesStore()
     let staleAfterMs: Double = 15 * 60 * 1000
@@ -235,6 +248,7 @@ final class WeatherViewModel {
     private var lastFix: CLLocationCoordinate2D?
     private var refreshSerial = 0
     private var snowTask: Task<Void, Never>?
+    private var openObserver: NSObjectProtocol?
 
     var currentPlace: GeoResult {
         GeoResult(name: locationName, latitude: coordinate.latitude, longitude: coordinate.longitude, admin1: nil, country: nil)
@@ -371,12 +385,25 @@ final class WeatherViewModel {
         startTicker()
         alertNotificationsOn = AlertNotificationStore.preference == .on
         AlertNotificationCoordinator.shared.model = self
+        openObserver = NotificationCenter.default.addObserver(
+            forName: IntentOpenRequest.notification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.consumeIntentOpen()
+            }
+        }
     }
 
     func bootstrap() async {
         AlertNotificationCoordinator.shared.model = self
         if let pending = AlertNotificationCoordinator.shared.takePendingUserInfo() {
             openRoutedAlert(userInfo: pending)
+        }
+        if await consumeIntentOpen() {
+            await postSampleAlertIfRequested()
+            return
         }
         if hasResolvedPlace {
             if followsDeviceLocation && !sessionPinsLocation {
@@ -522,6 +549,7 @@ final class WeatherViewModel {
 
     func handleBecameActive() async {
         tickLastUpdated()
+        if await consumeIntentOpen() { return }
         if followsDeviceLocation && !sessionPinsLocation && showsPlacePrompt {
             locator.request()
             return
@@ -646,6 +674,19 @@ final class WeatherViewModel {
         lastFetchMs = Date().timeIntervalSince1970 * 1000
         tickLastUpdated()
         publishWidgetSnapshot()
+        CurrentWeatherDonation.donate()
+    }
+
+    /// Switches to a favorite when Shortcuts asked for one. Returns true when that refresh already ran.
+    @discardableResult
+    func consumeIntentOpen() async -> Bool {
+        guard let request = IntentOpenRequest.take() else { return false }
+        intentNowToken = request.token
+        guard let latitude = request.latitude, let longitude = request.longitude else { return false }
+        let trimmed = request.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = trimmed.isEmpty ? "Favorite" : trimmed
+        await select(GeoResult(name: name, latitude: latitude, longitude: longitude, admin1: nil, country: nil))
+        return true
     }
 
     private func publishWidgetSnapshot() {
@@ -683,6 +724,19 @@ final class WeatherViewModel {
             fetchedAt: fetchedAt
         )
         WidgetSnapshotStore.save(snapshot)
+        if let temperature = snapshot.temperatureF {
+            let condition = conditionDescription.isEmpty ? snapshot.conditionText : conditionDescription
+            IntentForecastStore.save(IntentForecastReading(
+                placeName: snapshot.locationName,
+                latitude: snapshot.latitude,
+                longitude: snapshot.longitude,
+                temperatureF: temperature,
+                feelsLikeF: snapshot.feelsLikeF,
+                conditionText: condition,
+                symbolName: snapshot.symbolName,
+                fetchedAt: snapshot.fetchedAt
+            ), makeCurrent: true)
+        }
         guard weather != nil else { return }
         WeatherLiveActivitySync.startOrUpdate(
             placeID: snapshot.locationId,
