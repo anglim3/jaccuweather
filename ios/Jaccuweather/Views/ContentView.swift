@@ -40,6 +40,7 @@ struct ContentView: View {
         .task { await model.bootstrap() }
         .onAppear {
             if LaunchArgs.showSettings { showSettings = true }
+            if LaunchArgs.showSearch { showSearch = true }
         }
         .onChange(of: tab) { _, new in
             loadedTabs.insert(new)
