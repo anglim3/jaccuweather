@@ -50,6 +50,12 @@ struct ContentView: View {
             showSettings = false
             showSearch = false
         }
+        .onChange(of: model.intentNowToken) { _, token in
+            guard token != nil else { return }
+            tab = 0
+            showSettings = false
+            showSearch = false
+        }
         .sheet(isPresented: $showSearch) {
             SearchSheet().environment(model)
         }
