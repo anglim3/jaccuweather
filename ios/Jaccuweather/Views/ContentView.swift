@@ -56,6 +56,12 @@ struct ContentView: View {
             showSettings = false
             showSearch = false
         }
+        .onOpenURL { url in
+            guard NowLink.opensNow(url) else { return }
+            tab = 0
+            showSettings = false
+            showSearch = false
+        }
         .sheet(isPresented: $showSearch) {
             SearchSheet().environment(model)
         }

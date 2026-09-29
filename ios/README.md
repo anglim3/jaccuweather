@@ -54,6 +54,12 @@ Install the app, then:
 2. If the widget says to choose a place, touch and hold it, tap **Edit Widget**, and search for a city or enter coordinates.
 3. Lock Screen: long-press, tap **Customize**, and add the circular or rectangular Jaccuweather accessory. It uses the same place.
 
+### Control Center
+
+iOS 18 and later. The same widget extension provides an **Open Jaccuweather** control. Add it from Control Center’s control gallery (open Control Center, touch and hold, then add a control, and search Jaccuweather). Tapping it opens the Now tab for the place the app already has loaded.
+
+When the App Group snapshot is readable, the control label shows that temperature. A free Personal Team cannot provision the App Group, so the container is missing, the label stays **Open**, and the control still launches Now. No extra entitlement is required for that fallback.
+
 Signing stays Automatic. The committed project leaves `DEVELOPMENT_TEAM` empty — pick your Personal Team locally in Xcode. Do not commit a team id.
 
 ### Optional pollen keys (never commit)

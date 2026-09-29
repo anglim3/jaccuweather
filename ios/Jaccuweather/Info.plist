@@ -10,5 +10,16 @@
 	<string>$(NWS_USER_AGENT)</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>cloud.janglim.jaccuweather</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>jaccuweather</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
