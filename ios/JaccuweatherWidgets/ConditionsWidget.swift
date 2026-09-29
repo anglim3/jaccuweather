@@ -566,5 +566,6 @@ private extension WidgetConditionsSnapshot {
 struct JaccuweatherWidgets: WidgetBundle {
     var body: some Widget {
         ConditionsWidget()
+        CurrentConditionsLiveActivity()
     }
 }

@@ -44,6 +44,14 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Favorites remove | **DONE** — swipe to remove in the location sheet |
 | Home Screen and Lock Screen widgets | **DONE** — `JaccuweatherWidgets` reads an App Group snapshot written on each successful forecast refresh. Small and medium home widgets use the Horizon navy gradient, glass chips, and a serif place name. Lock Screen circular, rectangular, and inline accessories keep that hierarchy, with the same fill when the system shows a widget background. SF Symbols from the WMO code. No SVG or WKWebView |
 
+## Native-only extras
+
+Not website features. The table above stays the website parity list.
+
+| Extra | Status |
+|---|---|
+| Lock Screen Live Activity and Dynamic Island | **DONE** — current place temperature, WMO condition, and place name on a compact navy Lock Screen banner. Compact Dynamic Island shows the temperature and an SF Symbol for the WMO code. The app starts and updates the activity from the in-process forecast on each successful refresh, and ends it when there is no current weather. No push-to-start, no new App Group, no SVG or WKWebView |
+
 ## Honest leftovers (not code gaps vs the site)
 
 | Item | Why it is not a merge blocker |
