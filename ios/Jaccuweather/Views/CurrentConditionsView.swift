@@ -5,6 +5,8 @@ struct CurrentConditionsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var showMoon = false
     @State private var selectedAlert: NWSAlertFeature?
+    @State private var showShare = false
+    @State private var shareItems: [Any] = []
 
     private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
@@ -29,12 +31,23 @@ struct CurrentConditionsView: View {
             ToolbarItem(placement: .topBarLeading) {
                 Button { model.requestDeviceLocation() } label: { Image(systemName: "location.fill") }
             }
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: prepareShare) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel("Share current conditions")
+                .accessibilityIdentifier("share-conditions")
+                .disabled(shareSummary == nil)
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { model.favorites.toggle(model.currentPlace) } label: {
                     Image(systemName: model.favorites.contains(model.currentPlace) ? "star.fill" : "star")
                         .foregroundStyle(theme.gold)
                 }
             }
+        }
+        .background {
+            ConditionsSharePresenter(isPresented: $showShare, items: shareItems)
         }
         .refreshable { await model.refresh() }
         .onAppear {
@@ -138,6 +151,35 @@ struct CurrentConditionsView: View {
                 pressureTile(value: pressure.value, trend: pressure.trend)
             }
         }
+    }
+
+    private var shareReading: ConditionsShareReading {
+        let current = model.weather?.current
+        return ConditionsShareReading(
+            placeName: model.locationName,
+            temperatureF: current?.number("temperature_2m"),
+            feelsLikeF: current?.number("apparent_temperature"),
+            conditionText: model.conditionDescription,
+            highF: model.sun?.high,
+            lowF: model.sun?.low
+        )
+    }
+
+    private var shareSummary: String? {
+        ConditionsShareCopy.summary(shareReading)
+    }
+
+    private func prepareShare() {
+        guard let summary = shareSummary else { return }
+        let lines = ConditionsShareCopy.lines(shareReading) ?? []
+        let image = ConditionsShareImage.render(lines: lines)
+        var items: [Any] = [ConditionsShareTextSource(summary: summary, previewImage: image)]
+        if let image {
+            items.append(image)
+        }
+        items.append(NowLink.url)
+        shareItems = items
+        showShare = true
     }
 
     private var locationDateLine: String {

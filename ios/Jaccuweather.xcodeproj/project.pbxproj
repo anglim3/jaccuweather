@@ -18,6 +18,7 @@
 		8E429C052C49B1E664D404DB /* AlertNotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01689426D79475FEC06BE3EF /* AlertNotificationCoordinator.swift */; };
 		F145D1579DE20D75FF192B5D /* AlertNotificationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5AAF61D6D26D0E39E5329E /* AlertNotificationCopy.swift */; };
 		9CB6E1620584C8B37D777686 /* AlertsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3790FBD1C49350AD71C40786 /* AlertsService.swift */; };
+		82C28F2ECB2BE23C00C14CB9 /* ConditionsShareCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */; };
 		EC4D8333ADAC575A91D38F90 /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A0C722FF04D18341E065B7 /* FavoritesStore.swift */; };
 		42F9365675371095E8A3D15D /* GeocodingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */; };
 		99CEBE136A51A373A97C9359 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C99827EB911E5D31727ED5D2 /* HTTPClient.swift */; };
@@ -37,6 +38,7 @@
 		7CD61B65CFA9EAB9757315D4 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3525B2B1489EDA95EB64E3 /* WeatherService.swift */; };
 		55B66771D05CEA751D959A12 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF468FD4D08486EDF5453F3 /* Theme.swift */; };
 		32B0E52FB830F2B66E582B1C /* WeatherViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A420AD894AA05069EDD20720 /* WeatherViewModel.swift */; };
+		BBA49305EC09D446F7E510ED /* ConditionsShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C6E1552B92ECA1502D9526 /* ConditionsShareSheet.swift */; };
 		028352BDB244EDD04FEA3D74 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC397C662DCC8FB11473E778 /* ContentView.swift */; };
 		F650C38F7A65EEE6FDACCEC3 /* CurrentConditionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5FD068F45816853034ABDA /* CurrentConditionsView.swift */; };
 		167D96914BD27D828CFE3AF4 /* ForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02EB06AA4133A6CAF6C13A44 /* ForecastView.swift */; };
@@ -124,6 +126,7 @@
 		01689426D79475FEC06BE3EF /* AlertNotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertNotificationCoordinator.swift; sourceTree = "<group>"; };
 		CE5AAF61D6D26D0E39E5329E /* AlertNotificationCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertNotificationCopy.swift; sourceTree = "<group>"; };
 		3790FBD1C49350AD71C40786 /* AlertsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsService.swift; sourceTree = "<group>"; };
+		615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsShareCopy.swift; sourceTree = "<group>"; };
 		52A0C722FF04D18341E065B7 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingService.swift; sourceTree = "<group>"; };
 		C99827EB911E5D31727ED5D2 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
@@ -143,6 +146,7 @@
 		CA3525B2B1489EDA95EB64E3 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		CEF468FD4D08486EDF5453F3 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		A420AD894AA05069EDD20720 /* WeatherViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherViewModel.swift; sourceTree = "<group>"; };
+		10C6E1552B92ECA1502D9526 /* ConditionsShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsShareSheet.swift; sourceTree = "<group>"; };
 		DC397C662DCC8FB11473E778 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		3D5FD068F45816853034ABDA /* CurrentConditionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentConditionsView.swift; sourceTree = "<group>"; };
 		02EB06AA4133A6CAF6C13A44 /* ForecastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastView.swift; sourceTree = "<group>"; };
@@ -286,6 +290,7 @@
 				01689426D79475FEC06BE3EF /* AlertNotificationCoordinator.swift */,
 				CE5AAF61D6D26D0E39E5329E /* AlertNotificationCopy.swift */,
 				3790FBD1C49350AD71C40786 /* AlertsService.swift */,
+				615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */,
 				52A0C722FF04D18341E065B7 /* FavoritesStore.swift */,
 				8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */,
 				C99827EB911E5D31727ED5D2 /* HTTPClient.swift */,
@@ -318,6 +323,7 @@
 		9B8A2ECD0A231B7FC909F078 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				10C6E1552B92ECA1502D9526 /* ConditionsShareSheet.swift */,
 				DC397C662DCC8FB11473E778 /* ContentView.swift */,
 				3D5FD068F45816853034ABDA /* CurrentConditionsView.swift */,
 				02EB06AA4133A6CAF6C13A44 /* ForecastView.swift */,
@@ -443,6 +449,7 @@
 				8E429C052C49B1E664D404DB /* AlertNotificationCoordinator.swift in Sources */,
 				F145D1579DE20D75FF192B5D /* AlertNotificationCopy.swift in Sources */,
 				9CB6E1620584C8B37D777686 /* AlertsService.swift in Sources */,
+				82C28F2ECB2BE23C00C14CB9 /* ConditionsShareCopy.swift in Sources */,
 				EC4D8333ADAC575A91D38F90 /* FavoritesStore.swift in Sources */,
 				42F9365675371095E8A3D15D /* GeocodingService.swift in Sources */,
 				99CEBE136A51A373A97C9359 /* HTTPClient.swift in Sources */,
@@ -462,6 +469,7 @@
 				7CD61B65CFA9EAB9757315D4 /* WeatherService.swift in Sources */,
 				55B66771D05CEA751D959A12 /* Theme.swift in Sources */,
 				32B0E52FB830F2B66E582B1C /* WeatherViewModel.swift in Sources */,
+				BBA49305EC09D446F7E510ED /* ConditionsShareSheet.swift in Sources */,
 				028352BDB244EDD04FEA3D74 /* ContentView.swift in Sources */,
 				F650C38F7A65EEE6FDACCEC3 /* CurrentConditionsView.swift in Sources */,
 				167D96914BD27D828CFE3AF4 /* ForecastView.swift in Sources */,
