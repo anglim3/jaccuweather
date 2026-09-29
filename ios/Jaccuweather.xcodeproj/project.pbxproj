@@ -46,12 +46,17 @@
 		D12472CA0DAFE3EA9DB72B36 /* SVGIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C331D3CFF0E6949D7CAF81C /* SVGIconView.swift */; };
 		DFBAD5F077D568912360D8A5 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 756DEF8249B75BEA57074419 /* SearchSheet.swift */; };
 		8EE2C5B05E652FFA6269E47E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C4782339DE4F8305360CDF /* SettingsView.swift */; };
+		2030B64F2A17C73FBF6E64AE /* ControlOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C41448397A3B92F460854420 /* ControlOpen.swift */; };
+		1DFF93E6978AAD68061E29CF /* OpenNowIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */; };
 		5EEFE05E21BF2DBE96D94601 /* WeatherActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */; };
 		9A0BDCD75A45B4A3E9E7B1C6 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */; };
+		9C8F292CD7C3BECF7469BFF1 /* ControlOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C41448397A3B92F460854420 /* ControlOpen.swift */; };
+		E2769EA84DBE6A6A41E1E71F /* OpenNowIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */; };
 		0D521042819354B183008F5A /* WeatherActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */; };
 		79350FEBEC637061A4916F18 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */; };
 		FBCBE0834429F765CC79BF61 /* ConditionsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */; };
 		5D51681931DD802F23C6ADD7 /* CurrentConditionsLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5AED5B05E118847ABB9227 /* CurrentConditionsLiveActivity.swift */; };
+		48A09BD5B6E505A4EDAA30A2 /* OpenNowControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8613ADB8D16D643935EB926D /* OpenNowControl.swift */; };
 		43B398EEED329B62849F044D /* WidgetHorizon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E0BBB289CE66AF4B5FFD0C /* WidgetHorizon.swift */; };
 		8AEAB17810648F85943328C1 /* WidgetPlaceIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */; };
 		30EF19BC0E8BF883B15132EB /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */; };
@@ -147,10 +152,13 @@
 		1C331D3CFF0E6949D7CAF81C /* SVGIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGIconView.swift; sourceTree = "<group>"; };
 		756DEF8249B75BEA57074419 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		A1C4782339DE4F8305360CDF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C41448397A3B92F460854420 /* ControlOpen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlOpen.swift; sourceTree = "<group>"; };
+		1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNowIntent.swift; sourceTree = "<group>"; };
 		F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherActivityAttributes.swift; sourceTree = "<group>"; };
 		80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsWidget.swift; sourceTree = "<group>"; };
 		FF5AED5B05E118847ABB9227 /* CurrentConditionsLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentConditionsLiveActivity.swift; sourceTree = "<group>"; };
+		8613ADB8D16D643935EB926D /* OpenNowControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNowControl.swift; sourceTree = "<group>"; };
 		54E0BBB289CE66AF4B5FFD0C /* WidgetHorizon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetHorizon.swift; sourceTree = "<group>"; };
 		605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPlaceIntent.swift; sourceTree = "<group>"; };
 		55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRefresh.swift; sourceTree = "<group>"; };
@@ -226,6 +234,7 @@
 			children = (
 				495B85D732641E9EE1FF5B9A /* ConditionsWidget.swift */,
 				FF5AED5B05E118847ABB9227 /* CurrentConditionsLiveActivity.swift */,
+				8613ADB8D16D643935EB926D /* OpenNowControl.swift */,
 				54E0BBB289CE66AF4B5FFD0C /* WidgetHorizon.swift */,
 				605B9C88841B03796BA7A1FE /* WidgetPlaceIntent.swift */,
 				55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */,
@@ -238,6 +247,8 @@
 		E13CD7D1A3462703C55E01E7 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				C41448397A3B92F460854420 /* ControlOpen.swift */,
+				1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */,
 				F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */,
 				80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */,
 			);
@@ -460,6 +471,8 @@
 				D12472CA0DAFE3EA9DB72B36 /* SVGIconView.swift in Sources */,
 				DFBAD5F077D568912360D8A5 /* SearchSheet.swift in Sources */,
 				8EE2C5B05E652FFA6269E47E /* SettingsView.swift in Sources */,
+				2030B64F2A17C73FBF6E64AE /* ControlOpen.swift in Sources */,
+				1DFF93E6978AAD68061E29CF /* OpenNowIntent.swift in Sources */,
 				5EEFE05E21BF2DBE96D94601 /* WeatherActivityAttributes.swift in Sources */,
 				9A0BDCD75A45B4A3E9E7B1C6 /* WidgetSnapshot.swift in Sources */,
 			);
@@ -471,9 +484,12 @@
 			files = (
 				FBCBE0834429F765CC79BF61 /* ConditionsWidget.swift in Sources */,
 				5D51681931DD802F23C6ADD7 /* CurrentConditionsLiveActivity.swift in Sources */,
+				48A09BD5B6E505A4EDAA30A2 /* OpenNowControl.swift in Sources */,
 				43B398EEED329B62849F044D /* WidgetHorizon.swift in Sources */,
 				8AEAB17810648F85943328C1 /* WidgetPlaceIntent.swift in Sources */,
 				30EF19BC0E8BF883B15132EB /* WidgetRefresh.swift in Sources */,
+				9C8F292CD7C3BECF7469BFF1 /* ControlOpen.swift in Sources */,
+				E2769EA84DBE6A6A41E1E71F /* OpenNowIntent.swift in Sources */,
 				0D521042819354B183008F5A /* WeatherActivityAttributes.swift in Sources */,
 				79350FEBEC637061A4916F18 /* WidgetSnapshot.swift in Sources */,
 			);

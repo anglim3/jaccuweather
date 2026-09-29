@@ -56,12 +56,25 @@ struct ContentView: View {
             showSettings = false
             showSearch = false
         }
+        .onOpenURL { url in
+            guard NowLink.opensNow(url) else { return }
+            showNow()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NowLink.opened)) { _ in
+            showNow()
+        }
         .sheet(isPresented: $showSearch) {
             SearchSheet().environment(model)
         }
         .sheet(isPresented: $showSettings) {
             SettingsView().environment(model)
         }
+    }
+
+    private func showNow() {
+        tab = 0
+        showSettings = false
+        showSearch = false
     }
 
     private func tabIsLoaded(_ tag: Int) -> Bool {

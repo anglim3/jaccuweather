@@ -52,6 +52,7 @@ struct WidgetConditionsSnapshot: Codable, Equatable {
 enum WidgetSnapshotStore {
     static let appGroupID = "group.cloud.janglim.jaccuweather"
     static let kind = "cloud.janglim.jaccuweather.conditions"
+    static let openControlKind = "cloud.janglim.jaccuweather.open-now"
     private static let fileName = "widget-snapshot.json"
     #if DEBUG
     /// Empty file in the App Group container. Debug builds then behave as if
@@ -101,6 +102,9 @@ enum WidgetSnapshotStore {
         guard reloadWidgets else { return }
         Task { @MainActor in
             WidgetCenter.shared.reloadTimelines(ofKind: kind)
+            if #available(iOS 18.0, *) {
+                ControlCenter.shared.reloadControls(ofKind: openControlKind)
+            }
         }
     }
 }

@@ -28,6 +28,7 @@ struct JaccuweatherApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        NowLink.startObserving()
         AlertNotificationCoordinator.shared.install()
     }
 
