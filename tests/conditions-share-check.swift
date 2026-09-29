@@ -115,6 +115,11 @@ func run() {
 
     let custom = URL(string: "jaccuweather://now")!
     check(ConditionsShareCopy.summary(full, link: custom) == expected, "explicit now link matches the default")
+    check(
+        ConditionsShareCopy.previewTitle(full) == "Seattle 62° feels 58° Partly cloudy High 68° / Low 51°",
+        "preview title is one line, got \(ConditionsShareCopy.previewTitle(full) ?? "nil")"
+    )
+    check(ConditionsShareCopy.previewTitle(missingTemp) == nil, "preview title needs a temperature")
 
     print("ok")
 }

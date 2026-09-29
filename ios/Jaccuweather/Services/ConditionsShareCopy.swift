@@ -34,6 +34,15 @@ enum ConditionsShareCopy {
         return (lines + [link.absoluteString]).joined(separator: "\n")
     }
 
+    /// One line for the share sheet header. The shared text stays `summary`.
+    static func previewTitle(_ reading: ConditionsShareReading) -> String? {
+        guard let lines = lines(reading) else { return nil }
+        return lines.map { line in
+            guard line.hasPrefix("Feels like ") else { return line }
+            return "feels " + line.dropFirst("Feels like ".count)
+        }.joined(separator: " ")
+    }
+
     private static func rangeLine(high: Double?, low: Double?) -> String? {
         switch (degrees(high), degrees(low)) {
         case let (high?, low?):
