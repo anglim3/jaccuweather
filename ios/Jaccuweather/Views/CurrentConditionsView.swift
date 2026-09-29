@@ -29,6 +29,9 @@ struct CurrentConditionsView: View {
             ToolbarItem(placement: .topBarLeading) {
                 Button { model.requestDeviceLocation() } label: { Image(systemName: "location.fill") }
             }
+            ToolbarItem(placement: .topBarLeading) {
+                ShareConditionsButton(reading: shareReading)
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { model.favorites.toggle(model.currentPlace) } label: {
                     Image(systemName: model.favorites.contains(model.currentPlace) ? "star.fill" : "star")
@@ -138,6 +141,18 @@ struct CurrentConditionsView: View {
                 pressureTile(value: pressure.value, trend: pressure.trend)
             }
         }
+    }
+
+    private var shareReading: ConditionsShareReading {
+        let current = model.weather?.current
+        return ConditionsShareReading(
+            placeName: model.locationName,
+            temperatureF: current?.number("temperature_2m"),
+            feelsLikeF: current?.number("apparent_temperature"),
+            conditionText: model.conditionDescription,
+            highF: model.sun?.high,
+            lowF: model.sun?.low
+        )
     }
 
     private var locationDateLine: String {
