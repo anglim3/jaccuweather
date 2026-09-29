@@ -8,5 +8,7 @@
 	<string>$(TOMORROW_API_KEY)</string>
 	<key>NWS_USER_AGENT</key>
 	<string>$(NWS_USER_AGENT)</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 </dict>
 </plist>

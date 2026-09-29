@@ -393,6 +393,9 @@ final class WeatherViewModel {
         } catch {
             guard serial == refreshSerial else { return }
             errorMessage = error.localizedDescription
+            if weather == nil {
+                WeatherLiveActivitySync.end()
+            }
         }
     }
 
@@ -528,6 +531,7 @@ final class WeatherViewModel {
         if weather == nil {
             showsPlacePrompt = true
             errorMessage = nil
+            WeatherLiveActivitySync.end()
         }
     }
 
@@ -608,6 +612,19 @@ final class WeatherViewModel {
             fetchedAt: fetchedAt
         )
         WidgetSnapshotStore.save(snapshot)
+        guard weather != nil else { return }
+        WeatherLiveActivitySync.startOrUpdate(
+            placeID: snapshot.locationId,
+            placeName: snapshot.locationName,
+            temperatureF: snapshot.temperatureF,
+            conditionText: liveConditionText(code: code),
+            symbolName: snapshot.symbolName
+        )
+    }
+
+    private func liveConditionText(code: Int?) -> String {
+        if !conditionDescription.isEmpty { return conditionDescription }
+        return WidgetWeatherCode.shortText(code)
     }
 
     private func runSearch() async {
