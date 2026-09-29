@@ -211,6 +211,7 @@ final class WeatherViewModel {
     var conditionDescription = ""
     var conditionIcon = "clear-day.svg"
     var currentUVDetail = ""
+    var appearance: JWAppearance = .stored
 
     let favorites = FavoritesStore()
     let staleAfterMs: Double = 15 * 60 * 1000
@@ -243,6 +244,23 @@ final class WeatherViewModel {
         if isLocating { return "Finding your location…" }
         if isLoading { return "Fetching ensemble forecast…" }
         return nil
+    }
+
+    /// Dark stays on the navy field. Light uses the current WMO code and `is_day`.
+    var pageSky: JWSky {
+        guard appearance == .light, let weather else { return .navy }
+        let isDay = weather.current.int("is_day") != 0
+        return JWSky.matching(weatherCode: weather.current.int("weather_code"), isDay: isDay)
+    }
+
+    func setAppearance(_ value: JWAppearance) {
+        guard appearance != value else { return }
+        appearance = value
+        UserDefaults.standard.set(value.rawValue, forKey: JWAppearance.storageKey)
+    }
+
+    func toggleAppearance() {
+        setAppearance(appearance == .light ? .dark : .light)
     }
 
     init() {

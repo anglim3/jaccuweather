@@ -8,6 +8,7 @@ enum LaunchArgs {
     static var latitude: Double? { value("lat").flatMap(Double.init) }
     static var longitude: Double? { value("lon").flatMap(Double.init) }
     static var placeName: String? { value("name") }
+    static var showSettings: Bool { value("settings") == "1" }
 
     static func value(_ name: String) -> String? {
         let args = ProcessInfo.processInfo.arguments
@@ -25,6 +26,8 @@ struct JaccuweatherApp: App {
         WindowGroup {
             ContentView()
                 .environment(model)
+                // The site toggle is separate from the system appearance.
+                // Dark chrome keeps glass type white on the navy field and on weather skies.
                 .preferredColorScheme(.dark)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
