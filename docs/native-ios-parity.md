@@ -51,6 +51,7 @@ Not website features. The table above stays the website parity list.
 | Extra | Status |
 |---|---|
 | Lock Screen Live Activity and Dynamic Island | **DONE** — current place temperature, WMO condition, and place name on a compact navy Lock Screen banner. Compact Dynamic Island shows the temperature and an SF Symbol for the WMO code. The app starts and updates the activity from the in-process forecast on each successful refresh, and ends it when there is no current weather. No push-to-start, no new App Group, no SVG or WKWebView |
+| Local NWS alert notifications | **DONE** — a refresh that finds a new active alert id for the current place posts one local notification. The title carries Extreme, Severe, Moderate, or Minor; the body is the headline. Tapping it opens that alert’s detail. Settings has an on/off control and asks for permission once; the same ask can happen the first time a new alert is found. Posted ids stay in UserDefaults. No push server and no remote-notification capability. Debug builds can post one labeled sample from Settings or with `-alertSample 1` |
 
 ## Honest leftovers (not code gaps vs the site)
 

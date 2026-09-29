@@ -212,6 +212,9 @@ final class WeatherViewModel {
     var conditionIcon = "clear-day.svg"
     var currentUVDetail = ""
     var appearance: JWAppearance = .stored
+    var alertNotificationsOn = false
+    var alertNotificationNote = ""
+    var routedAlert: NWSAlertFeature?
 
     let favorites = FavoritesStore()
     let staleAfterMs: Double = 15 * 60 * 1000
@@ -263,6 +266,65 @@ final class WeatherViewModel {
         setAppearance(appearance == .light ? .dark : .light)
     }
 
+    func reloadAlertNotificationPreference() {
+        alertNotificationsOn = AlertNotificationStore.preference == .on
+    }
+
+    func refreshAlertNotificationStatus() async {
+        reloadAlertNotificationPreference()
+        guard alertNotificationsOn else { return }
+        if await AlertNotificationCoordinator.shared.authorizationStatus() == .denied {
+            alertNotificationNote = "Notifications are off for this app in iOS Settings."
+        }
+    }
+
+    func setAlertNotificationsEnabled(_ enabled: Bool) async {
+        let result = await AlertNotificationCoordinator.shared.setEnabled(enabled)
+        reloadAlertNotificationPreference()
+        switch result {
+        case .on:
+            alertNotificationNote = ""
+            await AlertNotificationCoordinator.shared.handleFreshAlerts(alerts, placeName: locationName)
+        case .off:
+            alertNotificationNote = ""
+        case .denied:
+            alertNotificationNote = "Notifications are off for this app in iOS Settings."
+        }
+    }
+
+    func openRoutedAlert(userInfo: [AnyHashable: Any]) {
+        guard let id = userInfo[NWSAlertFeature.notificationIDKey] as? String else { return }
+        if let match = alerts.first(where: { $0.id == id }) {
+            routedAlert = match
+            return
+        }
+        routedAlert = NWSAlertFeature(notificationUserInfo: userInfo)
+    }
+
+    func clearRoutedAlert() {
+        routedAlert = nil
+    }
+
+    func postSampleAlertNotification() async {
+        #if DEBUG
+        if await AlertNotificationCoordinator.shared.authorizationStatus() == .notDetermined {
+            _ = await setAlertNotificationsEnabled(true)
+        }
+        guard await AlertNotificationCoordinator.shared.authorizationStatus() != .denied else {
+            alertNotificationNote = "Notifications are off for this app in iOS Settings."
+            return
+        }
+        _ = await AlertNotificationCoordinator.shared.postSample(placeName: locationName.isEmpty ? "This place" : locationName)
+        #endif
+    }
+
+    private func postSampleAlertIfRequested() async {
+        #if DEBUG
+        guard LaunchArgs.alertSample else { return }
+        await postSampleAlertNotification()
+        #endif
+    }
+
     init() {
         _ = LogicEngine.shared
         preference = PlaceStore.load()
@@ -307,17 +369,25 @@ final class WeatherViewModel {
             }
         }
         startTicker()
+        alertNotificationsOn = AlertNotificationStore.preference == .on
+        AlertNotificationCoordinator.shared.model = self
     }
 
     func bootstrap() async {
+        AlertNotificationCoordinator.shared.model = self
+        if let pending = AlertNotificationCoordinator.shared.takePendingUserInfo() {
+            openRoutedAlert(userInfo: pending)
+        }
         if hasResolvedPlace {
             if followsDeviceLocation && !sessionPinsLocation {
                 locator.request()
             }
             await refresh()
+            await postSampleAlertIfRequested()
             return
         }
         locator.request()
+        await postSampleAlertIfRequested()
     }
 
     func refresh() async {
@@ -371,6 +441,7 @@ final class WeatherViewModel {
                 }
             }
             alertIconFiles = icons
+            await AlertNotificationCoordinator.shared.handleFreshAlerts(alerts, placeName: locationName)
             if let resolvedName, !resolvedName.isEmpty {
                 let nameChanged = resolvedName != locationName
                 locationName = resolvedName

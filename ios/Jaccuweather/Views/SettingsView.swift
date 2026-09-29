@@ -33,6 +33,54 @@ struct SettingsView: View {
                             .accessibilityIdentifier("appearance-sky")
                     }
 
+                    WeatherCard(title: "Notifications", titleStyle: .section) {
+                        Text("A refresh that finds a new active National Weather Service alert for this place can notify this phone. Each alert is shown once. Nothing is sent to a server.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Toggle(isOn: alertNotificationsBinding) {
+                            Text("Alert notifications")
+                                .font(.body.weight(.semibold))
+                        }
+                        .tint(theme.accent)
+                        .accessibilityIdentifier("alert-notifications-toggle")
+                        if !model.alertNotificationNote.isEmpty {
+                            Text(model.alertNotificationNote)
+                                .font(.footnote)
+                                .foregroundStyle(theme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("alert-notifications-note")
+                            Button("Open iOS Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(theme.accent)
+                        }
+                    }
+
+                    #if DEBUG
+                    WeatherCard(title: "Debug", titleStyle: .section) {
+                        Text("Posts one sample local notification. It is not a live National Weather Service alert.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button {
+                            Task { await model.postSampleAlertNotification() }
+                        } label: {
+                            Text("Post sample notification")
+                                .font(.body.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                        .jwGlass(.stat)
+                        .accessibilityIdentifier("alert-notification-sample")
+                    }
+                    #endif
+
                     WeatherCard(title: "On this device", titleStyle: .section) {
                         Text("Keys stay in this device’s Keychain. Blank pollen keys keep the Open-Meteo fallback. Nothing here is written into the project.")
                             .font(.footnote)
@@ -115,8 +163,20 @@ struct SettingsView: View {
                     Button("Close") { dismiss() }
                 }
             }
-            .onAppear(perform: load)
+            .onAppear {
+                load()
+                Task { await model.refreshAlertNotificationStatus() }
+            }
         }
+    }
+
+    private var alertNotificationsBinding: Binding<Bool> {
+        Binding(
+            get: { model.alertNotificationsOn },
+            set: { enabled in
+                Task { await model.setAlertNotificationsEnabled(enabled) }
+            }
+        )
     }
 
     private var skyLine: String {

@@ -37,8 +37,15 @@ struct CurrentConditionsView: View {
             }
         }
         .refreshable { await model.refresh() }
+        .onAppear {
+            if let alert = model.routedAlert { selectedAlert = alert }
+        }
+        .onChange(of: model.routedAlert?.id) { _, id in
+            guard id != nil, let alert = model.routedAlert else { return }
+            selectedAlert = alert
+        }
         .sheet(isPresented: $showMoon) { MoonSheet() }
-        .sheet(item: $selectedAlert) { alert in
+        .sheet(item: $selectedAlert, onDismiss: { model.clearRoutedAlert() }) { alert in
             AlertDetailSheet(alert: alert)
         }
     }
@@ -473,7 +480,9 @@ struct AlertDetailSheet: View {
                         SVGIconView(fileName: LogicEngine.shared.alertIconFile(alert.properties.event), folder: "alerts", pointSize: 36)
                             .frame(width: 36, height: 36)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(alert.properties.event ?? "Alert").font(.title3.weight(.semibold))
+                            Text(alert.properties.event ?? "Alert")
+                                .font(.title3.weight(.semibold))
+                                .accessibilityIdentifier("alert-detail-event")
                             if let severity = alert.properties.severity {
                                 Text([severity, alert.properties.urgency].compactMap { $0 }.joined(separator: " · "))
                                     .font(.caption.weight(.semibold))

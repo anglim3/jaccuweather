@@ -9,6 +9,11 @@ enum LaunchArgs {
     static var longitude: Double? { value("lon").flatMap(Double.init) }
     static var placeName: String? { value("name") }
     static var showSettings: Bool { value("settings") == "1" }
+    #if DEBUG
+    static var alertSample: Bool { value("alertSample") == "1" }
+    #else
+    static var alertSample: Bool { false }
+    #endif
 
     static func value(_ name: String) -> String? {
         let args = ProcessInfo.processInfo.arguments
@@ -21,6 +26,10 @@ enum LaunchArgs {
 struct JaccuweatherApp: App {
     @State private var model = WeatherViewModel()
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        AlertNotificationCoordinator.shared.install()
+    }
 
     var body: some Scene {
         WindowGroup {
