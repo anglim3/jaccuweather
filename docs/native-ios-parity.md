@@ -25,10 +25,12 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | AQI (US AQI from Open-Meteo air-quality) | **DONE** — shown when Open-Meteo (or merged) current has `us_aqi` |
 | NOAA tides (50 km / 20 m elevation, hilo + cosine interpolate) | **DONE** — Now list + Forecast tides chart |
 | MapKit default map | **DONE** — Radar tab |
-| RainViewer past-radar tiles on MapKit | **DONE** — default global source. One `MKTileOverlay`, play/pause, scrubber, frame time in the location offset, [RainViewer](https://www.rainviewer.com/) credit. Zoom above 7 crops the z=7 tile. See [native-ios-radar.md](native-ios-radar.md) |
-| NOAA / NWS MRMS base reflectivity | **DONE** — optional “US (NOAA)” source when the place is inside CONUS, Alaska, Hawaii, Caribbean, or Guam. One EPSG:3857 `GetMap` per frame or settled pan, every-other-stamp scrubber, “NOAA / NWS MRMS” credit. Outside those boxes RainViewer only. See [native-ios-radar.md](native-ios-radar.md) |
+| RainViewer | **Removed.** No catalog, tiles, source control, or credit. The app does not call `api.rainviewer.com` or `tilecache.rainviewer.com` |
+| NOAA / NWS MRMS base reflectivity | **DONE** — the radar image when the place is inside CONUS, Alaska, Hawaii, Caribbean, or Guam. One EPSG:3857 `GetMap` per frame or settled pan, every-other-stamp scrubber, “NOAA / NWS MRMS” credit linking to the [NWS disclaimer](https://www.weather.gov/disclaimer). Outside those boxes the tab shows **Radar unavailable** and does not draw Open-Meteo points as radar. See [native-ios-radar.md](native-ios-radar.md) |
 | NWS WMS `nexrad-n0q-wmst` | **Removed** — upstream `LayerNotDefined`. Replaced by the MRMS `*_bref_qcd` mosaics above |
-| Ventusky | **Removed from the app.** The website iframe is unchanged. No WKWebView |
+| Ventusky | **Not in the app.** The website iframe is unchanged. No WKWebView and no Radar-tab link-out |
+| Open-Meteo attribution | **DONE** — Settings “Data sources”, plus a footer under Now, Forecast, and Health. “Weather data by Open-Meteo.com” links to https://open-meteo.com/. “CC BY 4.0” links to the licence. Copy notes that ensemble values are averaged |
+| NOAA / NWS attribution | **DONE** — Radar credit when a mosaic is shown. “Alerts from NOAA / NWS” on the alerts card and detail. Settings links the same disclaimer |
 | City search (Open-Meteo geocoding) | **DONE** |
 | Reverse geocode (BigDataCloud) | **DONE** |
 | Device geolocation | **DONE** — When In Use |
@@ -61,9 +63,9 @@ Not website features. The table above stays the website parity list.
 
 | Item | Why it is not a merge blocker |
 |---|---|
-| Ventusky stays a Safari link | In-app iframe was intentionally not added. |
+| Ventusky stays on the website | The iOS app does not embed it and does not link out from the Radar tab. |
 | Google/Tomorrow species detail | Needs the owner’s **billing-capable** Google Pollen key (iOS-restricted). Blank keys → Open-Meteo, which is correct. |
-| Ventusky is not an in-app iframe | Intentional: Safari link-out preferred vs WKWebView/ToS. |
+| Places outside NOAA mosaics | The Radar tab says radar is unavailable. It does not substitute another imagery source. |
 | Free Apple ID re-sign every ~7 days | Personal Team limit. Not an app bug. |
 | ApexCharts / MathJax / Leaflet | Replaced by Swift Charts + methodology copy + MapKit. Scoring is the same JS. |
 | Worker pollen rate-limit / same-origin | N/A off-Worker. Personal app is one user. |

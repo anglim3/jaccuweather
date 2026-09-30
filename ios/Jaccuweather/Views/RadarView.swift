@@ -2,24 +2,14 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
-private enum RadarSource: String {
-    case rainViewer
-    case noaa
-}
-
 struct RadarView: View {
     @Environment(WeatherViewModel.self) private var model
     @Environment(\.colorScheme) private var colorScheme
     var isActive = true
-    @State private var source: RadarSource = .rainViewer
-    @State private var host = ""
-    @State private var frames: [RainViewerCatalog.Frame] = []
     @State private var noaaFrames: [NOAARadarCatalog.Frame] = []
-    @State private var rainIndex = 0
     @State private var noaaIndex = 0
     @State private var playing = false
     @State private var tilesSettled = false
-    @State private var loadError: String?
     @State private var noaaError: String?
     @State private var playTask: Task<Void, Never>?
 
@@ -29,38 +19,20 @@ struct RadarView: View {
         NOAAMosaic.containing(latitude: model.coordinate.latitude, longitude: model.coordinate.longitude)
     }
 
-    private var showingNOAA: Bool { source == .noaa && mosaic != nil }
-
-    private var framePrefix: String {
-        guard frames.indices.contains(rainIndex), !host.isEmpty else { return "" }
-        return RainViewerCatalog.framePrefix(host: host, path: frames[rainIndex].path)
-    }
-
     private var settleToken: String {
-        if showingNOAA {
-            guard let mosaic, noaaFrames.indices.contains(noaaIndex) else { return "" }
-            return "noaa|\(mosaic.id)|\(noaaFrames[noaaIndex].stamp)"
-        }
-        return framePrefix
+        guard let mosaic, noaaFrames.indices.contains(noaaIndex) else { return "" }
+        return "noaa|\(mosaic.id)|\(noaaFrames[noaaIndex].stamp)"
     }
 
     private var mapLayer: RadarMapView.Layer {
-        if showingNOAA {
-            guard let mosaic, noaaFrames.indices.contains(noaaIndex) else { return .empty }
-            let frame = noaaFrames[noaaIndex]
-            return .noaa(
-                mosaicID: mosaic.id,
-                stamp: frame.stamp,
-                token: "noaa|\(mosaic.id)|\(frame.stamp)"
-            )
-        }
-        if framePrefix.isEmpty { return .empty }
-        return .rain(prefix: framePrefix)
+        guard let mosaic, noaaFrames.indices.contains(noaaIndex) else { return .empty }
+        let frame = noaaFrames[noaaIndex]
+        return .noaa(
+            mosaicID: mosaic.id,
+            stamp: frame.stamp,
+            token: "noaa|\(mosaic.id)|\(frame.stamp)"
+        )
     }
-
-    private var activeCount: Int { showingNOAA ? noaaFrames.count : frames.count }
-
-    private var frameIndex: Int { showingNOAA ? noaaIndex : rainIndex }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -77,6 +49,9 @@ struct RadarView: View {
                 RoundedRectangle(cornerRadius: JWMetrics.radius, style: .continuous)
                     .stroke(theme.cardStroke, lineWidth: 1)
                     .allowsHitTesting(false)
+            }
+            .overlay {
+                if mosaic == nil { unavailableBanner }
             }
             .overlay(alignment: .topLeading) {
                 Text(model.locationName)
@@ -97,74 +72,21 @@ struct RadarView: View {
                     .font(JWFont.section)
                     .tracking(-0.32)
 
-                if mosaic != nil {
-                    sourceSwitch
-                }
-
-                HStack(spacing: 12) {
-                    Button {
-                        setPlaying(!playing)
-                    } label: {
-                        Image(systemName: playing ? "pause.fill" : "play.fill")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(theme.text)
-                            .frame(width: 36, height: 36)
-                            .background(theme.glassStrong, in: Circle())
-                            .overlay(Circle().stroke(theme.cardStroke, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(activeCount < 2)
-                    .opacity(activeCount < 2 ? 0.45 : 1)
-                    .accessibilityLabel(playing ? "Pause radar" : "Play radar")
-
-                    if activeCount > 1 {
-                        Slider(
-                            value: Binding(
-                                get: { Double(frameIndex) },
-                                set: { newValue in
-                                    setPlaying(false)
-                                    selectFrame(Int(newValue.rounded()))
-                                }
-                            ),
-                            in: 0...Double(activeCount - 1),
-                            step: 1
-                        )
-                        .tint(theme.accent)
-                        .accessibilityLabel("Radar time")
-                    } else {
-                        Text(statusLine)
-                            .font(.caption)
-                            .foregroundStyle(theme.muted)
-                    }
-                }
-
-                Text(timeLabel)
-                    .font(.subheadline.weight(.medium).monospacedDigit())
-                    .foregroundStyle(theme.text)
-
-                intensityLegend
-
-                if showingNOAA {
+                if mosaic == nil {
+                    unavailableCopy
+                } else {
+                    playbackControls
+                    Text(timeLabel)
+                        .font(.subheadline.weight(.medium).monospacedDigit())
+                        .foregroundStyle(theme.text)
+                    intensityLegend
                     Link(destination: APIEndpoints.noaaRadarCredit) {
                         Text("NOAA / NWS MRMS")
-                            .font(.caption)
-                            .foregroundStyle(theme.accent)
+                            .font(.caption.weight(.semibold))
+                            .underline()
                     }
                     .accessibilityLabel("NOAA / NWS MRMS")
-                } else {
-                    Link(destination: APIEndpoints.rainViewerCredit) {
-                        Text("Radar from RainViewer")
-                            .font(.caption)
-                            .foregroundStyle(theme.accent)
-                    }
-                    .accessibilityLabel("Radar from RainViewer")
-                }
-
-                if mosaic == nil {
-                    Text("US (NOAA) radar covers the mainland, Alaska, Hawaii, the Caribbean, and Guam.")
-                        .font(.caption)
-                        .foregroundStyle(theme.muted)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("noaa-radar-credit")
                 }
             }
             .padding(JWMetrics.panelPadding)
@@ -173,6 +95,7 @@ struct RadarView: View {
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
         }
+        .tint(theme.accent)
         .background { HorizonBackground() }
         .navigationTitle("Radar")
         .navigationBarTitleDisplayMode(.inline)
@@ -181,24 +104,18 @@ struct RadarView: View {
         .task { await refreshLoop() }
         .onChange(of: isActive) { _, active in
             if active {
-                Task {
-                    await refreshFrames()
-                    await refreshNOAA(resetToLatest: false)
-                }
+                Task { await refreshNOAA(resetToLatest: false) }
             } else {
                 setPlaying(false)
             }
         }
         .onChange(of: mosaic?.id) { old, new in
             guard old != new else { return }
+            setPlaying(false)
+            tilesSettled = false
             if new == nil {
                 noaaFrames = []
                 noaaError = nil
-                if source == .noaa {
-                    setPlaying(false)
-                    source = .rainViewer
-                    tilesSettled = false
-                }
                 return
             }
             Task { await refreshNOAA(resetToLatest: true) }
@@ -206,38 +123,73 @@ struct RadarView: View {
         .onDisappear { setPlaying(false) }
     }
 
-    private var sourceSwitch: some View {
-        HStack(spacing: 4) {
-            sourceChip("Global (RainViewer)", value: .rainViewer)
-            sourceChip("US (NOAA)", value: .noaa)
+    private var unavailableBanner: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Radar unavailable")
+                .font(.headline)
+            Text("This place is outside NOAA radar coverage.")
+                .font(.subheadline)
+                .foregroundStyle(theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(3)
-        .background(theme.card, in: Capsule())
-        .overlay(Capsule().stroke(theme.cardStroke, lineWidth: 1))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Radar source")
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(theme.cardStroke, lineWidth: 1)
+        )
+        .padding(28)
+        .accessibilityIdentifier("radar-unavailable")
     }
 
-    private func sourceChip(_ title: String, value: RadarSource) -> some View {
-        let selected = source == value
-        return Button {
-            selectSource(value)
-        } label: {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(selected ? theme.text : theme.muted)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(
-                    selected ? Color.white.opacity(0.22) : Color.clear,
-                    in: Capsule()
+    private var unavailableCopy: some View {
+        Text("NOAA radar covers the mainland United States, Alaska, Hawaii, the Caribbean, and Guam. This place is outside that coverage, so there is no radar image to play.")
+            .font(.subheadline)
+            .foregroundStyle(theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var playbackControls: some View {
+        HStack(spacing: 12) {
+            Button {
+                setPlaying(!playing)
+            } label: {
+                Image(systemName: playing ? "pause.fill" : "play.fill")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(theme.text)
+                    .frame(width: 36, height: 36)
+                    .background(theme.glassStrong, in: Circle())
+                    .overlay(Circle().stroke(theme.cardStroke, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .disabled(noaaFrames.count < 2)
+            .opacity(noaaFrames.count < 2 ? 0.45 : 1)
+            .accessibilityLabel(playing ? "Pause radar" : "Play radar")
+
+            if noaaFrames.count > 1 {
+                Slider(
+                    value: Binding(
+                        get: { Double(noaaIndex) },
+                        set: { newValue in
+                            setPlaying(false)
+                            selectFrame(Int(newValue.rounded()))
+                        }
+                    ),
+                    in: 0...Double(noaaFrames.count - 1),
+                    step: 1
                 )
+                .tint(theme.accent)
+                .accessibilityLabel("Radar time")
+            } else {
+                Text(statusLine)
+                    .font(.caption)
+                    .foregroundStyle(theme.muted)
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    /// Qualitative echo key. Both sources paint heavier precipitation in warmer colors.
+    /// Qualitative echo key for the NOAA reflectivity ramp.
     private var intensityLegend: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("INTENSITY")
@@ -273,25 +225,16 @@ struct RadarView: View {
     ]
 
     private var statusLine: String {
-        if showingNOAA {
-            if noaaFrames.isEmpty { return noaaError ?? "Loading radar…" }
-            return "One radar frame"
-        }
-        return frames.isEmpty ? (loadError ?? "Loading radar…") : "One radar frame"
+        if noaaFrames.isEmpty { return noaaError ?? "Loading radar…" }
+        return "One radar frame"
     }
 
     private var timeLabel: String {
         let formatter = Self.timeFormatter(utcOffset: model.weather?.utcOffset ?? 0)
-        if showingNOAA {
-            guard noaaFrames.indices.contains(noaaIndex) else {
-                return noaaError ?? "Loading radar…"
-            }
-            return formatter.string(from: noaaFrames[noaaIndex].time)
+        guard noaaFrames.indices.contains(noaaIndex) else {
+            return noaaError ?? "Loading radar…"
         }
-        guard frames.indices.contains(rainIndex) else {
-            return loadError ?? "Loading radar…"
-        }
-        return formatter.string(from: frames[rainIndex].time)
+        return formatter.string(from: noaaFrames[noaaIndex].time)
     }
 
     private static func timeFormatter(utcOffset: Int) -> DateFormatter {
@@ -303,38 +246,13 @@ struct RadarView: View {
     }
 
     private func refreshLoop() async {
-        await refreshFrames()
         await refreshNOAA(resetToLatest: false)
         while !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
             if Task.isCancelled { return }
             if isActive {
-                await refreshFrames()
                 await refreshNOAA(resetToLatest: false)
             }
-        }
-    }
-
-    private func refreshFrames() async {
-        do {
-            let maps = try await RainViewerCatalog.load()
-            let wasLatest = frames.isEmpty || rainIndex >= frames.count - 1
-            let previous = frames.indices.contains(rainIndex) ? frames[rainIndex].path : nil
-            let oldToken = settleToken
-            host = maps.host
-            frames = maps.past
-            if wasLatest {
-                rainIndex = max(frames.count - 1, 0)
-            } else if let previous, let kept = frames.firstIndex(where: { $0.path == previous }) {
-                rainIndex = kept
-            } else {
-                rainIndex = max(frames.count - 1, 0)
-            }
-            if !showingNOAA, settleToken != oldToken { tilesSettled = false }
-            loadError = frames.isEmpty ? "No radar frames" : nil
-            if !showingNOAA, frames.count < 2 { setPlaying(false) }
-        } catch {
-            if frames.isEmpty { loadError = "Radar frames unavailable" }
         }
     }
 
@@ -355,37 +273,24 @@ struct RadarView: View {
             } else {
                 noaaIndex = max(loaded.count - 1, 0)
             }
-            if showingNOAA, settleToken != oldToken { tilesSettled = false }
+            if settleToken != oldToken { tilesSettled = false }
             noaaError = loaded.isEmpty ? "NOAA radar unavailable" : nil
-            if showingNOAA, loaded.count < 2 { setPlaying(false) }
+            if loaded.count < 2 { setPlaying(false) }
         } catch {
             if noaaFrames.isEmpty { noaaError = "NOAA radar unavailable" }
         }
     }
 
-    private func selectSource(_ newSource: RadarSource) {
-        guard newSource != source else { return }
-        setPlaying(false)
-        source = newSource
-        tilesSettled = false
-    }
-
     private func selectFrame(_ index: Int) {
-        if showingNOAA {
-            guard noaaFrames.indices.contains(index), index != noaaIndex else { return }
-            tilesSettled = false
-            noaaIndex = index
-        } else {
-            guard frames.indices.contains(index), index != rainIndex else { return }
-            tilesSettled = false
-            rainIndex = index
-        }
+        guard noaaFrames.indices.contains(index), index != noaaIndex else { return }
+        tilesSettled = false
+        noaaIndex = index
     }
 
     private func setPlaying(_ on: Bool) {
         playTask?.cancel()
         playTask = nil
-        guard on, activeCount > 1 else {
+        guard on, noaaFrames.count > 1 else {
             playing = false
             return
         }
@@ -394,7 +299,7 @@ struct RadarView: View {
     }
 
     private func runPlayback() async {
-        while !Task.isCancelled && playing && activeCount > 1 {
+        while !Task.isCancelled && playing && noaaFrames.count > 1 {
             let shownAt = Date()
             while !Task.isCancelled && playing && !tilesSettled && Date().timeIntervalSince(shownAt) < 4 {
                 try? await Task.sleep(nanoseconds: 50_000_000)
@@ -403,8 +308,8 @@ struct RadarView: View {
             if remain > 0 {
                 try? await Task.sleep(nanoseconds: UInt64(remain * 1_000_000_000))
             }
-            guard !Task.isCancelled, playing, activeCount > 1 else { return }
-            selectFrame((frameIndex + 1) % activeCount)
+            guard !Task.isCancelled, playing, noaaFrames.count > 1 else { return }
+            selectFrame((noaaIndex + 1) % noaaFrames.count)
             await Task.yield()
         }
     }
@@ -413,7 +318,6 @@ struct RadarView: View {
 struct RadarMapView: UIViewRepresentable {
     enum Layer: Equatable {
         case empty
-        case rain(prefix: String)
         case noaa(mosaicID: String, stamp: String, token: String)
     }
 
@@ -424,9 +328,6 @@ struct RadarMapView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator {
         let coordinator = Coordinator()
-        coordinator.overlay.onSettled = { [weak coordinator] prefix in
-            coordinator?.onSettled?(prefix)
-        }
         coordinator.noaa.onSettled = { [weak coordinator] token in
             coordinator?.onSettled?(token)
         }
@@ -473,12 +374,7 @@ struct RadarMapView: UIViewRepresentable {
         switch layer {
         case .empty:
             coordinator.noaa.deactivate(on: map)
-            removeRain(from: map, coordinator: coordinator)
-        case .rain(let prefix):
-            coordinator.noaa.deactivate(on: map)
-            applyRain(prefix, map: map, coordinator: coordinator)
         case .noaa(let mosaicID, let stamp, let token):
-            removeRain(from: map, coordinator: coordinator)
             if let mosaic = NOAAMosaic.mosaic(id: mosaicID) {
                 coordinator.noaa.activate(mosaic: mosaic, stamp: stamp, token: token, map: map)
             } else {
@@ -487,52 +383,17 @@ struct RadarMapView: UIViewRepresentable {
         }
     }
 
-    private func removeRain(from map: MKMapView, coordinator: Coordinator) {
-        if map.overlays.contains(where: { ($0 as AnyObject) === coordinator.overlay }) {
-            map.removeOverlay(coordinator.overlay)
-        }
-        coordinator.appliedPrefix = ""
-    }
-
-    private func applyRain(_ prefix: String, map: MKMapView, coordinator: Coordinator) {
-        guard !prefix.isEmpty else { return }
-        let prefixChanged = coordinator.appliedPrefix != prefix
-        let alreadyAdded = map.overlays.contains { ($0 as AnyObject) === coordinator.overlay }
-        if prefixChanged {
-            coordinator.overlay.framePrefix = prefix
-            coordinator.appliedPrefix = prefix
-            coordinator.overlay.armSettle()
-        }
-        if !alreadyAdded {
-            map.addOverlay(coordinator.overlay, level: .aboveRoads)
-        } else if prefixChanged {
-            coordinator.renderer?.reloadData()
-        }
-    }
-
     final class Coordinator: NSObject, MKMapViewDelegate {
-        let overlay = RainViewerRadarOverlay(urlTemplate: nil)
         let noaa = NOAARadarLayer()
-        var renderer: MKTileOverlayRenderer?
         var onSettled: ((String) -> Void)?
         var lastCoordinate: CLLocationCoordinate2D?
         var lastTitle: String?
-        var appliedPrefix = ""
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
             noaa.regionDidChange()
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            if let tile = overlay as? RainViewerRadarOverlay {
-                if let renderer, renderer.overlay === tile {
-                    return renderer
-                }
-                let created = MKTileOverlayRenderer(tileOverlay: tile)
-                created.alpha = 0.7
-                renderer = created
-                return created
-            }
             if overlay is NOAAImageOverlay {
                 let created = NOAAImageRenderer(overlay: overlay)
                 created.alpha = 1

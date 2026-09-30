@@ -630,6 +630,36 @@ struct StatLabel: View {
     }
 }
 
+/// Open-Meteo CC BY 4.0 credit shown under forecast data.
+struct OpenMeteoCreditLine: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Link(destination: APIEndpoints.openMeteo) {
+                Text("Weather data by Open-Meteo.com")
+                    .font(.caption.weight(.semibold))
+                    .underline()
+            }
+            Link(destination: APIEndpoints.ccBy4) {
+                Text("CC BY 4.0")
+                    .font(.caption.weight(.semibold))
+                    .underline()
+            }
+            Text("Ensemble values are averaged for display.")
+                .font(.caption2)
+                .foregroundStyle(theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .tint(theme.accent)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("open-meteo-credit")
+        .padding(.top, 4)
+    }
+}
+
 /// Scroll container that keeps the last card above the floating tab bar.
 struct TabScreenScroll<Content: View>: View {
     @Environment(WeatherViewModel.self) private var model
@@ -649,6 +679,7 @@ struct TabScreenScroll<Content: View>: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: JWMetrics.sectionGap) {
                     content
+                    OpenMeteoCreditLine()
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 4)

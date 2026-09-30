@@ -91,13 +91,13 @@ Null vs none: keep the product rule. Plants Google did not report stay `null`. D
 
 ## Radar / map strategy
 
-**Shipped:** the iOS radar tab uses RainViewer tiles on MapKit. See [native-ios-radar.md](native-ios-radar.md). The Ventusky rows below are the original scaffold notes. The website iframe is unchanged.
+**Shipped:** the iOS radar tab uses NOAA MRMS where a mosaic covers the place, and an unavailable state outside those boxes. RainViewer is not in the app. See [native-ios-radar.md](native-ios-radar.md). The Ventusky rows below are the original scaffold notes. The website iframe is unchanged.
 
 | Option | Fit | Tradeoff |
 |---|---|---|
 | **MapKit** (chosen default) | Native, works offline-ish for base map, no iframe, free Apple ID OK | No Ventusky-quality global radar by default |
 | **NWS WMS tiles** on MapKit (`opengeo.ncep.noaa.gov`) | Closest to `/api/nws-wms`; no CORS in URLSession / `MKTileOverlay` | US only; WMS quirks (CRS, time dimension) already painful in the Worker |
-| **RainViewer / similar tile API** | Easy `MKTileOverlay` | Third-party ToS / availability; not what the web app uses |
+| **RainViewer / similar tile API** | Easy `MKTileOverlay` | Not in the app. NOAA is the radar source inside its mosaics |
 | **WKWebView → Ventusky URL** | Pixel-parity with the website | Still a web surface. Third-party UI, cookie/ToS, possible `window.open`, blank loads (already a known web issue). Acceptable as an **optional** sheet for personal use, not as the app shell. |
 | Safari `Link` to Ventusky | Zero embed risk | Leaves the app |
 
@@ -138,7 +138,7 @@ ATS: all current upstreams are HTTPS. No ATS exception.
 | Sunrise/sunset, moon | Later (SunCalc port or `Astronomy` / manual phase) |
 | Sinus / allergy / nice-weather | Sinus + allergy in **Health** tab; nice-weather later |
 | Pollen 5-day | Open-Meteo now; Google/Tomorrow when keys exist |
-| Radar | RainViewer tiles on MapKit (see `docs/native-ios-radar.md`). Website stays Ventusky |
+| Radar | NOAA MRMS on MapKit inside US mosaics; unavailable outside them (see `docs/native-ios-radar.md`). Website stays Ventusky |
 | NWS alerts | Live fetch, simple list |
 | NOAA tides | Later |
 | Search autocomplete | Live Open-Meteo geocoding sheet |

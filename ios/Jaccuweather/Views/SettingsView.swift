@@ -16,6 +16,8 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: JWMetrics.sectionGap) {
+                    dataSourcesCard
+
                     WeatherCard(title: "Appearance", titleStyle: .section) {
                         Text("Dark keeps the navy glass. Light follows the forecast and paints the same sky as the website.")
                             .font(.footnote)
@@ -168,6 +170,39 @@ struct SettingsView: View {
                 Task { await model.refreshAlertNotificationStatus() }
             }
         }
+    }
+
+    private var dataSourcesCard: some View {
+        WeatherCard(title: "Data sources", titleStyle: .section) {
+            Text("Forecasts, air quality, and the pollen fallback come from Open-Meteo. Ensemble values are averaged for display.")
+                .font(.footnote)
+                .foregroundStyle(theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            Link(destination: APIEndpoints.openMeteo) {
+                Text("Weather data by Open-Meteo.com")
+                    .font(.subheadline.weight(.semibold))
+                    .underline()
+            }
+            .accessibilityIdentifier("open-meteo-credit")
+            Link(destination: APIEndpoints.ccBy4) {
+                Text("CC BY 4.0")
+                    .font(.subheadline.weight(.semibold))
+                    .underline()
+            }
+            .accessibilityIdentifier("cc-by-credit")
+            Text("Radar, alerts, and US snow totals come from NOAA and the National Weather Service.")
+                .font(.footnote)
+                .foregroundStyle(theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6)
+            Link(destination: APIEndpoints.noaaRadarCredit) {
+                Text("NOAA / NWS disclaimer")
+                    .font(.subheadline.weight(.semibold))
+                    .underline()
+            }
+            .accessibilityIdentifier("nws-disclaimer-credit")
+        }
+        .tint(theme.accent)
     }
 
     private var alertNotificationsBinding: Binding<Bool> {

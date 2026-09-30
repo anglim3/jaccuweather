@@ -11,8 +11,8 @@ enum APIEndpoints {
     static let nwsHost = "https://api.weather.gov"
     static let noaaStations = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions"
     static let noaaDatagetter = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
-    static let rainViewerMaps = URL(string: "https://api.rainviewer.com/public/weather-maps.json")!
-    static let rainViewerCredit = URL(string: "https://www.rainviewer.com/")!
+    static let openMeteo = URL(string: "https://open-meteo.com/")!
+    static let ccBy4 = URL(string: "https://creativecommons.org/licenses/by/4.0/")!
     static let noaaRadarCredit = URL(string: "https://www.weather.gov/disclaimer")!
 
     static let hourlyVars = [
