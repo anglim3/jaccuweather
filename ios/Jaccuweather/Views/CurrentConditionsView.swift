@@ -284,8 +284,15 @@ struct CurrentConditionsView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                Link(destination: APIEndpoints.noaaRadarCredit) {
+                    Text("Alerts from NOAA / NWS")
+                        .font(.caption.weight(.semibold))
+                        .underline()
+                }
+                .accessibilityIdentifier("nws-alerts-credit")
             }
         }
+        .tint(theme.accent)
     }
 
     private func statTile(title: String, value: String, detail: String? = nil, icon: String) -> some View {
@@ -524,10 +531,16 @@ struct AlertDetailSheet: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(theme.tile, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
+                    Link(destination: APIEndpoints.noaaRadarCredit) {
+                        Text("Alerts from NOAA / NWS")
+                            .font(.caption.weight(.semibold))
+                            .underline()
+                    }
                 }
                 .padding(16)
                 .foregroundStyle(theme.text)
             }
+            .tint(theme.accent)
             .background { HorizonBackground() }
             .navigationTitle("Alert")
             .navigationBarTitleDisplayMode(.inline)

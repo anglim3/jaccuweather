@@ -208,37 +208,55 @@ test('iOS ensemble URL matches public/app.js fetchWeather()', () => {
   assert.match(endpoints, /icon_seamless,gfs_seamless,ecmwf_ifs025/);
 });
 
-test('website keeps Ventusky; iOS radar uses RainViewer tiles', () => {
+test('website keeps Ventusky; iOS radar uses NOAA mosaics only', () => {
   const match = appJs.match(/https:\/\/www\.ventusky\.com\/\?p=\$\{[^}]+\}/);
   assert.ok(match, 'website still builds a Ventusky URL');
   const endpoints = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Services/APIEndpoints.swift'), 'utf8');
-  assert.match(endpoints, /https:\/\/api\.rainviewer\.com\/public\/weather-maps\.json/);
-  assert.match(endpoints, /https:\/\/www\.rainviewer\.com\//);
+  assert.doesNotMatch(endpoints, /rainviewer\.com/i);
   assert.doesNotMatch(endpoints, /ventusky\.com/);
+  assert.match(endpoints, /https:\/\/open-meteo\.com\//);
+  assert.match(endpoints, /creativecommons\.org\/licenses\/by\/4\.0/);
+  assert.match(endpoints, /https:\/\/www\.weather\.gov\/disclaimer/);
   const radar = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Views/RadarView.swift'), 'utf8');
-  assert.match(radar, /Radar from RainViewer/);
-  assert.match(radar, /Global \(RainViewer\)/);
-  assert.match(radar, /US \(NOAA\)/);
+  assert.doesNotMatch(radar, /rainviewer/i);
+  assert.match(radar, /Radar unavailable/);
   assert.match(radar, /NOAA \/ NWS MRMS/);
   assert.match(radar, /Pause radar/);
   assert.match(radar, /Radar time/);
   assert.doesNotMatch(radar, /[Vv]entusky/);
   assert.doesNotMatch(radar, /WKWebView/);
-  assert.match(radar, /appliedPrefix != prefix/);
-  const overlay = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Services/NWSRadarOverlay.swift'), 'utf8');
-  assert.match(overlay, /RainViewerRadarOverlay/);
-  assert.match(overlay, /nativeMaxZoom = 7/);
-  assert.match(overlay, /\/256\//);
-  assert.match(overlay, /2\/1_0\.png/);
-  assert.match(radar, /reloadData\(\)/);
-  assert.doesNotMatch(overlay, /nexrad-n0q-wmst/);
-  assert.doesNotMatch(overlay, /opengeo\.ncep\.noaa\.gov/);
+  const removed = path.join(root, 'ios/Jaccuweather/Services/NWSRadarOverlay.swift');
+  assert.equal(fs.existsSync(removed), false);
+  const settings = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Views/SettingsView.swift'), 'utf8');
+  assert.match(settings, /Weather data by Open-Meteo.com/);
+  assert.match(settings, /CC BY 4.0/);
+  assert.match(settings, /NOAA \/ NWS disclaimer/);
+  const credit = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Theme.swift'), 'utf8');
+  assert.match(credit, /Weather data by Open-Meteo.com/);
+  const alerts = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Views/CurrentConditionsView.swift'), 'utf8');
+  assert.match(alerts, /Alerts from NOAA \/ NWS/);
   const noaa = fs.readFileSync(path.join(root, 'ios/Jaccuweather/Services/NOAARadarModel.swift'), 'utf8');
   assert.match(noaa, /opengeo\.ncep\.noaa\.gov\/geoserver\/conus\/conus_bref_qcd\/ows/);
   assert.match(noaa, /CRS=EPSG:3857/);
   assert.doesNotMatch(noaa, /EPSG:4326/);
   assert.doesNotMatch(noaa, /nexrad-n0q-wmst/);
+  assert.doesNotMatch(noaa, /rainviewer/i);
   assert.doesNotMatch(noaa, /[Vv]entusky/);
+  const iosRoot = path.join(root, 'ios');
+  const leftover = [];
+  function walk(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'DerivedData' || entry.name === 'build') continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(swift|plist|pbxproj|md)$/.test(entry.name)) {
+        const text = fs.readFileSync(full, 'utf8');
+        if (/rainviewer\.com/i.test(text) || /RainViewer/.test(text)) leftover.push(full);
+      }
+    }
+  }
+  walk(iosRoot);
+  assert.deepEqual(leftover, []);
 });
 
 test('Secrets.xcconfig keeps pollen keys blank and documents NWS User-Agent', () => {
