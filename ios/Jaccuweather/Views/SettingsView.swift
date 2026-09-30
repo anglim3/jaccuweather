@@ -9,6 +9,9 @@ struct SettingsView: View {
     @State private var tomorrowKey = ""
     @State private var nwsAgent = ""
     @State private var savedNote = ""
+    @State private var alertOn = false
+    @State private var precipOn = false
+    @State private var freezeOn = false
     @State private var windGustOn = false
 
     private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
@@ -41,22 +44,42 @@ struct SettingsView: View {
                             .font(.footnote)
                             .foregroundStyle(theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
-                        Toggle(isOn: alertNotificationsBinding) {
+                        Toggle(isOn: $alertOn) {
                             Text("Alert notifications")
                                 .font(.body.weight(.semibold))
                         }
                         .tint(theme.accent)
                         .accessibilityIdentifier("alert-notifications-toggle")
+                        .onChange(of: alertOn) { _, enabled in
+                            commitNotificationToggle(
+                                requested: enabled,
+                                stored: model.alertNotificationsOn,
+                                apply: { await model.setAlertNotificationsEnabled($0) },
+                                localIs: { alertOn },
+                                storedIs: { model.alertNotificationsOn },
+                                setLocal: { alertOn = $0 }
+                            )
+                        }
                         Text("A forecast refresh can also notify this phone when rain or snow looks likely to start in the next few hours. This uses the forecast already on the phone. It does not use a server push.")
                             .font(.footnote)
                             .foregroundStyle(theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
-                        Toggle(isOn: precipNotificationsBinding) {
+                        Toggle(isOn: $precipOn) {
                             Text("Precipitation notifications")
                                 .font(.body.weight(.semibold))
                         }
                         .tint(theme.accent)
                         .accessibilityIdentifier("precip-notifications-toggle")
+                        .onChange(of: precipOn) { _, enabled in
+                            commitNotificationToggle(
+                                requested: enabled,
+                                stored: model.precipNotificationsOn,
+                                apply: { await model.setPrecipNotificationsEnabled($0) },
+                                localIs: { precipOn },
+                                storedIs: { model.precipNotificationsOn },
+                                setLocal: { precipOn = $0 }
+                            )
+                        }
                         if !model.alertNotificationNote.isEmpty {
                             Text(model.alertNotificationNote)
                                 .font(.footnote)
@@ -75,12 +98,22 @@ struct SettingsView: View {
                             .font(.footnote)
                             .foregroundStyle(theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
-                        Toggle(isOn: freezeNotificationsBinding) {
+                        Toggle(isOn: $freezeOn) {
                             Text("Freeze warnings")
                                 .font(.body.weight(.semibold))
                         }
                         .tint(theme.accent)
                         .accessibilityIdentifier("freeze-notifications-toggle")
+                        .onChange(of: freezeOn) { _, enabled in
+                            commitNotificationToggle(
+                                requested: enabled,
+                                stored: model.freezeNotificationsOn,
+                                apply: { await model.setFreezeNotificationsEnabled($0) },
+                                localIs: { freezeOn },
+                                storedIs: { model.freezeNotificationsOn },
+                                setLocal: { freezeOn = $0 }
+                            )
+                        }
                         if !model.freezeNotificationNote.isEmpty {
                             Text(model.freezeNotificationNote)
                                 .font(.footnote)
@@ -106,8 +139,14 @@ struct SettingsView: View {
                         .tint(theme.accent)
                         .accessibilityIdentifier("wind-gust-notifications-toggle")
                         .onChange(of: windGustOn) { _, enabled in
-                            guard enabled != model.windGustNotificationsOn else { return }
-                            Task { await model.setWindGustNotificationsEnabled(enabled) }
+                            commitNotificationToggle(
+                                requested: enabled,
+                                stored: model.windGustNotificationsOn,
+                                apply: { await model.setWindGustNotificationsEnabled($0) },
+                                localIs: { windGustOn },
+                                storedIs: { model.windGustNotificationsOn },
+                                setLocal: { windGustOn = $0 }
+                            )
                         }
                         if !model.windGustNotificationNote.isEmpty {
                             Text(model.windGustNotificationNote)
@@ -278,10 +317,22 @@ struct SettingsView: View {
             }
             .onAppear {
                 load()
+                alertOn = model.alertNotificationsOn
+                precipOn = model.precipNotificationsOn
+                freezeOn = model.freezeNotificationsOn
                 windGustOn = model.windGustNotificationsOn
                 Task { await model.refreshAlertNotificationStatus() }
                 Task { await model.refreshFreezeNotificationStatus() }
                 Task { await model.refreshWindGustNotificationStatus() }
+            }
+            .onChange(of: model.alertNotificationsOn) { _, enabled in
+                if alertOn != enabled { alertOn = enabled }
+            }
+            .onChange(of: model.precipNotificationsOn) { _, enabled in
+                if precipOn != enabled { precipOn = enabled }
+            }
+            .onChange(of: model.freezeNotificationsOn) { _, enabled in
+                if freezeOn != enabled { freezeOn = enabled }
             }
             .onChange(of: model.windGustNotificationsOn) { _, enabled in
                 if windGustOn != enabled { windGustOn = enabled }
@@ -322,31 +373,25 @@ struct SettingsView: View {
         .tint(theme.accent)
     }
 
-    private var precipNotificationsBinding: Binding<Bool> {
-        Binding(
-            get: { model.precipNotificationsOn },
-            set: { enabled in
-                Task { await model.setPrecipNotificationsEnabled(enabled) }
+    /// Local switch state is the source of truth for the tap. A custom binding
+    /// was rewritten from the stored value before the permission request finished,
+    /// so the switch snapped off and the preference was never saved.
+    private func commitNotificationToggle(
+        requested: Bool,
+        stored: Bool,
+        apply: @escaping (Bool) async -> Void,
+        localIs: @escaping () -> Bool,
+        storedIs: @escaping () -> Bool,
+        setLocal: @escaping (Bool) -> Void
+    ) {
+        guard requested != stored else { return }
+        Task {
+            await apply(requested)
+            let storedNow = storedIs()
+            if localIs() == requested, requested != storedNow {
+                setLocal(storedNow)
             }
-        )
-    }
-
-    private var freezeNotificationsBinding: Binding<Bool> {
-        Binding(
-            get: { model.freezeNotificationsOn },
-            set: { enabled in
-                Task { await model.setFreezeNotificationsEnabled(enabled) }
-            }
-        )
-    }
-
-    private var alertNotificationsBinding: Binding<Bool> {
-        Binding(
-            get: { model.alertNotificationsOn },
-            set: { enabled in
-                Task { await model.setAlertNotificationsEnabled(enabled) }
-            }
-        )
+        }
     }
 
     private var skyLine: String {

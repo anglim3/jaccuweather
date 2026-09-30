@@ -128,7 +128,7 @@ final class WindGustNotificationCoordinator {
         var identifiers: [String] = []
         func consider(_ request: UNNotificationRequest) {
             let info = request.content.userInfo
-            guard WindGustNotificationCopy.isForecastRoute(info), !WindGustNotificationCopy.isSample(info) else { return }
+            guard WindGustNotificationCopy.ownsNotice(info), !WindGustNotificationCopy.isSample(info) else { return }
             let hour = info[WindGustNotificationCopy.hourKeyName] as? String ?? ""
             let remove = hour.isEmpty || WindGustNotificationCopy.shouldRemoveNotice(
                 noticeHour: hour,

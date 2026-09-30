@@ -129,7 +129,7 @@ final class FreezeNotificationCoordinator {
         var identifiers: [String] = []
         func consider(_ request: UNNotificationRequest) {
             let info = request.content.userInfo
-            guard FreezeWarningCopy.isForecastRoute(info), !FreezeWarningCopy.isSample(info) else { return }
+            guard FreezeWarningCopy.ownsNotice(info), !FreezeWarningCopy.isSample(info) else { return }
             let day = info[FreezeWarningCopy.dayKey] as? String ?? ""
             let remove = day.isEmpty || FreezeWarningCopy.shouldRemoveNotice(
                 noticeDay: day,

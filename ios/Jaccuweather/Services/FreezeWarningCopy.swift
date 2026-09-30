@@ -103,10 +103,18 @@ enum FreezeWarningCopy {
         URL(string: "jaccuweather://forecast")!
     }
 
+    /// High-wind notices use this key and the same `jaccuweather://forecast` URL.
+    private static let windGustRouteKey = "windGustRoute"
+
+    /// A freeze notice this coordinator posted. The shared forecast URL is not enough.
+    static func ownsNotice(_ info: [AnyHashable: Any]) -> Bool {
+        guard let route = info[routeKey] as? String else { return false }
+        return route.caseInsensitiveCompare(routeValue) == .orderedSame
+    }
+
     static func isForecastRoute(_ info: [AnyHashable: Any]) -> Bool {
-        if let route = info[routeKey] as? String, route.caseInsensitiveCompare(routeValue) == .orderedSame {
-            return true
-        }
+        if ownsNotice(info) { return true }
+        if info[windGustRouteKey] != nil { return false }
         if let raw = info["url"] as? String, let url = URL(string: raw), opensForecast(url) {
             return true
         }
