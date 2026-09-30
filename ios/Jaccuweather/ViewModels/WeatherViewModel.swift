@@ -228,7 +228,9 @@ final class WeatherViewModel {
     var alertNotificationNote = ""
     var freezeNotificationsOn = false
     var freezeNotificationNote = ""
-    /// Changes when a freeze notice or `jaccuweather://forecast` asks for the Forecast tab.
+    var windGustNotificationsOn = false
+    var windGustNotificationNote = ""
+    /// Changes when a freeze notice, a high-wind notice, or `jaccuweather://forecast` asks for the Forecast tab.
     var forecastRouteToken = 0
     var routedAlert: NWSAlertFeature?
     /// Changes when Shortcuts asks the app to show Now.
@@ -403,10 +405,18 @@ final class WeatherViewModel {
         #endif
     }
 
+    private func postSampleWindIfRequested() async {
+        #if DEBUG
+        guard LaunchArgs.windSample else { return }
+        await postSampleWindGustNotification()
+        #endif
+    }
+
     private func postDebugSamplesIfRequested() async {
         await postSampleAlertIfRequested()
         await postSamplePrecipIfRequested()
         await postSampleFreezeIfRequested()
+        await postSampleWindIfRequested()
     }
 
     func reloadFreezeNotificationPreference() {
@@ -453,6 +463,57 @@ final class WeatherViewModel {
         await FreezeNotificationCoordinator.shared.handleForecast(
             days: dailyRows.map(\.date),
             lows: dailyRows.map(\.low),
+            placeName: locationName,
+            utcOffsetSeconds: weather.utcOffset
+        )
+    }
+
+    func reloadWindGustNotificationPreference() {
+        windGustNotificationsOn = WindGustNotificationStore.isOn()
+    }
+
+    func refreshWindGustNotificationStatus() async {
+        reloadWindGustNotificationPreference()
+        guard windGustNotificationsOn else { return }
+        if await WindGustNotificationCoordinator.shared.authorizationStatus() == .denied {
+            windGustNotificationNote = "Notifications are off for this app in iOS Settings."
+        }
+    }
+
+    func setWindGustNotificationsEnabled(_ enabled: Bool) async {
+        let result = await WindGustNotificationCoordinator.shared.setEnabled(enabled)
+        reloadWindGustNotificationPreference()
+        switch result {
+        case .on:
+            windGustNotificationNote = ""
+            await notifyWindGustIfNeeded()
+        case .off:
+            windGustNotificationNote = ""
+        case .denied:
+            windGustNotificationNote = "Notifications are off for this app in iOS Settings."
+        }
+    }
+
+    func postSampleWindGustNotification() async {
+        #if DEBUG
+        if await WindGustNotificationCoordinator.shared.authorizationStatus() == .notDetermined {
+            _ = await setWindGustNotificationsEnabled(true)
+        }
+        guard await WindGustNotificationCoordinator.shared.authorizationStatus() != .denied else {
+            windGustNotificationNote = "Notifications are off for this app in iOS Settings."
+            return
+        }
+        _ = await WindGustNotificationCoordinator.shared.postSample(placeName: locationName.isEmpty ? "This place" : locationName)
+        #endif
+    }
+
+    private func notifyWindGustIfNeeded() async {
+        guard let weather else { return }
+        let hours = hourlyRows.map {
+            WindHourSample(time: $0.time, clock: $0.clock, speed: $0.wind, gust: $0.windGust)
+        }
+        await WindGustNotificationCoordinator.shared.handleForecast(
+            hours: hours,
             placeName: locationName,
             utcOffsetSeconds: weather.utcOffset
         )
@@ -507,6 +568,8 @@ final class WeatherViewModel {
         AlertNotificationCoordinator.shared.model = self
         freezeNotificationsOn = FreezeNotificationStore.isOn()
         FreezeNotificationCoordinator.shared.model = self
+        windGustNotificationsOn = WindGustNotificationStore.isOn()
+        WindGustNotificationCoordinator.shared.model = self
         openObserver = NotificationCenter.default.addObserver(
             forName: IntentOpenRequest.notification,
             object: nil,
@@ -521,10 +584,14 @@ final class WeatherViewModel {
     func bootstrap() async {
         AlertNotificationCoordinator.shared.model = self
         FreezeNotificationCoordinator.shared.model = self
+        WindGustNotificationCoordinator.shared.model = self
         if let pending = AlertNotificationCoordinator.shared.takePendingUserInfo() {
             AlertNotificationCoordinator.shared.open(pending)
         }
         if FreezeNotificationCoordinator.shared.takePendingForecast() {
+            openForecastTab()
+        }
+        if WindGustNotificationCoordinator.shared.takePendingForecast() {
             openForecastTab()
         }
         if await consumeIntentOpen() {
@@ -608,6 +675,8 @@ final class WeatherViewModel {
             await syncPrecipNotification()
             guard serial == refreshSerial else { return }
             await notifyFreezeIfNeeded()
+            guard serial == refreshSerial else { return }
+            await notifyWindGustIfNeeded()
             let scored = await Self.healthOffMain(weather: bundle, pollen: pollen)
             guard serial == refreshSerial else { return }
             health = scored

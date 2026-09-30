@@ -94,6 +94,30 @@ struct SettingsView: View {
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(theme.accent)
                         }
+                        Text("Uses the forecast already loaded in the app. When wind or gusts reach 40 mph in the next 24 hours, this phone can show one local notice. It does not use a push server.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Toggle(isOn: windGustNotificationsBinding) {
+                            Text("High wind notifications")
+                                .font(.body.weight(.semibold))
+                        }
+                        .tint(theme.accent)
+                        .accessibilityIdentifier("wind-gust-notifications-toggle")
+                        if !model.windGustNotificationNote.isEmpty {
+                            Text(model.windGustNotificationNote)
+                                .font(.footnote)
+                                .foregroundStyle(theme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("wind-gust-notifications-note")
+                            Button("Open iOS Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(theme.accent)
+                        }
                     }
 
                     #if DEBUG
@@ -146,6 +170,22 @@ struct SettingsView: View {
                         .foregroundStyle(theme.accent)
                         .jwGlass(.stat)
                         .accessibilityIdentifier("freeze-notification-sample")
+                        Text("Posts one sample high-wind notice. It is not a live forecast.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button {
+                            Task { await model.postSampleWindGustNotification() }
+                        } label: {
+                            Text("Post wind sample")
+                                .font(.body.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                        .jwGlass(.stat)
+                        .accessibilityIdentifier("wind-gust-notification-sample")
                     }
                     #endif
 
@@ -235,6 +275,7 @@ struct SettingsView: View {
                 load()
                 Task { await model.refreshAlertNotificationStatus() }
                 Task { await model.refreshFreezeNotificationStatus() }
+                Task { await model.refreshWindGustNotificationStatus() }
             }
         }
     }
@@ -286,6 +327,15 @@ struct SettingsView: View {
             get: { model.freezeNotificationsOn },
             set: { enabled in
                 Task { await model.setFreezeNotificationsEnabled(enabled) }
+            }
+        )
+    }
+
+    private var windGustNotificationsBinding: Binding<Bool> {
+        Binding(
+            get: { model.windGustNotificationsOn },
+            set: { enabled in
+                Task { await model.setWindGustNotificationsEnabled(enabled) }
             }
         )
     }

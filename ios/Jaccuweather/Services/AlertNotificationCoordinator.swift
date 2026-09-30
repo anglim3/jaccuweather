@@ -348,6 +348,8 @@ final class AlertNotificationCoordinator: NSObject, UNUserNotificationCenterDele
         await MainActor.run {
             if FreezeWarningCopy.isForecastRoute(info) {
                 FreezeNotificationCoordinator.shared.openForecast()
+            } else if WindGustNotificationCopy.isForecastRoute(info) {
+                WindGustNotificationCoordinator.shared.openForecast()
             } else {
                 AlertNotificationCoordinator.shared.open(info)
             }
