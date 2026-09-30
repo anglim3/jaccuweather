@@ -66,7 +66,7 @@ struct ContentView: View {
             showForecast()
         }
         .onOpenURL { url in
-            if NowLink.opensForecast(url) || FreezeWarningCopy.opensForecast(url) {
+            if NowLink.opensForecast(url) || FreezeWarningCopy.opensForecast(url) || WindGustNotificationCopy.opensForecast(url) {
                 showForecast()
                 return
             }
@@ -77,6 +77,9 @@ struct ContentView: View {
             showNow()
         }
         .onReceive(NotificationCenter.default.publisher(for: FreezeWarningCopy.openedForecast)) { _ in
+            showForecast()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WindGustNotificationCopy.openedForecast)) { _ in
             showForecast()
         }
         .sheet(isPresented: $showSearch) {

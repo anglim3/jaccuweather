@@ -38,6 +38,8 @@
 		6CF03E23834F10E6294FABFE /* WeatherAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82629D46251AC101F093AA24 /* WeatherAppIntents.swift */; };
 		1873D5E11EF79B11C7E6E26D /* WeatherLiveActivitySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7F33AD19FEF448D5B6E720 /* WeatherLiveActivitySync.swift */; };
 		7CD61B65CFA9EAB9757315D4 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3525B2B1489EDA95EB64E3 /* WeatherService.swift */; };
+		27777982BDB5E9B848CC39F6 /* WindGustNotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D1F7252F45031A3DE44740 /* WindGustNotificationCoordinator.swift */; };
+		7C9FF3129439AEAA33626B01 /* WindGustNotificationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1510A99F80080BFB5070644 /* WindGustNotificationCopy.swift */; };
 		55B66771D05CEA751D959A12 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF468FD4D08486EDF5453F3 /* Theme.swift */; };
 		32B0E52FB830F2B66E582B1C /* WeatherViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A420AD894AA05069EDD20720 /* WeatherViewModel.swift */; };
 		BBA49305EC09D446F7E510ED /* ConditionsShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C6E1552B92ECA1502D9526 /* ConditionsShareSheet.swift */; };
@@ -148,6 +150,8 @@
 		82629D46251AC101F093AA24 /* WeatherAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherAppIntents.swift; sourceTree = "<group>"; };
 		9A7F33AD19FEF448D5B6E720 /* WeatherLiveActivitySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherLiveActivitySync.swift; sourceTree = "<group>"; };
 		CA3525B2B1489EDA95EB64E3 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		F6D1F7252F45031A3DE44740 /* WindGustNotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindGustNotificationCoordinator.swift; sourceTree = "<group>"; };
+		C1510A99F80080BFB5070644 /* WindGustNotificationCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindGustNotificationCopy.swift; sourceTree = "<group>"; };
 		CEF468FD4D08486EDF5453F3 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		A420AD894AA05069EDD20720 /* WeatherViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherViewModel.swift; sourceTree = "<group>"; };
 		10C6E1552B92ECA1502D9526 /* ConditionsShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsShareSheet.swift; sourceTree = "<group>"; };
@@ -314,6 +318,8 @@
 				82629D46251AC101F093AA24 /* WeatherAppIntents.swift */,
 				9A7F33AD19FEF448D5B6E720 /* WeatherLiveActivitySync.swift */,
 				CA3525B2B1489EDA95EB64E3 /* WeatherService.swift */,
+				F6D1F7252F45031A3DE44740 /* WindGustNotificationCoordinator.swift */,
+				C1510A99F80080BFB5070644 /* WindGustNotificationCopy.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -475,6 +481,8 @@
 				6CF03E23834F10E6294FABFE /* WeatherAppIntents.swift in Sources */,
 				1873D5E11EF79B11C7E6E26D /* WeatherLiveActivitySync.swift in Sources */,
 				7CD61B65CFA9EAB9757315D4 /* WeatherService.swift in Sources */,
+				27777982BDB5E9B848CC39F6 /* WindGustNotificationCoordinator.swift in Sources */,
+				7C9FF3129439AEAA33626B01 /* WindGustNotificationCopy.swift in Sources */,
 				55B66771D05CEA751D959A12 /* Theme.swift in Sources */,
 				32B0E52FB830F2B66E582B1C /* WeatherViewModel.swift in Sources */,
 				BBA49305EC09D446F7E510ED /* ConditionsShareSheet.swift in Sources */,
