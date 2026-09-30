@@ -48,5 +48,6 @@ struct JaccuweatherApp: App {
                     }
                 }
         }
+        .handlesExternalEvents(matching: ["*"])
     }
 }
