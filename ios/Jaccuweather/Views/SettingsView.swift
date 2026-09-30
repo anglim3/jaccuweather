@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var tomorrowKey = ""
     @State private var nwsAgent = ""
     @State private var savedNote = ""
+    @State private var windGustOn = false
 
     private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
@@ -98,12 +99,16 @@ struct SettingsView: View {
                             .font(.footnote)
                             .foregroundStyle(theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
-                        Toggle(isOn: windGustNotificationsBinding) {
+                        Toggle(isOn: $windGustOn) {
                             Text("High wind notifications")
                                 .font(.body.weight(.semibold))
                         }
                         .tint(theme.accent)
                         .accessibilityIdentifier("wind-gust-notifications-toggle")
+                        .onChange(of: windGustOn) { _, enabled in
+                            guard enabled != model.windGustNotificationsOn else { return }
+                            Task { await model.setWindGustNotificationsEnabled(enabled) }
+                        }
                         if !model.windGustNotificationNote.isEmpty {
                             Text(model.windGustNotificationNote)
                                 .font(.footnote)
@@ -273,9 +278,13 @@ struct SettingsView: View {
             }
             .onAppear {
                 load()
+                windGustOn = model.windGustNotificationsOn
                 Task { await model.refreshAlertNotificationStatus() }
                 Task { await model.refreshFreezeNotificationStatus() }
                 Task { await model.refreshWindGustNotificationStatus() }
+            }
+            .onChange(of: model.windGustNotificationsOn) { _, enabled in
+                if windGustOn != enabled { windGustOn = enabled }
             }
         }
     }
@@ -327,15 +336,6 @@ struct SettingsView: View {
             get: { model.freezeNotificationsOn },
             set: { enabled in
                 Task { await model.setFreezeNotificationsEnabled(enabled) }
-            }
-        )
-    }
-
-    private var windGustNotificationsBinding: Binding<Bool> {
-        Binding(
-            get: { model.windGustNotificationsOn },
-            set: { enabled in
-                Task { await model.setWindGustNotificationsEnabled(enabled) }
             }
         )
     }
