@@ -224,10 +224,13 @@ final class WeatherViewModel {
     var currentUVDetail = ""
     var appearance: JWAppearance = .stored
     var alertNotificationsOn = false
+    var precipNotificationsOn = false
     var alertNotificationNote = ""
     var routedAlert: NWSAlertFeature?
     /// Changes when Shortcuts asks the app to show Now.
     var intentNowToken: String?
+    /// Changes when a precipitation notification asks the app to show Forecast.
+    var forecastTabToken: String?
 
     let favorites = FavoritesStore()
     let staleAfterMs: Double = 15 * 60 * 1000
@@ -284,9 +287,14 @@ final class WeatherViewModel {
         alertNotificationsOn = AlertNotificationStore.preference == .on
     }
 
+    func reloadPrecipNotificationPreference() {
+        precipNotificationsOn = PrecipNotificationStore.preference == .on
+    }
+
     func refreshAlertNotificationStatus() async {
         reloadAlertNotificationPreference()
-        guard alertNotificationsOn else { return }
+        reloadPrecipNotificationPreference()
+        guard alertNotificationsOn || precipNotificationsOn else { return }
         if await AlertNotificationCoordinator.shared.authorizationStatus() == .denied {
             alertNotificationNote = "Notifications are off for this app in iOS Settings."
         }
@@ -304,6 +312,30 @@ final class WeatherViewModel {
         case .denied:
             alertNotificationNote = "Notifications are off for this app in iOS Settings."
         }
+    }
+
+    func setPrecipNotificationsEnabled(_ enabled: Bool) async {
+        let result = await AlertNotificationCoordinator.shared.setPrecipEnabled(enabled)
+        reloadPrecipNotificationPreference()
+        switch result {
+        case .on:
+            alertNotificationNote = ""
+            await syncPrecipNotification()
+        case .off:
+            alertNotificationNote = ""
+            await AlertNotificationCoordinator.shared.handleFreshPrecip(
+                nil,
+                placeName: locationName,
+                placeKey: precipPlaceKey,
+                currentTime: hourlyRows.first?.time ?? ""
+            )
+        case .denied:
+            alertNotificationNote = "Notifications are off for this app in iOS Settings."
+        }
+    }
+
+    func openForecastTab() {
+        forecastTabToken = UUID().uuidString
     }
 
     func openRoutedAlert(userInfo: [AnyHashable: Any]) {
@@ -332,11 +364,36 @@ final class WeatherViewModel {
         #endif
     }
 
+    func postSamplePrecipNotification() async {
+        #if DEBUG
+        if await AlertNotificationCoordinator.shared.authorizationStatus() == .notDetermined {
+            _ = await setPrecipNotificationsEnabled(true)
+        }
+        guard await AlertNotificationCoordinator.shared.authorizationStatus() != .denied else {
+            alertNotificationNote = "Notifications are off for this app in iOS Settings."
+            return
+        }
+        _ = await AlertNotificationCoordinator.shared.postSamplePrecip(placeName: locationName.isEmpty ? "This place" : locationName)
+        #endif
+    }
+
     private func postSampleAlertIfRequested() async {
         #if DEBUG
         guard LaunchArgs.alertSample else { return }
         await postSampleAlertNotification()
         #endif
+    }
+
+    private func postSamplePrecipIfRequested() async {
+        #if DEBUG
+        guard LaunchArgs.precipSample else { return }
+        await postSamplePrecipNotification()
+        #endif
+    }
+
+    private func postDebugSamplesIfRequested() async {
+        await postSampleAlertIfRequested()
+        await postSamplePrecipIfRequested()
     }
 
     init() {
@@ -384,6 +441,7 @@ final class WeatherViewModel {
         }
         startTicker()
         alertNotificationsOn = AlertNotificationStore.preference == .on
+        precipNotificationsOn = PrecipNotificationStore.preference == .on
         AlertNotificationCoordinator.shared.model = self
         openObserver = NotificationCenter.default.addObserver(
             forName: IntentOpenRequest.notification,
@@ -399,10 +457,10 @@ final class WeatherViewModel {
     func bootstrap() async {
         AlertNotificationCoordinator.shared.model = self
         if let pending = AlertNotificationCoordinator.shared.takePendingUserInfo() {
-            openRoutedAlert(userInfo: pending)
+            AlertNotificationCoordinator.shared.open(pending)
         }
         if await consumeIntentOpen() {
-            await postSampleAlertIfRequested()
+            await postDebugSamplesIfRequested()
             return
         }
         if hasResolvedPlace {
@@ -410,11 +468,11 @@ final class WeatherViewModel {
                 locator.request()
             }
             await refresh()
-            await postSampleAlertIfRequested()
+            await postDebugSamplesIfRequested()
             return
         }
         locator.request()
-        await postSampleAlertIfRequested()
+        await postDebugSamplesIfRequested()
     }
 
     func refresh() async {
@@ -469,6 +527,7 @@ final class WeatherViewModel {
             }
             alertIconFiles = icons
             await AlertNotificationCoordinator.shared.handleFreshAlerts(alerts, placeName: locationName)
+            guard serial == refreshSerial else { return }
             if let resolvedName, !resolvedName.isEmpty {
                 let nameChanged = resolvedName != locationName
                 locationName = resolvedName
@@ -477,6 +536,8 @@ final class WeatherViewModel {
                 }
                 if nameChanged { publishWidgetSnapshot() }
             }
+            guard serial == refreshSerial else { return }
+            await syncPrecipNotification()
             let scored = await Self.healthOffMain(weather: bundle, pollen: pollen)
             guard serial == refreshSerial else { return }
             health = scored
@@ -687,6 +748,29 @@ final class WeatherViewModel {
         let name = trimmed.isEmpty ? "Favorite" : trimmed
         await select(GeoResult(name: name, latitude: latitude, longitude: longitude, admin1: nil, country: nil))
         return true
+    }
+
+    private var precipPlaceKey: String {
+        PrecipNotificationCopy.placeKey(latitude: coordinate.latitude, longitude: coordinate.longitude)
+    }
+
+    private func syncPrecipNotification() async {
+        let samples = hourlyRows.prefix(PrecipNotificationCopy.lookaheadHours).map { row in
+            PrecipHourSample(
+                time: row.time,
+                clock: row.clock,
+                precipChance: row.precipChance,
+                precip: row.precip,
+                snow: row.snow
+            )
+        }
+        let notice = PrecipNotificationCopy.upcoming(hours: samples, placeKey: precipPlaceKey)
+        await AlertNotificationCoordinator.shared.handleFreshPrecip(
+            notice,
+            placeName: locationName,
+            placeKey: precipPlaceKey,
+            currentTime: hourlyRows.first?.time ?? ""
+        )
     }
 
     private func publishWidgetSnapshot() {

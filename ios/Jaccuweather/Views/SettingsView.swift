@@ -46,6 +46,16 @@ struct SettingsView: View {
                         }
                         .tint(theme.accent)
                         .accessibilityIdentifier("alert-notifications-toggle")
+                        Text("A forecast refresh can also notify this phone when rain or snow looks likely to start in the next few hours. This uses the forecast already on the phone. It does not use a server push.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Toggle(isOn: precipNotificationsBinding) {
+                            Text("Precipitation notifications")
+                                .font(.body.weight(.semibold))
+                        }
+                        .tint(theme.accent)
+                        .accessibilityIdentifier("precip-notifications-toggle")
                         if !model.alertNotificationNote.isEmpty {
                             Text(model.alertNotificationNote)
                                 .font(.footnote)
@@ -80,6 +90,22 @@ struct SettingsView: View {
                         .foregroundStyle(theme.accent)
                         .jwGlass(.stat)
                         .accessibilityIdentifier("alert-notification-sample")
+                        Text("Posts one sample precipitation notification. It is not a live forecast.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button {
+                            Task { await model.postSamplePrecipNotification() }
+                        } label: {
+                            Text("Post sample precipitation")
+                                .font(.body.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                        .jwGlass(.stat)
+                        .accessibilityIdentifier("precip-notification-sample")
                     }
                     #endif
 
@@ -203,6 +229,15 @@ struct SettingsView: View {
             .accessibilityIdentifier("nws-disclaimer-credit")
         }
         .tint(theme.accent)
+    }
+
+    private var precipNotificationsBinding: Binding<Bool> {
+        Binding(
+            get: { model.precipNotificationsOn },
+            set: { enabled in
+                Task { await model.setPrecipNotificationsEnabled(enabled) }
+            }
+        )
     }
 
     private var alertNotificationsBinding: Binding<Bool> {

@@ -17,6 +17,7 @@
 		70557A3A40C925D7172A2D21 /* APIEndpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF4402717F7DBD5E8BC5CC0D /* APIEndpoints.swift */; };
 		8E429C052C49B1E664D404DB /* AlertNotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01689426D79475FEC06BE3EF /* AlertNotificationCoordinator.swift */; };
 		F145D1579DE20D75FF192B5D /* AlertNotificationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5AAF61D6D26D0E39E5329E /* AlertNotificationCopy.swift */; };
+		D4B02F8C6E15A7392B7F1C55 /* PrecipNotificationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A91E7B5D04F6281A6E0B44 /* PrecipNotificationCopy.swift */; };
 		9CB6E1620584C8B37D777686 /* AlertsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3790FBD1C49350AD71C40786 /* AlertsService.swift */; };
 		82C28F2ECB2BE23C00C14CB9 /* ConditionsShareCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */; };
 		EC4D8333ADAC575A91D38F90 /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A0C722FF04D18341E065B7 /* FavoritesStore.swift */; };
@@ -124,6 +125,7 @@
 		AF4402717F7DBD5E8BC5CC0D /* APIEndpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIEndpoints.swift; sourceTree = "<group>"; };
 		01689426D79475FEC06BE3EF /* AlertNotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertNotificationCoordinator.swift; sourceTree = "<group>"; };
 		CE5AAF61D6D26D0E39E5329E /* AlertNotificationCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertNotificationCopy.swift; sourceTree = "<group>"; };
+		C3A91E7B5D04F6281A6E0B44 /* PrecipNotificationCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrecipNotificationCopy.swift; sourceTree = "<group>"; };
 		3790FBD1C49350AD71C40786 /* AlertsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsService.swift; sourceTree = "<group>"; };
 		615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsShareCopy.swift; sourceTree = "<group>"; };
 		52A0C722FF04D18341E065B7 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 				AF4402717F7DBD5E8BC5CC0D /* APIEndpoints.swift */,
 				01689426D79475FEC06BE3EF /* AlertNotificationCoordinator.swift */,
 				CE5AAF61D6D26D0E39E5329E /* AlertNotificationCopy.swift */,
+				C3A91E7B5D04F6281A6E0B44 /* PrecipNotificationCopy.swift */,
 				3790FBD1C49350AD71C40786 /* AlertsService.swift */,
 				615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */,
 				52A0C722FF04D18341E065B7 /* FavoritesStore.swift */,
@@ -445,6 +448,7 @@
 				70557A3A40C925D7172A2D21 /* APIEndpoints.swift in Sources */,
 				8E429C052C49B1E664D404DB /* AlertNotificationCoordinator.swift in Sources */,
 				F145D1579DE20D75FF192B5D /* AlertNotificationCopy.swift in Sources */,
+				D4B02F8C6E15A7392B7F1C55 /* PrecipNotificationCopy.swift in Sources */,
 				9CB6E1620584C8B37D777686 /* AlertsService.swift in Sources */,
 				82C28F2ECB2BE23C00C14CB9 /* ConditionsShareCopy.swift in Sources */,
 				EC4D8333ADAC575A91D38F90 /* FavoritesStore.swift in Sources */,

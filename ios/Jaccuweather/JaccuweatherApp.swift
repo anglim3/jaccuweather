@@ -12,8 +12,10 @@ enum LaunchArgs {
     static var showSearch: Bool { value("search") == "1" }
     #if DEBUG
     static var alertSample: Bool { value("alertSample") == "1" }
+    static var precipSample: Bool { value("precipSample") == "1" }
     #else
     static var alertSample: Bool { false }
+    static var precipSample: Bool { false }
     #endif
 
     static func value(_ name: String) -> String? {
@@ -46,5 +48,6 @@ struct JaccuweatherApp: App {
                     }
                 }
         }
+        .handlesExternalEvents(matching: ["*"])
     }
 }
