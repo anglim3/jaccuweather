@@ -226,6 +226,10 @@ final class WeatherViewModel {
     var alertNotificationsOn = false
     var precipNotificationsOn = false
     var alertNotificationNote = ""
+    var freezeNotificationsOn = false
+    var freezeNotificationNote = ""
+    /// Changes when a freeze notice or `jaccuweather://forecast` asks for the Forecast tab.
+    var forecastRouteToken = 0
     var routedAlert: NWSAlertFeature?
     /// Changes when Shortcuts asks the app to show Now.
     var intentNowToken: String?
@@ -336,6 +340,7 @@ final class WeatherViewModel {
 
     func openForecastTab() {
         forecastTabToken = UUID().uuidString
+        forecastRouteToken += 1
     }
 
     func openRoutedAlert(userInfo: [AnyHashable: Any]) {
@@ -391,9 +396,66 @@ final class WeatherViewModel {
         #endif
     }
 
+    private func postSampleFreezeIfRequested() async {
+        #if DEBUG
+        guard LaunchArgs.freezeSample else { return }
+        await postSampleFreezeNotification()
+        #endif
+    }
+
     private func postDebugSamplesIfRequested() async {
         await postSampleAlertIfRequested()
         await postSamplePrecipIfRequested()
+        await postSampleFreezeIfRequested()
+    }
+
+    func reloadFreezeNotificationPreference() {
+        freezeNotificationsOn = FreezeNotificationStore.isOn()
+    }
+
+    func refreshFreezeNotificationStatus() async {
+        reloadFreezeNotificationPreference()
+        guard freezeNotificationsOn else { return }
+        if await FreezeNotificationCoordinator.shared.authorizationStatus() == .denied {
+            freezeNotificationNote = "Notifications are off for this app in iOS Settings."
+        }
+    }
+
+    func setFreezeNotificationsEnabled(_ enabled: Bool) async {
+        let result = await FreezeNotificationCoordinator.shared.setEnabled(enabled)
+        reloadFreezeNotificationPreference()
+        switch result {
+        case .on:
+            freezeNotificationNote = ""
+            await notifyFreezeIfNeeded()
+        case .off:
+            freezeNotificationNote = ""
+        case .denied:
+            freezeNotificationNote = "Notifications are off for this app in iOS Settings."
+        }
+    }
+
+    func postSampleFreezeNotification() async {
+        #if DEBUG
+        if await FreezeNotificationCoordinator.shared.authorizationStatus() == .notDetermined {
+            _ = await setFreezeNotificationsEnabled(true)
+        }
+        guard await FreezeNotificationCoordinator.shared.authorizationStatus() != .denied else {
+            freezeNotificationNote = "Notifications are off for this app in iOS Settings."
+            return
+        }
+        _ = await FreezeNotificationCoordinator.shared.postSample(placeName: locationName.isEmpty ? "This place" : locationName)
+        #endif
+    }
+
+    private func notifyFreezeIfNeeded() async {
+        guard let weather else { return }
+        await FreezeNotificationCoordinator.shared.handleForecast(
+            days: dailyRows.map(\.date),
+            lows: dailyRows.map(\.low),
+            placeName: locationName,
+            utcOffsetSeconds: weather.utcOffset
+        )
     }
 
     init() {
@@ -443,6 +505,8 @@ final class WeatherViewModel {
         alertNotificationsOn = AlertNotificationStore.preference == .on
         precipNotificationsOn = PrecipNotificationStore.preference == .on
         AlertNotificationCoordinator.shared.model = self
+        freezeNotificationsOn = FreezeNotificationStore.isOn()
+        FreezeNotificationCoordinator.shared.model = self
         openObserver = NotificationCenter.default.addObserver(
             forName: IntentOpenRequest.notification,
             object: nil,
@@ -456,8 +520,12 @@ final class WeatherViewModel {
 
     func bootstrap() async {
         AlertNotificationCoordinator.shared.model = self
+        FreezeNotificationCoordinator.shared.model = self
         if let pending = AlertNotificationCoordinator.shared.takePendingUserInfo() {
             AlertNotificationCoordinator.shared.open(pending)
+        }
+        if FreezeNotificationCoordinator.shared.takePendingForecast() {
+            openForecastTab()
         }
         if await consumeIntentOpen() {
             await postDebugSamplesIfRequested()
@@ -538,6 +606,8 @@ final class WeatherViewModel {
             }
             guard serial == refreshSerial else { return }
             await syncPrecipNotification()
+            guard serial == refreshSerial else { return }
+            await notifyFreezeIfNeeded()
             let scored = await Self.healthOffMain(weather: bundle, pollen: pollen)
             guard serial == refreshSerial else { return }
             health = scored

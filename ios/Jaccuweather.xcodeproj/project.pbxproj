@@ -21,6 +21,8 @@
 		9CB6E1620584C8B37D777686 /* AlertsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3790FBD1C49350AD71C40786 /* AlertsService.swift */; };
 		82C28F2ECB2BE23C00C14CB9 /* ConditionsShareCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */; };
 		EC4D8333ADAC575A91D38F90 /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A0C722FF04D18341E065B7 /* FavoritesStore.swift */; };
+		2B7A794B7AA457DA72856819 /* FreezeNotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F6B15277A3BE83E3499DDD9 /* FreezeNotificationCoordinator.swift */; };
+		F02324BAF1A6D546577C7200 /* FreezeWarningCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D42A8B4E0977CFE66CB103B8 /* FreezeWarningCopy.swift */; };
 		42F9365675371095E8A3D15D /* GeocodingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */; };
 		99CEBE136A51A373A97C9359 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C99827EB911E5D31727ED5D2 /* HTTPClient.swift */; };
 		F6B317328B853FA31DB7E01D /* HealthScores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */; };
@@ -129,6 +131,8 @@
 		3790FBD1C49350AD71C40786 /* AlertsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsService.swift; sourceTree = "<group>"; };
 		615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsShareCopy.swift; sourceTree = "<group>"; };
 		52A0C722FF04D18341E065B7 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
+		2F6B15277A3BE83E3499DDD9 /* FreezeNotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreezeNotificationCoordinator.swift; sourceTree = "<group>"; };
+		D42A8B4E0977CFE66CB103B8 /* FreezeWarningCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreezeWarningCopy.swift; sourceTree = "<group>"; };
 		8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingService.swift; sourceTree = "<group>"; };
 		C99827EB911E5D31727ED5D2 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthScores.swift; sourceTree = "<group>"; };
@@ -293,6 +297,8 @@
 				3790FBD1C49350AD71C40786 /* AlertsService.swift */,
 				615AD27E5CE812BD57B14266 /* ConditionsShareCopy.swift */,
 				52A0C722FF04D18341E065B7 /* FavoritesStore.swift */,
+				2F6B15277A3BE83E3499DDD9 /* FreezeNotificationCoordinator.swift */,
+				D42A8B4E0977CFE66CB103B8 /* FreezeWarningCopy.swift */,
 				8CFB7C14F7B48137120F1D4F /* GeocodingService.swift */,
 				C99827EB911E5D31727ED5D2 /* HTTPClient.swift */,
 				5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */,
@@ -452,6 +458,8 @@
 				9CB6E1620584C8B37D777686 /* AlertsService.swift in Sources */,
 				82C28F2ECB2BE23C00C14CB9 /* ConditionsShareCopy.swift in Sources */,
 				EC4D8333ADAC575A91D38F90 /* FavoritesStore.swift in Sources */,
+				2B7A794B7AA457DA72856819 /* FreezeNotificationCoordinator.swift in Sources */,
+				F02324BAF1A6D546577C7200 /* FreezeWarningCopy.swift in Sources */,
 				42F9365675371095E8A3D15D /* GeocodingService.swift in Sources */,
 				99CEBE136A51A373A97C9359 /* HTTPClient.swift in Sources */,
 				F6B317328B853FA31DB7E01D /* HealthScores.swift in Sources */,

@@ -70,6 +70,30 @@ struct SettingsView: View {
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(theme.accent)
                         }
+                        Text("Uses the forecast already loaded in the app. When tonight’s low is at or below 32°, this phone can show one local notice. Nothing is sent from a server.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Toggle(isOn: freezeNotificationsBinding) {
+                            Text("Freeze warnings")
+                                .font(.body.weight(.semibold))
+                        }
+                        .tint(theme.accent)
+                        .accessibilityIdentifier("freeze-notifications-toggle")
+                        if !model.freezeNotificationNote.isEmpty {
+                            Text(model.freezeNotificationNote)
+                                .font(.footnote)
+                                .foregroundStyle(theme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("freeze-notifications-note")
+                            Button("Open iOS Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(theme.accent)
+                        }
                     }
 
                     #if DEBUG
@@ -106,6 +130,22 @@ struct SettingsView: View {
                         .foregroundStyle(theme.accent)
                         .jwGlass(.stat)
                         .accessibilityIdentifier("precip-notification-sample")
+                        Text("Posts one sample freeze notice. It is not a live forecast.")
+                            .font(.footnote)
+                            .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button {
+                            Task { await model.postSampleFreezeNotification() }
+                        } label: {
+                            Text("Post freeze sample")
+                                .font(.body.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                        .jwGlass(.stat)
+                        .accessibilityIdentifier("freeze-notification-sample")
                     }
                     #endif
 
@@ -194,6 +234,7 @@ struct SettingsView: View {
             .onAppear {
                 load()
                 Task { await model.refreshAlertNotificationStatus() }
+                Task { await model.refreshFreezeNotificationStatus() }
             }
         }
     }
@@ -236,6 +277,15 @@ struct SettingsView: View {
             get: { model.precipNotificationsOn },
             set: { enabled in
                 Task { await model.setPrecipNotificationsEnabled(enabled) }
+            }
+        )
+    }
+
+    private var freezeNotificationsBinding: Binding<Bool> {
+        Binding(
+            get: { model.freezeNotificationsOn },
+            set: { enabled in
+                Task { await model.setFreezeNotificationsEnabled(enabled) }
             }
         )
     }

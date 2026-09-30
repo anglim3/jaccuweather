@@ -346,7 +346,11 @@ final class AlertNotificationCoordinator: NSObject, UNUserNotificationCenterDele
     ) async {
         let info = response.notification.request.content.userInfo
         await MainActor.run {
-            AlertNotificationCoordinator.shared.open(info)
+            if FreezeWarningCopy.isForecastRoute(info) {
+                FreezeNotificationCoordinator.shared.openForecast()
+            } else {
+                AlertNotificationCoordinator.shared.open(info)
+            }
         }
     }
 

@@ -13,9 +13,11 @@ enum LaunchArgs {
     #if DEBUG
     static var alertSample: Bool { value("alertSample") == "1" }
     static var precipSample: Bool { value("precipSample") == "1" }
+    static var freezeSample: Bool { value("freezeSample") == "1" }
     #else
     static var alertSample: Bool { false }
     static var precipSample: Bool { false }
+    static var freezeSample: Bool { false }
     #endif
 
     static func value(_ name: String) -> String? {

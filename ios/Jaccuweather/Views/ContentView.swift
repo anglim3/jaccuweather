@@ -61,8 +61,12 @@ struct ContentView: View {
             guard token != nil else { return }
             showForecast()
         }
+        .onChange(of: model.forecastRouteToken) { _, token in
+            guard token > 0 else { return }
+            showForecast()
+        }
         .onOpenURL { url in
-            if NowLink.opensForecast(url) {
+            if NowLink.opensForecast(url) || FreezeWarningCopy.opensForecast(url) {
                 showForecast()
                 return
             }
@@ -71,6 +75,9 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NowLink.opened)) { _ in
             showNow()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: FreezeWarningCopy.openedForecast)) { _ in
+            showForecast()
         }
         .sheet(isPresented: $showSearch) {
             SearchSheet().environment(model)
@@ -90,6 +97,7 @@ struct ContentView: View {
         tab = 1
         showSettings = false
         showSearch = false
+        loadedTabs.insert(1)
     }
 
     private func tabIsLoaded(_ tag: Int) -> Bool {
