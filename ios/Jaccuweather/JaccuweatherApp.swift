@@ -9,6 +9,7 @@ enum LaunchArgs {
     static var longitude: Double? { value("lon").flatMap(Double.init) }
     static var placeName: String? { value("name") }
     static var showSettings: Bool { value("settings") == "1" }
+    static var showSearch: Bool { value("search") == "1" }
     #if DEBUG
     static var alertSample: Bool { value("alertSample") == "1" }
     #else

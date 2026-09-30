@@ -5,6 +5,7 @@ struct SearchSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @State private var waitingForFix = false
+    @State private var favoritesEditMode: EditMode = .inactive
 
     private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
@@ -50,33 +51,7 @@ struct SearchSheet: View {
 
                     if model.favorites.items.isEmpty == false {
                         Section {
-                            ForEach(model.favorites.items) { place in
-                                Button {
-                                    Task {
-                                        await model.select(place)
-                                        dismiss()
-                                    }
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "star.fill")
-                                            .foregroundStyle(theme.gold)
-                                            .frame(width: 28)
-                                            .accessibilityHidden(true)
-                                        Text(place.displayName)
-                                            .foregroundStyle(theme.text)
-                                            .multilineTextAlignment(.leading)
-                                        Spacer(minLength: 0)
-                                    }
-                                }
-                                .swipeActions {
-                                    Button(role: .destructive) {
-                                        model.favorites.remove(place)
-                                    } label: {
-                                        Label("Remove", systemImage: "trash")
-                                    }
-                                }
-                                .listRowBackground(rowFill)
-                            }
+                            favoriteRows
                         } header: {
                             SectionEyebrow(title: "Favorites")
                         }
@@ -125,8 +100,12 @@ struct SearchSheet: View {
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
                 .listRowSeparatorTint(theme.divider)
+                .environment(\.editMode, $favoritesEditMode)
             }
             .jwScreenChrome()
+            .onChange(of: model.favorites.items.count) { _, count in
+                if count < 2 { favoritesEditMode = .inactive }
+            }
             .onChange(of: model.searchQuery) { _, value in
                 model.updateSearch(value)
             }
@@ -135,6 +114,15 @@ struct SearchSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
+                }
+                if model.favorites.items.count > 1 {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(favoritesEditMode == .active ? "Done" : "Reorder") {
+                            favoritesEditMode = favoritesEditMode == .active ? .inactive : .active
+                        }
+                        .accessibilityIdentifier("favorites-reorder")
+                        .accessibilityLabel(favoritesEditMode == .active ? "Done reordering" : "Reorder favorites")
+                    }
                 }
             }
             .onChange(of: model.hasResolvedPlace) { _, resolved in
@@ -151,6 +139,52 @@ struct SearchSheet: View {
     }
 
     private var rowFill: Color { theme.card }
+
+    @ViewBuilder
+    private var favoriteRows: some View {
+        if model.favorites.items.count > 1 {
+            ForEach(model.favorites.items) { place in
+                favoriteRow(place)
+            }
+            .onMove { source, destination in
+                model.favorites.move(from: source, to: destination)
+            }
+        } else {
+            ForEach(model.favorites.items) { place in
+                favoriteRow(place)
+            }
+        }
+    }
+
+    private func favoriteRow(_ place: GeoResult) -> some View {
+        Button {
+            Task {
+                await model.select(place)
+                dismiss()
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(theme.gold)
+                    .frame(width: 28)
+                    .accessibilityHidden(true)
+                Text(place.displayName)
+                    .foregroundStyle(theme.text)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+        }
+        .accessibilityIdentifier("favorite-row")
+        .accessibilityLabel(place.displayName)
+        .swipeActions {
+            Button(role: .destructive) {
+                model.favorites.remove(place)
+            } label: {
+                Label("Remove", systemImage: "trash")
+            }
+        }
+        .listRowBackground(rowFill)
+    }
 
     private func searchPill(query: Binding<String>) -> some View {
         HStack(spacing: 8) {
