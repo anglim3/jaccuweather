@@ -75,6 +75,7 @@ struct ForecastView: View {
         }
         .navigationTitle("Forecast")
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("forecast-screen")
         .onAppear {
             if LaunchArgs.value("hourly") != nil { hourlyMode = ForecastSeries.normalized(LaunchArgs.hourly) }
             if LaunchArgs.value("daily") != nil { dailySeries = ForecastSeries.normalized(LaunchArgs.daily) }

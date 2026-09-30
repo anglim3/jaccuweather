@@ -1,6 +1,6 @@
 import Foundation
 
-/// `jaccuweather://now` opens the Now tab for the place already loaded.
+/// `jaccuweather://now` opens the Now tab. `jaccuweather://forecast` opens Forecast.
 enum NowLink {
     static let opened = Notification.Name("jaccuweather.openNow")
     private static let darwinName = "cloud.janglim.jaccuweather.open-now" as CFString
@@ -42,10 +42,18 @@ enum NowLink {
     }
 
     static func opensNow(_ url: URL) -> Bool {
+        matches(url, host: "now")
+    }
+
+    static func opensForecast(_ url: URL) -> Bool {
+        matches(url, host: "forecast")
+    }
+
+    private static func matches(_ url: URL, host: String) -> Bool {
         guard url.scheme?.caseInsensitiveCompare(scheme) == .orderedSame else { return false }
-        if url.host?.caseInsensitiveCompare("now") == .orderedSame { return true }
+        if url.host?.caseInsensitiveCompare(host) == .orderedSame { return true }
         let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return path.caseInsensitiveCompare("now") == .orderedSame
+        return path.caseInsensitiveCompare(host) == .orderedSame
     }
 }
 

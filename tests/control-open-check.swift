@@ -38,6 +38,11 @@ func run() {
     check(NowLink.opensNow(URL(string: "jaccuweather:///now")!), "path form")
     check(!NowLink.opensNow(URL(string: "jaccuweather://forecast")!), "other host stays closed")
     check(!NowLink.opensNow(URL(string: "https://weather.janglim.cloud/now")!), "other scheme stays closed")
+    check(NowLink.opensForecast(URL(string: "jaccuweather://forecast")!), "forecast host")
+    check(NowLink.opensForecast(URL(string: "jaccuweather:///forecast")!), "forecast path")
+    check(NowLink.opensForecast(URL(string: "JACCUWEATHER://Forecast")!), "forecast scheme is case-insensitive")
+    check(!NowLink.opensForecast(NowLink.url), "now is not forecast")
+    check(!NowLink.opensForecast(URL(string: "https://example.com/forecast")!), "other scheme is not forecast")
 
     print("ok")
 }

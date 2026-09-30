@@ -57,7 +57,15 @@ struct ContentView: View {
             showSettings = false
             showSearch = false
         }
+        .onChange(of: model.forecastTabToken) { _, token in
+            guard token != nil else { return }
+            showForecast()
+        }
         .onOpenURL { url in
+            if NowLink.opensForecast(url) {
+                showForecast()
+                return
+            }
             guard NowLink.opensNow(url) else { return }
             showNow()
         }
@@ -74,6 +82,12 @@ struct ContentView: View {
 
     private func showNow() {
         tab = 0
+        showSettings = false
+        showSearch = false
+    }
+
+    private func showForecast() {
+        tab = 1
         showSettings = false
         showSearch = false
     }
