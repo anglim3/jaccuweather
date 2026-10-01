@@ -28,6 +28,7 @@
 		F6B317328B853FA31DB7E01D /* HealthScores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */; };
 		17F58A684B4297B3A083C98B /* IntentForecastCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0CE03BF0E6E5A51E8C929F8 /* IntentForecastCopy.swift */; };
 		92F7ADCB29C4651DA04E5F29 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466FF90FC174DD644889D6E5 /* KeychainStore.swift */; };
+		A775FE2AC6E590AE4DB716B1 /* LiveActivityPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE67FB979A3F36F670390C40 /* LiveActivityPlan.swift */; };
 		ABDBEAD51C35E420411C1C6A /* LogicEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */; };
 		054D85EA1F416B31C6A7E770 /* NOAARadarModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408B234880885A065E2D219A /* NOAARadarModel.swift */; };
 		481F3804F9E2AE4AA880367B /* NOAARadarOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */; };
@@ -140,6 +141,7 @@
 		5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthScores.swift; sourceTree = "<group>"; };
 		F0CE03BF0E6E5A51E8C929F8 /* IntentForecastCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentForecastCopy.swift; sourceTree = "<group>"; };
 		466FF90FC174DD644889D6E5 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		DE67FB979A3F36F670390C40 /* LiveActivityPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityPlan.swift; sourceTree = "<group>"; };
 		1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicEngine.swift; sourceTree = "<group>"; };
 		408B234880885A065E2D219A /* NOAARadarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOAARadarModel.swift; sourceTree = "<group>"; };
 		49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOAARadarOverlay.swift; sourceTree = "<group>"; };
@@ -308,6 +310,7 @@
 				5B7DDFEEA21F9CE5AD872540 /* HealthScores.swift */,
 				F0CE03BF0E6E5A51E8C929F8 /* IntentForecastCopy.swift */,
 				466FF90FC174DD644889D6E5 /* KeychainStore.swift */,
+				DE67FB979A3F36F670390C40 /* LiveActivityPlan.swift */,
 				1DB58A50EFCAE05BAF20C420 /* LogicEngine.swift */,
 				408B234880885A065E2D219A /* NOAARadarModel.swift */,
 				49948D4EB02E14FDEAB6B48E /* NOAARadarOverlay.swift */,
@@ -471,6 +474,7 @@
 				F6B317328B853FA31DB7E01D /* HealthScores.swift in Sources */,
 				17F58A684B4297B3A083C98B /* IntentForecastCopy.swift in Sources */,
 				92F7ADCB29C4651DA04E5F29 /* KeychainStore.swift in Sources */,
+				A775FE2AC6E590AE4DB716B1 /* LiveActivityPlan.swift in Sources */,
 				ABDBEAD51C35E420411C1C6A /* LogicEngine.swift in Sources */,
 				054D85EA1F416B31C6A7E770 /* NOAARadarModel.swift in Sources */,
 				481F3804F9E2AE4AA880367B /* NOAARadarOverlay.swift in Sources */,

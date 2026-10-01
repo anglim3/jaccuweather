@@ -913,7 +913,10 @@ final class WeatherViewModel {
     }
 
     private func publishWidgetSnapshot() {
-        guard hasResolvedPlace, weather != nil || !hourlyRows.isEmpty else { return }
+        guard hasResolvedPlace, weather != nil || !hourlyRows.isEmpty else {
+            WeatherLiveActivitySync.end()
+            return
+        }
         let current = weather?.current
         let hour = hourlyRows.first
         let today = dailyRows.first
@@ -960,7 +963,10 @@ final class WeatherViewModel {
                 fetchedAt: snapshot.fetchedAt
             ), makeCurrent: true)
         }
-        guard weather != nil else { return }
+        guard weather != nil else {
+            WeatherLiveActivitySync.end()
+            return
+        }
         WeatherLiveActivitySync.startOrUpdate(
             placeID: snapshot.locationId,
             placeName: snapshot.locationName,
