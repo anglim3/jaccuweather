@@ -129,7 +129,7 @@ private struct DebugPlaceFile: Decodable {
 
 struct PlaceWidgetIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Current conditions"
-    static var description = IntentDescription("Weather for a chosen place. A fresh reading from the app is used when sharing is available.")
+    static var description = IntentDescription("Weather for a chosen place. A fresh reading from the app is used when it is that place.")
 
     @Parameter(title: "Place", description: "Search for a city, or enter latitude and longitude.")
     var place: WidgetPlace?

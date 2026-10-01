@@ -44,7 +44,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Pollen keys | **DONE** — Settings Keychain, else blank `Secrets.xcconfig`; empty keys stay on Open-Meteo |
 | Now tab clear of the tab bar | **DONE** — scroll content sits above the floating tab bar |
 | Favorites remove | **DONE** — swipe to remove in the location sheet |
-| Home Screen and Lock Screen widgets | **DONE** — `JaccuweatherWidgets` reads an App Group snapshot written on each successful forecast refresh. Small and medium home widgets use the Horizon navy gradient, glass chips, and a serif place name. Lock Screen circular, rectangular, and inline accessories keep that hierarchy, with the same fill when the system shows a widget background. SF Symbols from the WMO code. No SVG or WKWebView |
+| Home Screen and Lock Screen widgets | **DONE** — `JaccuweatherWidgets` reads an App Group snapshot written on each successful forecast refresh. That snapshot is shown when it is the widget’s place, or when the widget has no chosen place. A different chosen place, and a missing App Group container, are loaded from Open-Meteo. Small and medium home widgets use the Horizon navy gradient, glass chips, and a serif place name. Lock Screen circular, rectangular, and inline accessories keep that hierarchy, with the same fill when the system shows a widget background. SF Symbols from the WMO code. No SVG or WKWebView |
 
 ## Native-only extras
 
