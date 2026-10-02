@@ -189,15 +189,26 @@ enum WatchSunPlan {
         return WatchSunTimes(sunriseLabel: rise, sunsetLabel: set)
     }
 
-    /// `6:42` and `18:51` from `yyyy-MM-dd'T'HH:mm`. Minutes stay two digits.
-    static func clock(from iso: String?) -> String? {
+    /// `7:04 AM` and `6:27 PM` from `yyyy-MM-dd'T'HH:mm`. The hour is always
+    /// 12-hour. AM and PM come from `locale`. The stamp is a place-local wall
+    /// clock, so the device time zone is not applied.
+    static func clock(from iso: String?, locale: Locale = .current) -> String? {
         let trimmed = iso?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard let match = clockPattern.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
               let hour = integer(trimmed, match, 1),
               let minute = integer(trimmed, match, 2),
               (0...23).contains(hour),
               (0...59).contains(minute) else { return nil }
-        return String(format: "%d:%02d", hour, minute)
+        let twelve = hour % 12 == 0 ? 12 : hour % 12
+        return "\(twelve):" + String(format: "%02d", minute) + " " + dayPeriod(morning: hour < 12, locale: locale)
+    }
+
+    private static func dayPeriod(morning: Bool, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        let symbol = morning ? formatter.amSymbol : formatter.pmSymbol
+        if let symbol, !symbol.isEmpty { return symbol }
+        return morning ? "AM" : "PM"
     }
 
     private static func integer(_ text: String, _ match: NSTextCheckingResult, _ group: Int) -> Int? {
