@@ -113,5 +113,79 @@ func run() {
     check(WatchAlertSummaryPlan.summary(from: [WatchAlertSummaryPlan.Item(title: "Flood", severity: "")]) == nil, "an alert without severity is not invented")
     check(WatchAlertSummaryPlan.summary(from: []) == nil, "an empty alert list stays quiet")
 
+    let mapped = WatchAlertSummaryPlan.item(
+        event: "Wind Advisory",
+        headline: "Wind Advisory for Juneau until Saturday evening",
+        severity: " Moderate ",
+        instruction: " Secure loose outdoor objects. ",
+        ends: "Ends Oct 3, 6:00 PM"
+    )
+    check(mapped.title == "Wind Advisory" && mapped.severity == "Moderate", "the event is the title and severity is trimmed")
+    check(mapped.ends == "Ends Oct 3, 6:00 PM", "the phone schedule line is kept")
+    let headlineOnly = WatchAlertSummaryPlan.item(event: " ", headline: "Flood Watch", severity: "Minor", instruction: nil, ends: nil)
+    check(headlineOnly.title == "Flood Watch" && headlineOnly.event == nil, "a blank event falls back to the headline")
+
+    let chosen = WatchAlertSummaryPlan.summary(from: [
+        WatchAlertSummaryPlan.Item(
+            title: "Wind Advisory",
+            severity: "Moderate",
+            instruction: "Secure loose objects.",
+            ends: "Ends Oct 3, 6:00 PM"
+        ),
+        WatchAlertSummaryPlan.Item(
+            title: "Tornado Warning",
+            severity: "Extreme",
+            event: "Tornado Warning",
+            instruction: "Take cover."
+        )
+    ])
+    check(chosen?.title == "Tornado Warning" && chosen?.instruction == "Take cover.", "optional text comes from the badge alert")
+    check(chosen?.ends == nil && chosen?.event == "Tornado Warning", "another alert's ends line is not copied over")
+
+    let full = WatchAlertSummary(
+        title: "Wind Advisory",
+        severity: "Moderate",
+        count: 2,
+        event: "Wind Advisory",
+        headline: "Wind Advisory for Juneau until Saturday evening",
+        instruction: "Secure loose outdoor objects.",
+        ends: "Ends Oct 3, 6:00 PM"
+    )
+    let sent = WatchAlertPayload.fields(full)
+    check(sent[WatchAlertPayload.endsKey] as? String == "Ends Oct 3, 6:00 PM", "ends is sent as the 12-hour schedule line")
+    check((sent[WatchAlertPayload.endsKey] as? String)?.contains("18:00") != true, "the ends line is not a 24-hour clock")
+    let parsed = WatchAlertPayload.summary(from: sent)
+    check(parsed == full, "optional alert text round-trips")
+    let lines = parsed?.detailLines
+    check(lines?.severity == "Moderate" && lines?.title == "Wind Advisory", "the sheet uses the snapshot title and severity")
+    check(lines?.countLine == "2 alerts", "the sheet counts the alerts")
+    check(lines?.headline == "Wind Advisory for Juneau until Saturday evening", "a longer headline is shown")
+    check(lines?.event == nil, "an event that repeats the title is not a second line")
+    check(lines?.ends == "Ends Oct 3, 6:00 PM" && lines?.instruction == "Secure loose outdoor objects.", "ends and instruction show when present")
+
+    let one = WatchAlertSummary(title: "Flood Watch", severity: "Minor", count: 1, event: "Flood Statement")
+    check(one.detailLines.countLine == "1 alert", "a single alert is singular")
+    check(one.detailLines.event == "Flood Statement", "a distinct event is shown")
+    check(one.detailLines.headline == nil && one.detailLines.instruction == nil && one.detailLines.ends == nil, "missing optional lines stay off the sheet")
+
+    let basicKeys = WatchAlertPayload.fields(WatchAlertSummary(title: "Flood", severity: "Minor", count: 1))
+    check(basicKeys[WatchAlertPayload.instructionKey] == nil && basicKeys[WatchAlertPayload.endsKey] == nil, "a summary without extra text adds no optional keys")
+    check(basicKeys.count == 3, "the required trio is unchanged when optional text is absent")
+    check(WatchAlertPayload.summary(from: [
+        WatchAlertPayload.instructionKey: "Take cover.",
+        WatchAlertPayload.endsKey: "Ends Oct 3, 6:00 PM"
+    ]) == nil, "optional text without the badge fields stays quiet")
+
+    let longInstruction = String(repeating: "Secure loose outdoor objects. ", count: 20)
+    let clipped = WatchAlertPayload.fields(WatchAlertSummary(
+        title: "Wind Advisory",
+        severity: "Moderate",
+        count: 1,
+        instruction: longInstruction
+    ))
+    let instruction = clipped[WatchAlertPayload.instructionKey] as? String ?? ""
+    check(instruction.count <= 281 && instruction.hasSuffix("…"), "a long instruction is shortened for the watch")
+    check(instruction.hasPrefix("Secure loose outdoor objects."), "the shortened instruction keeps the phone's words")
+
     print("ok")
 }

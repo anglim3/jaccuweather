@@ -1,15 +1,17 @@
 import SwiftUI
 import WatchKit
 
-/// One glance sheet. A single presentation keeps the day sheet and the hour sheet from replacing each other.
+/// One glance sheet. Day, hour, and alert details share it so they do not replace each other.
 private enum WatchGlanceDetail: Identifiable {
     case day(WatchDaySlot)
     case hour(WatchHourSlot)
+    case alert
 
     var id: String {
         switch self {
         case .day(let day): return "day-\(day.id)"
         case .hour(let hour): return "hour-\(hour.id)"
+        case .alert: return "alert"
         }
     }
 }
@@ -19,6 +21,7 @@ struct WatchGlanceView: View {
     @State private var showPlaces = false
     @State private var closedLaunchList = false
     @State private var detail: WatchGlanceDetail?
+    @State private var didPresentSampleDetail = false
 
     /// Open from the Places button, or from `-watchPlaces 1` until Close.
     private var showingList: Bool {
@@ -43,6 +46,21 @@ struct WatchGlanceView: View {
         .preferredColorScheme(.dark)
         .task { await model.start() }
         .onOpenURL { model.open($0) }
+        .onAppear { presentSampleDetailIfNeeded() }
+        .onChange(of: model.alert?.title) { _, _ in
+            if model.alert == nil {
+                if case .alert = detail { detail = nil }
+            } else {
+                presentSampleDetailIfNeeded()
+            }
+        }
+    }
+
+    /// Debug launches open the sheet once. A real badge tap sets `detail`.
+    private func presentSampleDetailIfNeeded() {
+        guard !didPresentSampleDetail, WatchAlertSample.presentsDetail, model.alert != nil, detail == nil else { return }
+        didPresentSampleDetail = true
+        detail = .alert
     }
 
     private var glance: some View {
@@ -112,7 +130,16 @@ struct WatchGlanceView: View {
                 }
             }
             if let alert = model.alert {
-                WatchAlertBadge(alert: alert)
+                Button {
+                    detail = .alert
+                } label: {
+                    WatchAlertBadge(alert: alert)
+                }
+                .buttonStyle(.plain)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("watch-alert-badge")
+                .accessibilityLabel(alert.spokenLabel)
+                .accessibilityHint("Shows alert details")
             }
             WatchHourlyStrip(hours: model.hours, style: metrics.hourly) { hour in
                 detail = .hour(hour)
@@ -129,6 +156,10 @@ struct WatchGlanceView: View {
                 WatchDayDetailView(day: day)
             case .hour(let hour):
                 WatchHourDetailView(hour: hour)
+            case .alert:
+                if let alert = model.alert {
+                    WatchAlertDetailSheet(alert: alert)
+                }
             }
         }
         .onChange(of: model.days) { _, days in
@@ -460,7 +491,7 @@ struct WatchAlertBadge: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
-        .foregroundStyle(tint)
+        .foregroundStyle(WatchAlertTint.color(for: alert.severity))
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
         .background {
@@ -468,11 +499,10 @@ struct WatchAlertBadge: View {
                 .fill(WidgetHorizon.glassStrong)
                 .overlay {
                     Capsule(style: .continuous)
-                        .strokeBorder(tint.opacity(0.55), lineWidth: 1)
+                        .strokeBorder(WatchAlertTint.color(for: alert.severity).opacity(0.55), lineWidth: 1)
                 }
         }
-        .accessibilityIdentifier("watch-alert-badge")
-        .accessibilityLabel(spoken)
+        .accessibilityHidden(true)
     }
 
     private var line: String {
@@ -481,16 +511,11 @@ struct WatchAlertBadge: View {
         }
         return alert.title
     }
+}
 
-    private var spoken: String {
-        if alert.count > 1 {
-            return "\(alert.count) alerts, \(alert.severity), \(alert.title)"
-        }
-        return "\(alert.severity), \(alert.title)"
-    }
-
-    private var tint: Color {
-        switch alert.severity.lowercased() {
+enum WatchAlertTint {
+    static func color(for severity: String) -> Color {
+        switch severity.lowercased() {
         case "extreme", "severe":
             return Color(red: 1, green: 0.38, blue: 0.34)
         case "moderate":
@@ -500,5 +525,98 @@ struct WatchAlertBadge: View {
         default:
             return WidgetHorizon.muted
         }
+    }
+}
+
+/// Short alert sheet. Close returns to the glance. No extra glance chrome.
+struct WatchAlertDetailSheet: View {
+    var alert: WatchAlertSummary
+    @Environment(\.dismiss) private var dismiss
+
+    private var lines: WatchAlertDetailLines { alert.detailLines }
+    private var compact: Bool { WKInterfaceDevice.current().screenBounds.height < 240 }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: compact ? 5 : 7) {
+                Button(action: { dismiss() }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "chevron.backward")
+                            .font(.system(size: compact ? 11 : 12, weight: .bold))
+                        Text("Close")
+                            .font(.system(size: compact ? 12 : 13, weight: .semibold))
+                    }
+                    .foregroundStyle(WidgetHorizon.accent)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("watch-alert-close")
+                .accessibilityLabel("Close")
+
+                Text(lines.severity)
+                    .font(.system(size: compact ? 11 : 12, weight: .bold))
+                    .foregroundStyle(WatchAlertTint.color(for: lines.severity))
+                    .textCase(.uppercase)
+                    .accessibilityIdentifier("watch-alert-severity")
+
+                Text(lines.title)
+                    .font(.system(size: compact ? 15 : 17, weight: .semibold))
+                    .foregroundStyle(WidgetHorizon.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("watch-alert-title")
+
+                if let headline = lines.headline {
+                    Text(headline)
+                        .font(.system(size: compact ? 12 : 13, weight: .medium))
+                        .foregroundStyle(WidgetHorizon.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("watch-alert-headline")
+                }
+
+                Text(lines.countLine)
+                    .font(.system(size: compact ? 12 : 13, weight: .semibold))
+                    .foregroundStyle(WidgetHorizon.accent)
+                    .accessibilityIdentifier("watch-alert-count")
+
+                if let event = lines.event {
+                    Text(event)
+                        .font(.system(size: compact ? 12 : 13, weight: .medium))
+                        .foregroundStyle(WidgetHorizon.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("watch-alert-event")
+                }
+
+                if let ends = lines.ends {
+                    Text(ends)
+                        .font(.system(size: compact ? 12 : 13, weight: .medium))
+                        .foregroundStyle(WidgetHorizon.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("watch-alert-ends")
+                }
+
+                if let instruction = lines.instruction {
+                    Text(instruction)
+                        .font(.system(size: compact ? 12 : 13))
+                        .foregroundStyle(WidgetHorizon.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(WidgetHorizon.glass)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1)
+                                }
+                        }
+                        .accessibilityIdentifier("watch-alert-instruction")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, compact ? 2 : 4)
+            .padding(.bottom, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background { WidgetHorizonBackground().ignoresSafeArea() }
+        .accessibilityIdentifier("watch-alert-detail")
     }
 }

@@ -257,22 +257,43 @@ enum WatchHourDetailLaunch {
 enum WatchAlertSample {
     /// Debug launches can seed a phone payload with `-watchAlertSample 1`.
     /// A context that already has title, severity, and count is left as the phone sent it.
+    /// Pair with `-name Juneau -lat 58.3019 -lon -134.4197` to pin that city.
+    /// `-watchAlertDetail 1` opens the sheet once an alert is on screen.
+    static var presentsDetail: Bool {
+        #if DEBUG
+        return flag("watchAlertDetail")
+        #else
+        return false
+        #endif
+    }
+
     static func context(_ base: [String: Any]) -> [String: Any] {
         #if DEBUG
-        let args = ProcessInfo.processInfo.arguments
-        guard let index = args.firstIndex(of: "-watchAlertSample"),
-              index + 1 < args.count,
-              args[index + 1] == "1" else { return base }
+        guard flag("watchAlertSample") else { return base }
         if WatchAlertPayload.summary(from: base) != nil { return base }
         var merged = base
+        // A leftover phone snapshot for another city would hide this sample.
+        merged.removeValue(forKey: "snapshot")
         merged[WatchAlertPayload.titleKey] = "Wind Advisory"
         merged[WatchAlertPayload.severityKey] = "Moderate"
         merged[WatchAlertPayload.countKey] = 2
+        merged[WatchAlertPayload.eventKey] = "Wind Advisory"
+        merged[WatchAlertPayload.headlineKey] = "Wind Advisory for Juneau until Saturday evening"
+        merged[WatchAlertPayload.endsKey] = "Ends Oct 3, 6:00 PM"
+        merged[WatchAlertPayload.instructionKey] = "Secure loose outdoor objects."
         return merged
         #else
         return base
         #endif
     }
+
+    #if DEBUG
+    private static func flag(_ name: String) -> Bool {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-\(name)"), index + 1 < args.count else { return false }
+        return args[index + 1] == "1"
+    }
+    #endif
 }
 
 final class WatchSessionHub: NSObject, WCSessionDelegate {
