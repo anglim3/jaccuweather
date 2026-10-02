@@ -19,15 +19,19 @@ final class FavoritesStore {
             items = []
             return
         }
-        items = decoded
+        let cleaned = Self.withoutDuplicatePlaces(decoded)
+        items = cleaned
+        if cleaned.count != decoded.count {
+            persist()
+        }
     }
 
     func contains(_ place: GeoResult) -> Bool {
-        items.contains(place)
+        items.contains { $0.samePlace(as: place) }
     }
 
     func remove(_ place: GeoResult) {
-        items.removeAll { $0 == place }
+        items.removeAll { $0.samePlace(as: place) }
         persist()
     }
 
@@ -50,12 +54,18 @@ final class FavoritesStore {
     }
 
     func toggle(_ place: GeoResult) {
-        if let idx = items.firstIndex(of: place) {
+        if let idx = items.firstIndex(where: { $0.samePlace(as: place) }) {
             items.remove(at: idx)
         } else {
             items.insert(place, at: 0)
         }
         persist()
+    }
+
+    /// One row per coordinate. A reverse geocode can store the same fix under a new name.
+    static func withoutDuplicatePlaces(_ places: [GeoResult]) -> [GeoResult] {
+        var seen = Set<String>()
+        return places.filter { seen.insert($0.id).inserted }
     }
 
     private func persist() {

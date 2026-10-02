@@ -210,6 +210,7 @@ final class WeatherViewModel {
     var statusNote: String?
     var searchQuery = ""
     var searchResults: [GeoResult] = []
+    var searchError: String?
     var isSearching = false
     var lastFetchMs: Double = 0
     var lastUpdatedLabel = ""
@@ -251,6 +252,7 @@ final class WeatherViewModel {
     private let tideService = TideService()
     private let locator = LocationProvider()
     private var searchTask: Task<Void, Never>?
+    private var searchGeneration = 0
     private var tickTask: Task<Void, Never>?
     private var preference = PlacePreference(followsDeviceLocation: true, explicit: nil, lastKnown: nil)
     private var followsDeviceLocation = true
@@ -546,14 +548,14 @@ final class WeatherViewModel {
         } else if !preference.followsDeviceLocation, let place = preference.explicit {
             followsDeviceLocation = false
             coordinate = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
-            locationName = place.displayName
+            locationName = Self.shownName(place.displayName)
             hasResolvedPlace = true
             lastFix = coordinate
         } else {
             followsDeviceLocation = true
             if let last = preference.lastKnown {
                 coordinate = CLLocationCoordinate2D(latitude: last.latitude, longitude: last.longitude)
-                locationName = last.displayName
+                locationName = Self.shownName(last.displayName)
                 hasResolvedPlace = true
                 lastFix = coordinate
             } else {
@@ -639,7 +641,7 @@ final class WeatherViewModel {
         }
 
         let nameTask: Task<String?, Never>? = geocode ? Task { [geocoding] in
-            try? await geocoding.reverse(latitude: lat, longitude: lon)
+            await geocoding.reverse(latitude: lat, longitude: lon)
         } : nil
         let weatherTask = Task.detached(priority: .userInitiated) {
             try await ForecastWork.load(latitude: lat, longitude: lon)
@@ -664,7 +666,7 @@ final class WeatherViewModel {
 
             let pollen = await pollenTask.value
             let alertsLoad = await alertsTask.value
-            let resolvedName = await nameTask?.value
+            let resolvedName = await nameTask?.value ?? nil
             guard serial == refreshSerial else { return }
 
             self.pollen = pollen
@@ -690,7 +692,7 @@ final class WeatherViewModel {
             alertIconFiles = icons
             await AlertNotificationCoordinator.shared.handleFreshAlerts(alerts, placeName: locationName)
             guard serial == refreshSerial else { return }
-            if let resolvedName, !resolvedName.isEmpty {
+            if let resolvedName, Self.shownName(resolvedName) == resolvedName {
                 let nameChanged = resolvedName != locationName
                 locationName = resolvedName
                 if followsDeviceLocation && !sessionPinsLocation {
@@ -740,11 +742,15 @@ final class WeatherViewModel {
         preference.lastKnown = place
         PlaceStore.save(preference)
         coordinate = next
-        locationName = place.displayName
+        locationName = Self.shownName(place.displayName)
         lastFix = coordinate
         hasResolvedPlace = true
+        searchGeneration += 1
+        searchTask?.cancel()
         searchQuery = ""
         searchResults = []
+        searchError = nil
+        isSearching = false
         statusNote = nil
         weeklySnow = nil
         if placeChanged {
@@ -774,12 +780,27 @@ final class WeatherViewModel {
     }
 
     func updateSearch(_ query: String) {
+        let previous = CitySearch.normalizedQuery(searchQuery)
         searchQuery = query
         searchTask?.cancel()
+        searchGeneration += 1
+        let generation = searchGeneration
+        let trimmed = CitySearch.normalizedQuery(query)
+        guard CitySearch.shouldSearch(trimmed) else {
+            searchResults = []
+            searchError = nil
+            isSearching = false
+            return
+        }
+        if trimmed != previous {
+            searchResults = []
+            searchError = nil
+        }
+        isSearching = true
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 280_000_000)
-            guard !Task.isCancelled else { return }
-            await runSearch()
+            guard !Task.isCancelled, CitySearch.matchesRequest(generation: generation, currentGeneration: searchGeneration) else { return }
+            await runSearch(trimmed, generation: generation)
         }
     }
 
@@ -796,6 +817,10 @@ final class WeatherViewModel {
     }
 
     func tickLastUpdated() {
+        guard lastFetchMs > 0 else {
+            lastUpdatedLabel = ""
+            return
+        }
         let now = Date().timeIntervalSince1970 * 1000
         lastUpdatedLabel = LogicEngine.shared.string("formatLastUpdatedBetween", [now, lastFetchMs]) ?? ""
     }
@@ -824,7 +849,7 @@ final class WeatherViewModel {
         if placeChanged { dropPreviousHealthAndAlerts(for: coordinate) }
         self.coordinate = coordinate
         if let last = preference.lastKnown, Self.near(last, coordinate) {
-            locationName = last.displayName
+            locationName = Self.shownName(last.displayName)
         } else {
             locationName = "Current location"
         }
@@ -864,7 +889,7 @@ final class WeatherViewModel {
                 dropPreviousHealthAndAlerts(for: next)
                 hasResolvedPlace = true
                 coordinate = next
-                locationName = last.displayName
+                locationName = Self.shownName(last.displayName)
                 lastFix = coordinate
                 Task { await refresh() }
             }
@@ -922,7 +947,7 @@ final class WeatherViewModel {
     }
 
     private func rememberDevicePlace() {
-        let name = locationName.isEmpty ? "Current location" : locationName
+        let name = Self.shownName(locationName)
         preference.followsDeviceLocation = true
         preference.lastKnown = GeoResult(name: name, latitude: coordinate.latitude, longitude: coordinate.longitude, admin1: nil, country: nil)
         PlaceStore.save(preference)
@@ -1069,11 +1094,47 @@ final class WeatherViewModel {
         return WidgetWeatherCode.shortText(code)
     }
 
-    private func runSearch() async {
-        guard searchQuery.count >= 2 else { searchResults = []; return }
-        isSearching = true
-        defer { isSearching = false }
-        searchResults = (try? await geocoding.search(query: searchQuery)) ?? []
+    private func runSearch(_ query: String, generation: Int) async {
+        let outcome: CitySearch.Outcome
+        do {
+            let results = try await geocoding.search(query: query)
+            outcome = CitySearch.Outcome.resolve(
+                generation: generation,
+                currentGeneration: searchGeneration,
+                query: query,
+                results: results,
+                failed: false
+            )
+        } catch {
+            outcome = CitySearch.Outcome.resolve(
+                generation: generation,
+                currentGeneration: searchGeneration,
+                query: query,
+                results: nil,
+                failed: true
+            )
+        }
+        switch outcome {
+        case .ignore:
+            return
+        case .empty:
+            searchResults = []
+            searchError = nil
+            isSearching = false
+        case .failed:
+            searchResults = []
+            searchError = "Couldn't search. Check the connection and try again."
+            isSearching = false
+        case .results(let places):
+            searchResults = places
+            searchError = nil
+            isSearching = false
+        }
+    }
+
+    /// Blank or comma-led labels stay off the screen. "Current location" is the stand-in.
+    private static func shownName(_ name: String) -> String {
+        PlaceName.isUsable(name) ? name : "Current location"
     }
 
     private func startTicker() {

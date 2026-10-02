@@ -57,7 +57,7 @@ struct SearchSheet: View {
                         }
                     }
 
-                    if model.isSearching || model.searchResults.isEmpty == false || model.searchQuery.count >= 2 {
+                    if model.isSearching || model.searchResults.isEmpty == false || CitySearch.shouldSearch(model.searchQuery) {
                         Section {
                             if model.isSearching {
                                 HStack {
@@ -79,16 +79,19 @@ struct SearchSheet: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(place.name)
                                             .foregroundStyle(theme.text)
-                                        Text(place.displayName)
-                                            .font(.caption)
-                                            .foregroundStyle(theme.muted)
+                                        if place.subtitle.isEmpty == false {
+                                            Text(place.subtitle)
+                                                .font(.caption)
+                                                .foregroundStyle(theme.muted)
+                                        }
                                     }
                                 }
                                 .listRowBackground(rowFill)
                             }
-                            if model.searchQuery.count >= 2 && model.searchResults.isEmpty && model.isSearching == false {
-                                Text("No matches")
+                            if CitySearch.shouldSearch(model.searchQuery) && model.searchResults.isEmpty && model.isSearching == false {
+                                Text(model.searchError ?? "No matches")
                                     .foregroundStyle(theme.faint)
+                                    .accessibilityIdentifier(model.searchError == nil ? "search-empty" : "search-error")
                                     .listRowBackground(rowFill)
                             }
                         } header: {
@@ -98,7 +101,7 @@ struct SearchSheet: View {
                 }
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
-                .scrollDismissesKeyboard(.interactively)
+                .scrollDismissesKeyboard(.immediately)
                 .listRowSeparatorTint(theme.divider)
                 .environment(\.editMode, $favoritesEditMode)
             }
@@ -142,17 +145,11 @@ struct SearchSheet: View {
 
     @ViewBuilder
     private var favoriteRows: some View {
-        if model.favorites.items.count > 1 {
-            ForEach(model.favorites.items) { place in
-                favoriteRow(place)
-            }
-            .onMove { source, destination in
-                model.favorites.move(from: source, to: destination)
-            }
-        } else {
-            ForEach(model.favorites.items) { place in
-                favoriteRow(place)
-            }
+        ForEach(model.favorites.items) { place in
+            favoriteRow(place)
+        }
+        .onMove { source, destination in
+            model.favorites.move(from: source, to: destination)
         }
     }
 

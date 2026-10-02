@@ -8,11 +8,12 @@ struct GeocodingService {
         return (payload.results ?? []).map { $0.asGeoResult() }
     }
 
-    func reverse(latitude: Double, longitude: Double) async throws -> String {
-        let payload = try await HTTPClient.getJSON(
+    /// Nil when the lookup fails or the payload has no locality. Callers keep the place they already have.
+    func reverse(latitude: Double, longitude: Double) async -> String? {
+        guard let payload = try? await HTTPClient.getJSON(
             APIEndpoints.reverse(latitude: latitude, longitude: longitude),
             as: BigDataCloudReverse.self
-        )
-        return payload.displayName(fallbackLatitude: latitude, longitude: longitude)
+        ) else { return nil }
+        return payload.placeName()
     }
 }
