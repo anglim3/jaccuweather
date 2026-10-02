@@ -85,6 +85,7 @@
 		CE0F70D5ECEE26F2E728C4D6 /* WatchDayDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE253DEE36A07A1FF894439 /* WatchDayDetail.swift */; };
 		F0E0B67C970BB162FDD021E0 /* WatchForecastClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5257B14C548441D830921 /* WatchForecastClient.swift */; };
 		E870779CF31B212FA77A8A70 /* WatchGlanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */; };
+		3AF34A13002E5DB7FCF73154 /* WatchHourDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00DA0E1918E836BFF8C7E0C /* WatchHourDetail.swift */; };
 		DD69C864262CEAD2E235A9DE /* WatchHourlyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */; };
 		DA5BE5B447A1D71B0485405E /* WatchHourlyStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */; };
 		E96ECF773452B63D9627C352 /* WatchPlaceLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */; };
@@ -289,6 +290,7 @@
 		FBE253DEE36A07A1FF894439 /* WatchDayDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDayDetail.swift; sourceTree = "<group>"; };
 		B3D5257B14C548441D830921 /* WatchForecastClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchForecastClient.swift; sourceTree = "<group>"; };
 		0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchGlanceView.swift; sourceTree = "<group>"; };
+		C00DA0E1918E836BFF8C7E0C /* WatchHourDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHourDetail.swift; sourceTree = "<group>"; };
 		FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHourlyPlan.swift; sourceTree = "<group>"; };
 		FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHourlyStrip.swift; sourceTree = "<group>"; };
 		6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlaceLink.swift; sourceTree = "<group>"; };
@@ -441,6 +443,7 @@
 				FBE253DEE36A07A1FF894439 /* WatchDayDetail.swift */,
 				B3D5257B14C548441D830921 /* WatchForecastClient.swift */,
 				0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */,
+				C00DA0E1918E836BFF8C7E0C /* WatchHourDetail.swift */,
 				FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */,
 				FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */,
 				6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */,
@@ -796,6 +799,7 @@
 				CE0F70D5ECEE26F2E728C4D6 /* WatchDayDetail.swift in Sources */,
 				F0E0B67C970BB162FDD021E0 /* WatchForecastClient.swift in Sources */,
 				E870779CF31B212FA77A8A70 /* WatchGlanceView.swift in Sources */,
+				3AF34A13002E5DB7FCF73154 /* WatchHourDetail.swift in Sources */,
 				DD69C864262CEAD2E235A9DE /* WatchHourlyPlan.swift in Sources */,
 				DA5BE5B447A1D71B0485405E /* WatchHourlyStrip.swift in Sources */,
 				E96ECF773452B63D9627C352 /* WatchPlaceLink.swift in Sources */,

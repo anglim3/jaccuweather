@@ -30,7 +30,7 @@ enum WatchForecastClient {
             URLQueryItem(name: "latitude", value: String(place.latitude)),
             URLQueryItem(name: "longitude", value: String(place.longitude)),
             URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m"),
-            URLQueryItem(name: "hourly", value: "temperature_2m,precipitation_probability,weather_code,precipitation,snowfall"),
+            URLQueryItem(name: "hourly", value: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code,precipitation,rain,snowfall,wind_speed_10m,uv_index,is_day"),
             URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,rain_sum,snowfall_sum,uv_index_max,sunrise,sunset"),
             URLQueryItem(name: "forecast_days", value: "8"),
             URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
@@ -93,7 +93,13 @@ enum WatchForecastClient {
                 precipProbability: value(hourly.precipitationProbability, index),
                 weatherCode: code,
                 precipitation: value(hourly.precipitation, index),
-                snowfall: value(hourly.snowfall, index)
+                snowfall: value(hourly.snowfall, index),
+                rainInches: value(hourly.rain, index),
+                feelsLikeF: value(hourly.apparentTemperature, index),
+                windMph: value(hourly.windSpeed, index),
+                humidity: value(hourly.relativeHumidity, index),
+                uvIndex: value(hourly.uvIndex, index),
+                isDay: flag(hourly.isDay, index)
             ))
         }
         return WatchHourlyPlan.slots(samples: samples, utcOffsetSeconds: offset, now: now)
@@ -141,6 +147,11 @@ enum WatchForecastClient {
         return series[index]
     }
 
+    private static func flag(_ series: [Double?]?, _ index: Int) -> Bool? {
+        guard let value = value(series, index) else { return nil }
+        return value != 0
+    }
+
     private static func text(_ series: [String?]?, _ index: Int) -> String? {
         guard let series, series.indices.contains(index) else { return nil }
         let trimmed = series[index]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -158,6 +169,8 @@ enum WatchHourCache {
         var sun: WatchSunTimes?
         /// False when this cache was written before the day sheet's precip and UV fields.
         var includesDayDetail: Bool
+        /// False when this cache was written before the hour sheet's condition and amounts.
+        var includesHourDetail: Bool
     }
 
     static func load(matching snapshot: WidgetConditionsSnapshot) -> Hit? {
@@ -181,7 +194,13 @@ enum WatchHourCache {
             hasReading: true
         )
         guard WatchPlacePlan.same(cached, wanted) else { return nil }
-        return Hit(hours: cache.hours, days: cache.days, sun: cache.sun, includesDayDetail: cache.includesDayDetail)
+        return Hit(
+            hours: cache.hours,
+            days: cache.days,
+            sun: cache.sun,
+            includesDayDetail: cache.includesDayDetail,
+            includesHourDetail: cache.includesHourDetail
+        )
     }
 
     static func save(hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes, snapshot: WidgetConditionsSnapshot) {
@@ -193,7 +212,8 @@ enum WatchHourCache {
             hours: hours,
             days: days,
             sun: sun,
-            includesDayDetail: true
+            includesDayDetail: true,
+            includesHourDetail: true
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -210,12 +230,13 @@ enum WatchHourCache {
         var days: [WatchDaySlot]
         var sun: WatchSunTimes?
         var includesDayDetail: Bool
+        var includesHourDetail: Bool
 
         enum CodingKeys: String, CodingKey {
-            case locationId, latitude, longitude, fetchedAt, hours, days, sun, includesDayDetail
+            case locationId, latitude, longitude, fetchedAt, hours, days, sun, includesDayDetail, includesHourDetail
         }
 
-        init(locationId: String, latitude: Double, longitude: Double, fetchedAt: Date, hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes?, includesDayDetail: Bool) {
+        init(locationId: String, latitude: Double, longitude: Double, fetchedAt: Date, hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes?, includesDayDetail: Bool, includesHourDetail: Bool) {
             self.locationId = locationId
             self.latitude = latitude
             self.longitude = longitude
@@ -224,6 +245,7 @@ enum WatchHourCache {
             self.days = days
             self.sun = sun
             self.includesDayDetail = includesDayDetail
+            self.includesHourDetail = includesHourDetail
         }
 
         init(from decoder: Decoder) throws {
@@ -236,6 +258,7 @@ enum WatchHourCache {
             days = try container.decodeIfPresent([WatchDaySlot].self, forKey: .days) ?? []
             sun = try container.decodeIfPresent(WatchSunTimes.self, forKey: .sun)
             includesDayDetail = try container.decodeIfPresent(Bool.self, forKey: .includesDayDetail) ?? false
+            includesHourDetail = try container.decodeIfPresent(Bool.self, forKey: .includesHourDetail) ?? false
         }
 
         func encode(to encoder: Encoder) throws {
@@ -248,6 +271,7 @@ enum WatchHourCache {
             try container.encode(days, forKey: .days)
             try container.encodeIfPresent(sun, forKey: .sun)
             try container.encode(includesDayDetail, forKey: .includesDayDetail)
+            try container.encode(includesHourDetail, forKey: .includesHourDetail)
         }
     }
 }
@@ -316,7 +340,13 @@ private struct Hourly: Decodable {
     let precipitationProbability: [Double?]
     let weatherCode: [Double?]
     let precipitation: [Double?]
+    let rain: [Double?]
     let snowfall: [Double?]
+    let apparentTemperature: [Double?]
+    let relativeHumidity: [Double?]
+    let windSpeed: [Double?]
+    let uvIndex: [Double?]
+    let isDay: [Double?]
 
     enum CodingKeys: String, CodingKey {
         case time
@@ -324,7 +354,13 @@ private struct Hourly: Decodable {
         case precipitationProbability = "precipitation_probability"
         case weatherCode = "weather_code"
         case precipitation
+        case rain
         case snowfall
+        case apparentTemperature = "apparent_temperature"
+        case relativeHumidity = "relative_humidity_2m"
+        case windSpeed = "wind_speed_10m"
+        case uvIndex = "uv_index"
+        case isDay = "is_day"
     }
 
     init(from decoder: Decoder) throws {
@@ -334,7 +370,13 @@ private struct Hourly: Decodable {
         precipitationProbability = try container.decodeIfPresent([Double?].self, forKey: .precipitationProbability) ?? []
         weatherCode = try container.decodeIfPresent([Double?].self, forKey: .weatherCode) ?? []
         precipitation = try container.decodeIfPresent([Double?].self, forKey: .precipitation) ?? []
+        rain = try container.decodeIfPresent([Double?].self, forKey: .rain) ?? []
         snowfall = try container.decodeIfPresent([Double?].self, forKey: .snowfall) ?? []
+        apparentTemperature = try container.decodeIfPresent([Double?].self, forKey: .apparentTemperature) ?? []
+        relativeHumidity = try container.decodeIfPresent([Double?].self, forKey: .relativeHumidity) ?? []
+        windSpeed = try container.decodeIfPresent([Double?].self, forKey: .windSpeed) ?? []
+        uvIndex = try container.decodeIfPresent([Double?].self, forKey: .uvIndex) ?? []
+        isDay = try container.decodeIfPresent([Double?].self, forKey: .isDay) ?? []
     }
 }
 
