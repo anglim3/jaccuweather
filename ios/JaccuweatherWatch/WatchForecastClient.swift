@@ -163,6 +163,10 @@ enum WatchHourCache {
         var hours: [WatchHourSlot]
         var days: [WatchDaySlot]
 
+        enum CodingKeys: String, CodingKey {
+            case locationId, latitude, longitude, fetchedAt, hours, days
+        }
+
         init(locationId: String, latitude: Double, longitude: Double, fetchedAt: Date, hours: [WatchHourSlot], days: [WatchDaySlot]) {
             self.locationId = locationId
             self.latitude = latitude

@@ -7,46 +7,47 @@ struct WatchGlanceView: View {
         ZStack {
             WidgetHorizonBackground()
                 .ignoresSafeArea()
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 1) {
-                    Text(model.placeName)
-                        .font(WidgetHorizon.placeFont(size: 15))
-                        .foregroundStyle(WidgetHorizon.muted)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .accessibilityIdentifier("watch-place")
+            VStack(spacing: 1) {
+                Text(model.placeName)
+                    .font(WidgetHorizon.placeFont(size: 14))
+                    .foregroundStyle(WidgetHorizon.muted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .accessibilityIdentifier("watch-place")
+                HStack(alignment: .center, spacing: 6) {
                     symbol
-                        .padding(.top, 1)
-                    Text(model.temperatureText)
-                        .font(WidgetHorizon.tempFont(size: 32))
-                        .foregroundStyle(WidgetHorizon.text)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                    if !model.detailText.isEmpty {
-                        Text(model.detailText)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(WidgetHorizon.accent)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                    if model.hours.isEmpty, !model.conditionText.isEmpty {
-                        Text(model.conditionText)
-                            .font(.caption2.weight(.medium))
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(model.temperatureText)
+                            .font(WidgetHorizon.tempFont(size: 28))
                             .foregroundStyle(WidgetHorizon.text)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                            .minimumScaleFactor(0.5)
+                        if !model.detailText.isEmpty {
+                            Text(model.detailText)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(WidgetHorizon.accent)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+                        if model.hours.isEmpty, !model.conditionText.isEmpty {
+                            Text(model.conditionText)
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(WidgetHorizon.text)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
                     }
-                    if let alert = model.alert {
-                        WatchAlertBadge(alert: alert)
-                            .padding(.top, 2)
-                    }
-                    WatchHourlyStrip(hours: model.hours)
-                        .padding(.top, 2)
-                    WatchDailyStrip(days: model.days)
-                        .padding(.top, 2)
                 }
-                .padding(.horizontal, 6)
+                if let alert = model.alert {
+                    WatchAlertBadge(alert: alert)
+                        .padding(.top, 1)
+                }
+                WatchHourlyStrip(hours: model.hours)
+                    .padding(.top, 2)
+                WatchDailyStrip(days: model.days)
+                    .padding(.top, 2)
             }
+            .padding(.horizontal, 4)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(model.accessibilityLabel)
         }
@@ -57,10 +58,10 @@ struct WatchGlanceView: View {
 
     private var symbol: some View {
         Image(systemName: model.symbolName)
-            .font(.system(size: 16, weight: .medium))
+            .font(.system(size: 14, weight: .medium))
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(WidgetHorizon.accent)
-            .frame(width: 28, height: 28)
+            .frame(width: 24, height: 24)
             .background {
                 Circle()
                     .fill(WidgetHorizon.glassStrong)

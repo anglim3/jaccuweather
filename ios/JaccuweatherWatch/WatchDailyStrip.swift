@@ -30,6 +30,7 @@ struct WatchDailyStrip: View {
                         .strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1)
                 }
         }
+        .frame(height: 60)
         .accessibilityIdentifier("watch-daily-strip")
     }
 
@@ -54,7 +55,7 @@ struct WatchDailyStrip: View {
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
         }
-        .frame(width: 44, height: 56)
+        .frame(width: 42, height: 52)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(day))
     }
