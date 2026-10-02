@@ -7,38 +7,46 @@ struct WatchGlanceView: View {
         ZStack {
             WidgetHorizonBackground()
                 .ignoresSafeArea()
-            VStack(spacing: 1) {
-                Text(model.placeName)
-                    .font(WidgetHorizon.placeFont(size: 15))
-                    .foregroundStyle(WidgetHorizon.muted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .accessibilityIdentifier("watch-place")
-                symbol
-                    .padding(.top, 1)
-                Text(model.temperatureText)
-                    .font(WidgetHorizon.tempFont(size: 36))
-                    .foregroundStyle(WidgetHorizon.text)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                if !model.detailText.isEmpty {
-                    Text(model.detailText)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(WidgetHorizon.accent)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 1) {
+                    Text(model.placeName)
+                        .font(WidgetHorizon.placeFont(size: 15))
+                        .foregroundStyle(WidgetHorizon.muted)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                if model.hours.isEmpty, !model.conditionText.isEmpty {
-                    Text(model.conditionText)
-                        .font(.caption2.weight(.medium))
+                        .minimumScaleFactor(0.6)
+                        .accessibilityIdentifier("watch-place")
+                    symbol
+                        .padding(.top, 1)
+                    Text(model.temperatureText)
+                        .font(WidgetHorizon.tempFont(size: 32))
                         .foregroundStyle(WidgetHorizon.text)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(0.5)
+                    if !model.detailText.isEmpty {
+                        Text(model.detailText)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(WidgetHorizon.accent)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    if model.hours.isEmpty, !model.conditionText.isEmpty {
+                        Text(model.conditionText)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(WidgetHorizon.text)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    if let alert = model.alert {
+                        WatchAlertBadge(alert: alert)
+                            .padding(.top, 2)
+                    }
+                    WatchHourlyStrip(hours: model.hours)
+                        .padding(.top, 2)
+                    WatchDailyStrip(days: model.days)
+                        .padding(.top, 2)
                 }
-                WatchHourlyStrip(hours: model.hours)
-                    .padding(.top, 2)
+                .padding(.horizontal, 6)
             }
-            .padding(.horizontal, 6)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(model.accessibilityLabel)
         }
@@ -71,5 +79,61 @@ struct WatchGlanceView: View {
                     }
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// Compact NWS line. Shown only when the phone payload included a summary.
+struct WatchAlertBadge: View {
+    var alert: WatchAlertSummary
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 9, weight: .bold))
+            Text(line)
+                .font(.system(size: 10, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background {
+            Capsule(style: .continuous)
+                .fill(WidgetHorizon.glassStrong)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(tint.opacity(0.55), lineWidth: 1)
+                }
+        }
+        .accessibilityIdentifier("watch-alert-badge")
+        .accessibilityLabel(spoken)
+    }
+
+    private var line: String {
+        if alert.count > 1 {
+            return "\(alert.count) · \(alert.title)"
+        }
+        return alert.title
+    }
+
+    private var spoken: String {
+        if alert.count > 1 {
+            return "\(alert.count) alerts, \(alert.severity), \(alert.title)"
+        }
+        return "\(alert.severity), \(alert.title)"
+    }
+
+    private var tint: Color {
+        switch alert.severity.lowercased() {
+        case "extreme", "severe":
+            return Color(red: 1, green: 0.38, blue: 0.34)
+        case "moderate":
+            return Color(red: 1, green: 0.62, blue: 0.22)
+        case "minor":
+            return WidgetHorizon.gold
+        default:
+            return WidgetHorizon.muted
+        }
     }
 }
