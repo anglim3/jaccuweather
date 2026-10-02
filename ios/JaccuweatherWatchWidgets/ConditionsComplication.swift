@@ -13,7 +13,12 @@ struct WatchConditionsComplication: Widget {
         }
         .configurationDisplayName("Conditions")
         .description("Temperature and condition for the Watch's place.")
-        .supportedFamilies([.accessoryCircular, .accessoryRectangular])
+        .supportedFamilies([
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline,
+            .accessoryCorner
+        ])
     }
 }
 
@@ -80,9 +85,21 @@ struct WatchComplicationView: View {
     var body: some View {
         content
             .widgetURL(WatchPlaceLink.url(for: WatchPlace(entry.snapshot)))
-            .containerBackground(for: .widget) {
-                WidgetHorizonBackground()
-            }
+            .containerBackground(for: .widget) { plate }
+    }
+
+    /// Circular and rectangular keep the navy plate. Inline and corner take
+    /// the watch face tint, so a filled plate would cover the face color.
+    @ViewBuilder
+    private var plate: some View {
+        switch family {
+        case .accessoryInline:
+            Color.clear
+        case .accessoryCorner:
+            AccessoryWidgetBackground()
+        default:
+            WidgetHorizonBackground()
+        }
     }
 
     @ViewBuilder
@@ -90,6 +107,10 @@ struct WatchComplicationView: View {
         switch family {
         case .accessoryRectangular:
             rectangular
+        case .accessoryInline:
+            inline
+        case .accessoryCorner:
+            corner
         default:
             circular
         }
@@ -101,7 +122,7 @@ struct WatchComplicationView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
                 .widgetAccentable()
-            Text(degrees)
+            Text(degreesText)
                 .font(.caption.weight(.bold))
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
@@ -123,13 +144,13 @@ struct WatchComplicationView: View {
                     .foregroundStyle(WidgetHorizon.muted)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                Text(degrees)
+                Text(degreesText)
                     .font(WidgetHorizon.tempFont(size: 20))
                     .foregroundStyle(WidgetHorizon.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .widgetAccentable()
-                Text(condition)
+                Text(conditionText)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(WidgetHorizon.muted)
                     .lineLimit(1)
@@ -140,26 +161,60 @@ struct WatchComplicationView: View {
         .accessibilityLabel(spoken)
     }
 
-    private var symbol: String {
-        entry.snapshot.symbolName.isEmpty ? "cloud.fill" : entry.snapshot.symbolName
-    }
-
-    private var degrees: String {
-        guard let value = entry.snapshot.temperatureF, value.isFinite else { return "—" }
-        return "\(Int(value.rounded()))°"
-    }
-
-    private var condition: String {
-        if !entry.snapshot.conditionText.isEmpty { return entry.snapshot.conditionText }
-        if let feels = entry.snapshot.feelsLikeF, feels.isFinite {
-            return "Feels \(Int(feels.rounded()))°"
+    /// One line above the clock: symbol, temperature, then the condition.
+    /// The temperature-only forms are for faces that clip the longer line.
+    private var inline: some View {
+        ViewThatFits(in: .horizontal) {
+            Label(inlineLine, systemImage: symbol)
+            Label(degreesText, systemImage: symbol)
+            Text(degreesText)
         }
-        return "Conditions"
+        .lineLimit(1)
+        .widgetAccentable()
+        .accessibilityLabel(spoken)
+    }
+
+    /// Corner disk is the temperature. The curved label is the condition,
+    /// with its SF Symbol, along the bezel.
+    private var corner: some View {
+        Text(degreesText)
+            .font(.system(size: 18, weight: .bold, design: .rounded))
+            .minimumScaleFactor(0.4)
+            .lineLimit(1)
+            .widgetAccentable()
+            .widgetLabel {
+                Label(conditionText, systemImage: symbol)
+                    .widgetAccentable()
+            }
+            .accessibilityLabel(spoken)
+    }
+
+    private var symbol: String {
+        WatchComplicationCopy.symbol(named: entry.snapshot.symbolName)
+    }
+
+    private var degreesText: String {
+        WatchComplicationCopy.degrees(temperatureF: entry.snapshot.temperatureF)
+    }
+
+    private var conditionText: String {
+        WatchComplicationCopy.condition(
+            conditionText: entry.snapshot.conditionText,
+            feelsLikeF: entry.snapshot.feelsLikeF
+        )
+    }
+
+    private var inlineLine: String {
+        WatchComplicationCopy.inlineLine(
+            temperatureF: entry.snapshot.temperatureF,
+            conditionText: entry.snapshot.conditionText,
+            feelsLikeF: entry.snapshot.feelsLikeF
+        )
     }
 
     private var spoken: String {
         let place = entry.snapshot.locationName.isEmpty ? "Jaccuweather" : entry.snapshot.locationName
-        return "\(place), \(degrees), \(condition)"
+        return "\(place), \(degreesText), \(conditionText)"
     }
 }
 
