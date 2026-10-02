@@ -6,6 +6,14 @@ struct WatchDaySample {
     var highF: Double?
     var lowF: Double?
     var weatherCode: Int?
+    var precipProbability: Double? = nil
+    /// Open-Meteo `rain_sum`, inches. Nil when that field was not in the payload.
+    var rainInches: Double? = nil
+    /// Open-Meteo `precipitation_sum`, inches. Used as rain only when `rain_sum` is missing and there is no snow.
+    var precipitationInches: Double? = nil
+    /// Open-Meteo `snowfall_sum`, inches.
+    var snowInches: Double? = nil
+    var uvMax: Double? = nil
 }
 
 /// One place-local day on the Watch glance.
@@ -15,8 +23,30 @@ struct WatchDaySlot: Codable, Equatable, Identifiable {
     var highF: Double?
     var lowF: Double?
     var symbolName: String
+    /// Short WMO condition. Missing on a cache written before the day sheet.
+    var conditionText: String? = nil
+    var precipProbability: Int? = nil
+    /// Rain amount to show, inches. Nil when the day has no rain sum.
+    var rainInches: Double? = nil
+    /// Snow amount to show, inches. Nil when the day has no snow sum.
+    var snowInches: Double? = nil
+    /// Daily UV max. Nil when the forecast omitted it.
+    var uvMax: Double? = nil
 
     var id: String { date }
+}
+
+/// Copy for the day sheet. The glance strip does not show these lines.
+struct WatchDayDetailCopy: Equatable {
+    var title: String
+    var condition: String
+    var high: String
+    var low: String
+    var probability: String?
+    var rain: String?
+    var snow: String?
+    var uv: String?
+    var spoken: String
 }
 
 /// Next place-local days for the Watch strip.
@@ -40,14 +70,146 @@ enum WatchDailyPlan {
         let limit = min(maximumCount, max(1, count))
         return samples[start..<min(samples.count, start + limit)].map { sample in
             let day = civilDay(sample.date)
+            let rain = displayedRain(
+                rain: sample.rainInches,
+                precipitation: sample.precipitationInches,
+                snow: sample.snowInches
+            )
             return WatchDaySlot(
                 date: day,
                 label: label(for: day),
                 highF: sample.highF,
                 lowF: sample.lowF,
-                symbolName: symbolName(code: sample.weatherCode)
+                symbolName: symbolName(code: sample.weatherCode),
+                conditionText: conditionText(code: sample.weatherCode),
+                precipProbability: probability(sample.precipProbability),
+                rainInches: finite(rain),
+                snowInches: finite(sample.snowInches),
+                uvMax: uvValue(sample.uvMax)
             )
         }
+    }
+
+    /// `Friday, Oct 2` from a `yyyy-MM-dd` civil day. The stamp is not read in the device zone.
+    static func title(for day: String) -> String {
+        let civil = civilDay(day)
+        guard let midnight = WatchHourlyPlan.absoluteSeconds(localISO: civil + "T00:00", utcOffsetSeconds: 0) else {
+            return ""
+        }
+        let date = Date(timeIntervalSince1970: midnight)
+        let weekday = formatted(date, "EEEE")
+        let monthDay = formatted(date, "MMM d")
+        if weekday.isEmpty { return monthDay }
+        if monthDay.isEmpty { return weekday }
+        return "\(weekday), \(monthDay)"
+    }
+
+    /// Short WMO condition. Same words as `WidgetWeatherCode.shortText`.
+    static func conditionText(code: Int?) -> String {
+        switch code {
+        case 0: return "Clear"
+        case 1: return "Mainly clear"
+        case 2: return "Partly cloudy"
+        case 3: return "Overcast"
+        case 45, 48: return "Fog"
+        case 51, 53, 55: return "Drizzle"
+        case 56, 57: return "Freezing drizzle"
+        case 61: return "Light rain"
+        case 63: return "Rain"
+        case 65: return "Heavy rain"
+        case 66, 67: return "Freezing rain"
+        case 71: return "Light snow"
+        case 73: return "Snow"
+        case 75: return "Heavy snow"
+        case 77: return "Snow grains"
+        case 80, 81: return "Rain showers"
+        case 82: return "Heavy showers"
+        case 85, 86: return "Snow showers"
+        case 95, 96, 99: return "Thunderstorm"
+        default: return "Cloudy"
+        }
+    }
+
+    static func probability(_ value: Double?) -> Int? {
+        guard let value, value.isFinite else { return nil }
+        return min(100, max(0, Int(value.rounded())))
+    }
+
+    /// Rain inches for the sheet.
+    ///
+    /// `rain_sum` wins when the payload has it, including zero. `precipitation_sum`
+    /// includes snow, so it fills in only when rain is missing and snow is not.
+    static func displayedRain(rain: Double?, precipitation: Double?, snow: Double?) -> Double? {
+        if let rain = finite(rain) { return rain }
+        if hasAmount(snow) { return nil }
+        return finite(precipitation)
+    }
+
+    /// An amount is worth a cue at a hundredth of an inch. Smaller traces stay off the sheet.
+    static func hasAmount(_ inches: Double?) -> Bool {
+        guard let inches = finite(inches) else { return false }
+        return inches >= 0.01
+    }
+
+    static func amountText(_ inches: Double?) -> String? {
+        guard hasAmount(inches), let inches = finite(inches) else { return nil }
+        if inches >= 10 {
+            return "\(Int(inches.rounded()))\""
+        }
+        if inches >= 1 {
+            let tenths = String(format: "%.1f", inches)
+            if tenths.hasSuffix(".0"), let whole = Int(tenths.dropLast(2)) {
+                return "\(whole)\""
+            }
+            return "\(tenths)\""
+        }
+        return String(format: "%.2f\"", inches)
+    }
+
+    static func degrees(_ value: Double?) -> String {
+        guard let value, value.isFinite else { return "—" }
+        return "\(Int(value.rounded()))°"
+    }
+
+    /// `UV 6` when the forecast included a max. Missing and negative values stay off the sheet.
+    static func uvText(_ value: Double?) -> String? {
+        guard let value = uvValue(value) else { return nil }
+        return "UV \(Int(value.rounded()))"
+    }
+
+    static func detail(for day: WatchDaySlot) -> WatchDayDetailCopy {
+        let probability = day.precipProbability.map { "\($0)%" }
+        let rain = amountText(day.rainInches)
+        let snow = amountText(day.snowInches)
+        let uv = uvText(day.uvMax)
+        let condition = day.conditionText ?? ""
+        var spoken = [title(for: day.date)]
+        if !condition.isEmpty { spoken.append(condition) }
+        spoken.append("high \(degrees(day.highF))")
+        spoken.append("low \(degrees(day.lowF))")
+        if let chance = day.precipProbability {
+            spoken.append("\(chance) percent chance of precipitation")
+        }
+        if snow != nil {
+            spoken.append("\(spokenAmount(day.snowInches)) of snow")
+        }
+        if rain != nil {
+            spoken.append("\(spokenAmount(day.rainInches)) of rain")
+        }
+        if let uv {
+            spoken.append(uv)
+        }
+        return WatchDayDetailCopy(
+            title: title(for: day.date),
+            condition: condition,
+            high: degrees(day.highF),
+            low: degrees(day.lowF),
+            probability: probability,
+            rain: rain,
+            snow: snow,
+            uv: uv,
+            spoken: spoken.joined(separator: ", ")
+        )
     }
 
     /// Place-local `yyyy-MM-dd`, matching the iPhone forecast's today row.
@@ -109,6 +271,29 @@ enum WatchDailyPlan {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 10 else { return trimmed }
         return String(trimmed.prefix(10))
+    }
+
+    private static func formatted(_ date: Date, _ pattern: String) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = pattern
+        return formatter.string(from: date)
+    }
+
+    private static func finite(_ value: Double?) -> Double? {
+        guard let value, value.isFinite else { return nil }
+        return value
+    }
+
+    private static func uvValue(_ value: Double?) -> Double? {
+        guard let value = finite(value), value >= 0 else { return nil }
+        return value
+    }
+
+    private static func spokenAmount(_ inches: Double?) -> String {
+        guard let inches = finite(inches) else { return "" }
+        return String(format: "%.2f inches", inches)
     }
 }
 

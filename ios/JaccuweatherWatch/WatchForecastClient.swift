@@ -31,10 +31,11 @@ enum WatchForecastClient {
             URLQueryItem(name: "longitude", value: String(place.longitude)),
             URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m"),
             URLQueryItem(name: "hourly", value: "temperature_2m,precipitation_probability,weather_code,precipitation,snowfall"),
-            URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset"),
+            URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,rain_sum,snowfall_sum,uv_index_max,sunrise,sunset"),
             URLQueryItem(name: "forecast_days", value: "8"),
             URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
             URLQueryItem(name: "windspeed_unit", value: "mph"),
+            URLQueryItem(name: "precipitation_unit", value: "inch"),
             URLQueryItem(name: "timezone", value: "auto")
         ]
         return components?.url
@@ -108,7 +109,12 @@ enum WatchForecastClient {
                 date: stamp,
                 highF: value(daily.temperature2mMax, index),
                 lowF: value(daily.temperature2mMin, index),
-                weatherCode: code
+                weatherCode: code,
+                precipProbability: value(daily.precipitationProbabilityMax, index),
+                rainInches: value(daily.rainSum, index),
+                precipitationInches: value(daily.precipitationSum, index),
+                snowInches: value(daily.snowfallSum, index),
+                uvMax: value(daily.uvIndexMax, index)
             ))
         }
         return WatchDailyPlan.slots(samples: samples, utcOffsetSeconds: offset, now: now)
@@ -150,6 +156,8 @@ enum WatchHourCache {
         var days: [WatchDaySlot]
         /// Nil when this cache was written before sunrise and sunset were stored.
         var sun: WatchSunTimes?
+        /// False when this cache was written before the day sheet's precip and UV fields.
+        var includesDayDetail: Bool
     }
 
     static func load(matching snapshot: WidgetConditionsSnapshot) -> Hit? {
@@ -173,7 +181,7 @@ enum WatchHourCache {
             hasReading: true
         )
         guard WatchPlacePlan.same(cached, wanted) else { return nil }
-        return Hit(hours: cache.hours, days: cache.days, sun: cache.sun)
+        return Hit(hours: cache.hours, days: cache.days, sun: cache.sun, includesDayDetail: cache.includesDayDetail)
     }
 
     static func save(hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes, snapshot: WidgetConditionsSnapshot) {
@@ -184,7 +192,8 @@ enum WatchHourCache {
             fetchedAt: Date(),
             hours: hours,
             days: days,
-            sun: sun
+            sun: sun,
+            includesDayDetail: true
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -200,12 +209,13 @@ enum WatchHourCache {
         var hours: [WatchHourSlot]
         var days: [WatchDaySlot]
         var sun: WatchSunTimes?
+        var includesDayDetail: Bool
 
         enum CodingKeys: String, CodingKey {
-            case locationId, latitude, longitude, fetchedAt, hours, days, sun
+            case locationId, latitude, longitude, fetchedAt, hours, days, sun, includesDayDetail
         }
 
-        init(locationId: String, latitude: Double, longitude: Double, fetchedAt: Date, hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes?) {
+        init(locationId: String, latitude: Double, longitude: Double, fetchedAt: Date, hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes?, includesDayDetail: Bool) {
             self.locationId = locationId
             self.latitude = latitude
             self.longitude = longitude
@@ -213,6 +223,7 @@ enum WatchHourCache {
             self.hours = hours
             self.days = days
             self.sun = sun
+            self.includesDayDetail = includesDayDetail
         }
 
         init(from decoder: Decoder) throws {
@@ -224,6 +235,7 @@ enum WatchHourCache {
             hours = try container.decodeIfPresent([WatchHourSlot].self, forKey: .hours) ?? []
             days = try container.decodeIfPresent([WatchDaySlot].self, forKey: .days) ?? []
             sun = try container.decodeIfPresent(WatchSunTimes.self, forKey: .sun)
+            includesDayDetail = try container.decodeIfPresent(Bool.self, forKey: .includesDayDetail) ?? false
         }
 
         func encode(to encoder: Encoder) throws {
@@ -235,6 +247,7 @@ enum WatchHourCache {
             try container.encode(hours, forKey: .hours)
             try container.encode(days, forKey: .days)
             try container.encodeIfPresent(sun, forKey: .sun)
+            try container.encode(includesDayDetail, forKey: .includesDayDetail)
         }
     }
 }
@@ -330,6 +343,11 @@ private struct Daily: Decodable {
     let weatherCode: [Double?]
     let temperature2mMax: [Double?]
     let temperature2mMin: [Double?]
+    let precipitationProbabilityMax: [Double?]
+    let precipitationSum: [Double?]
+    let rainSum: [Double?]
+    let snowfallSum: [Double?]
+    let uvIndexMax: [Double?]
     let sunrise: [String?]
     let sunset: [String?]
 
@@ -338,6 +356,11 @@ private struct Daily: Decodable {
         case weatherCode = "weather_code"
         case temperature2mMax = "temperature_2m_max"
         case temperature2mMin = "temperature_2m_min"
+        case precipitationProbabilityMax = "precipitation_probability_max"
+        case precipitationSum = "precipitation_sum"
+        case rainSum = "rain_sum"
+        case snowfallSum = "snowfall_sum"
+        case uvIndexMax = "uv_index_max"
         case sunrise
         case sunset
     }
@@ -348,6 +371,11 @@ private struct Daily: Decodable {
         weatherCode = try container.decodeIfPresent([Double?].self, forKey: .weatherCode) ?? []
         temperature2mMax = try container.decodeIfPresent([Double?].self, forKey: .temperature2mMax) ?? []
         temperature2mMin = try container.decodeIfPresent([Double?].self, forKey: .temperature2mMin) ?? []
+        precipitationProbabilityMax = try container.decodeIfPresent([Double?].self, forKey: .precipitationProbabilityMax) ?? []
+        precipitationSum = try container.decodeIfPresent([Double?].self, forKey: .precipitationSum) ?? []
+        rainSum = try container.decodeIfPresent([Double?].self, forKey: .rainSum) ?? []
+        snowfallSum = try container.decodeIfPresent([Double?].self, forKey: .snowfallSum) ?? []
+        uvIndexMax = try container.decodeIfPresent([Double?].self, forKey: .uvIndexMax) ?? []
         sunrise = try container.decodeIfPresent([String?].self, forKey: .sunrise) ?? []
         sunset = try container.decodeIfPresent([String?].self, forKey: .sunset) ?? []
     }

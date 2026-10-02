@@ -1,9 +1,11 @@
 import SwiftUI
 
 /// Next place-local days: weekday, WMO symbol, high, and low.
+/// Each column opens that day's sheet. The strip itself stays these four lines.
 struct WatchDailyStrip: View {
     var days: [WatchDaySlot]
     var style: WatchStripStyle = .dailyRegular
+    var onSelect: (WatchDaySlot) -> Void = { _ in }
 
     var body: some View {
         Group {
@@ -24,6 +26,12 @@ struct WatchDailyStrip: View {
                 HStack(alignment: .top, spacing: style.columnSpacing) {
                     ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
                         column(day, emphasized: index == 0, width: columns.width)
+                            .contentShape(Rectangle())
+                            .onTapGesture { onSelect(day) }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityLabel(spoken(day))
+                            .accessibilityIdentifier("watch-day-\(index)")
                     }
                 }
                 .padding(.horizontal, style.horizontalPadding)
@@ -66,8 +74,6 @@ struct WatchDailyStrip: View {
                 .lineLimit(1)
         }
         .frame(width: width, height: style.bandHeight - style.verticalPadding * 2)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spoken(day))
     }
 
     private func degrees(_ value: Double?) -> String {
