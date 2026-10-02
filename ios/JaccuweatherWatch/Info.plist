@@ -8,5 +8,16 @@
 	<string>cloud.janglim.jaccuweather</string>
 	<key>WKRunsIndependentlyOfCompanionApp</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>cloud.janglim.jaccuweather.watchkitapp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>jaccuweather</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

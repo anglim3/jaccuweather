@@ -7,16 +7,17 @@ struct WatchGlanceView: View {
         ZStack {
             WidgetHorizonBackground()
                 .ignoresSafeArea()
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 Text(model.placeName)
                     .font(WidgetHorizon.placeFont(size: 15))
                     .foregroundStyle(WidgetHorizon.muted)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
+                    .accessibilityIdentifier("watch-place")
                 symbol
-                    .padding(.top, 2)
+                    .padding(.top, 1)
                 Text(model.temperatureText)
-                    .font(WidgetHorizon.tempFont(size: 46))
+                    .font(WidgetHorizon.tempFont(size: 36))
                     .foregroundStyle(WidgetHorizon.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
@@ -27,28 +28,31 @@ struct WatchGlanceView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
-                if !model.conditionText.isEmpty {
+                if model.hours.isEmpty, !model.conditionText.isEmpty {
                     Text(model.conditionText)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(WidgetHorizon.text)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
+                WatchHourlyStrip(hours: model.hours)
+                    .padding(.top, 2)
             }
-            .padding(.horizontal, 8)
-            .accessibilityElement(children: .ignore)
+            .padding(.horizontal, 6)
+            .accessibilityElement(children: .contain)
             .accessibilityLabel(model.accessibilityLabel)
         }
         .preferredColorScheme(.dark)
         .task { await model.start() }
+        .onOpenURL { model.open($0) }
     }
 
     private var symbol: some View {
         Image(systemName: model.symbolName)
-            .font(.system(size: 22, weight: .medium))
+            .font(.system(size: 16, weight: .medium))
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(WidgetHorizon.accent)
-            .frame(width: 40, height: 40)
+            .frame(width: 28, height: 28)
             .background {
                 Circle()
                     .fill(WidgetHorizon.glassStrong)

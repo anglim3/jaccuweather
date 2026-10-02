@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Personal Team provisioning cannot create an App Group container, so this
 /// store is the process's own UserDefaults. The Watch app and the complication
-/// extension each keep their own copy.
+/// extension each keep their own copy of the conditions. The place they agree
+/// on is `watch-place.json` from `WatchPlaceStore`.
 enum WatchMirror {
     static let complicationKind = "cloud.janglim.jaccuweather.watch.conditions"
     /// Seattle, the same sample place the iOS widgets use before a forecast lands.

@@ -74,10 +74,21 @@
 		30EF19BC0E8BF883B15132EB /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */; };
 		3B075A7ADE3C83E884481315 /* JaccuweatherWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C42D761F3691FD92D432801 /* JaccuweatherWatchApp.swift */; };
 		3F2088651A11797B2AFEF8AA /* WatchConditionsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F887278C1A0A4C9DBAC031F /* WatchConditionsLoader.swift */; };
+		F0E0B67C970BB162FDD021E0 /* WatchForecastClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5257B14C548441D830921 /* WatchForecastClient.swift */; };
 		E870779CF31B212FA77A8A70 /* WatchGlanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */; };
+		DD69C864262CEAD2E235A9DE /* WatchHourlyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */; };
+		DA5BE5B447A1D71B0485405E /* WatchHourlyStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */; };
+		E96ECF773452B63D9627C352 /* WatchPlaceLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */; };
+		BF6126D8D22D6534E95BFCDE /* WatchPlacePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */; };
+		0D200C258011DC89B42BB244 /* WatchPlaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */; };
 		473472D3E9E8E1E62003FD3D /* WatchSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F1F299AC49CF80F0484C2F /* WatchSession.swift */; };
 		483EF70F568F68B1229ABB4C /* ConditionsComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6E191B58B2597648CF0289 /* ConditionsComplication.swift */; };
 		BF30C1914C8EEBFAE63876FC /* WatchConditionsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F887278C1A0A4C9DBAC031F /* WatchConditionsLoader.swift */; };
+		FCC02F7F7D42E5C493362814 /* WatchForecastClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5257B14C548441D830921 /* WatchForecastClient.swift */; };
+		EA70793FF8A8368A348BA195 /* WatchHourlyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */; };
+		189E0E46073CCEC76C991174 /* WatchPlaceLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */; };
+		131031FC20ABB686BA40A750 /* WatchPlacePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */; };
+		16E637F55C93CD7DC65F53FA /* WatchPlaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */; };
 		8280C621EBDDBC1621C649DF /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */; };
 		CDEBB6CBD8551E819047DF7C /* WatchMirror.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */; };
 		790DBA3F1CE249AC8491CB81 /* WidgetHorizon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E0BBB289CE66AF4B5FFD0C /* WidgetHorizon.swift */; };
@@ -249,7 +260,13 @@
 		55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRefresh.swift; sourceTree = "<group>"; };
 		5C42D761F3691FD92D432801 /* JaccuweatherWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JaccuweatherWatchApp.swift; sourceTree = "<group>"; };
 		7F887278C1A0A4C9DBAC031F /* WatchConditionsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConditionsLoader.swift; sourceTree = "<group>"; };
+		B3D5257B14C548441D830921 /* WatchForecastClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchForecastClient.swift; sourceTree = "<group>"; };
 		0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchGlanceView.swift; sourceTree = "<group>"; };
+		FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHourlyPlan.swift; sourceTree = "<group>"; };
+		FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHourlyStrip.swift; sourceTree = "<group>"; };
+		6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlaceLink.swift; sourceTree = "<group>"; };
+		DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlacePlan.swift; sourceTree = "<group>"; };
+		5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlaceStore.swift; sourceTree = "<group>"; };
 		E0F1F299AC49CF80F0484C2F /* WatchSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSession.swift; sourceTree = "<group>"; };
 		2C6E191B58B2597648CF0289 /* ConditionsComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsComplication.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -386,7 +403,13 @@
 			children = (
 				5C42D761F3691FD92D432801 /* JaccuweatherWatchApp.swift */,
 				7F887278C1A0A4C9DBAC031F /* WatchConditionsLoader.swift */,
+				B3D5257B14C548441D830921 /* WatchForecastClient.swift */,
 				0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */,
+				FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */,
+				FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */,
+				6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */,
+				DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */,
+				5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */,
 				E0F1F299AC49CF80F0484C2F /* WatchSession.swift */,
 				642F47E75C21459DBFEF0948 /* Info.plist */,
 				5723EE59579F37F7262B4135 /* Assets.xcassets */,
@@ -720,7 +743,13 @@
 			files = (
 				3B075A7ADE3C83E884481315 /* JaccuweatherWatchApp.swift in Sources */,
 				3F2088651A11797B2AFEF8AA /* WatchConditionsLoader.swift in Sources */,
+				F0E0B67C970BB162FDD021E0 /* WatchForecastClient.swift in Sources */,
 				E870779CF31B212FA77A8A70 /* WatchGlanceView.swift in Sources */,
+				DD69C864262CEAD2E235A9DE /* WatchHourlyPlan.swift in Sources */,
+				DA5BE5B447A1D71B0485405E /* WatchHourlyStrip.swift in Sources */,
+				E96ECF773452B63D9627C352 /* WatchPlaceLink.swift in Sources */,
+				BF6126D8D22D6534E95BFCDE /* WatchPlacePlan.swift in Sources */,
+				0D200C258011DC89B42BB244 /* WatchPlaceStore.swift in Sources */,
 				473472D3E9E8E1E62003FD3D /* WatchSession.swift in Sources */,
 				8280C621EBDDBC1621C649DF /* WidgetSnapshot.swift in Sources */,
 				CDEBB6CBD8551E819047DF7C /* WatchMirror.swift in Sources */,
@@ -735,6 +764,11 @@
 			files = (
 				483EF70F568F68B1229ABB4C /* ConditionsComplication.swift in Sources */,
 				BF30C1914C8EEBFAE63876FC /* WatchConditionsLoader.swift in Sources */,
+				FCC02F7F7D42E5C493362814 /* WatchForecastClient.swift in Sources */,
+				EA70793FF8A8368A348BA195 /* WatchHourlyPlan.swift in Sources */,
+				189E0E46073CCEC76C991174 /* WatchPlaceLink.swift in Sources */,
+				131031FC20ABB686BA40A750 /* WatchPlacePlan.swift in Sources */,
+				16E637F55C93CD7DC65F53FA /* WatchPlaceStore.swift in Sources */,
 				CB0226651CA34FA75FEA786A /* WidgetSnapshot.swift in Sources */,
 				F9E92C713AE0F425B4061E69 /* WatchMirror.swift in Sources */,
 				F09DB38C45BD12EC0C4C10BE /* WidgetHorizon.swift in Sources */,
