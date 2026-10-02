@@ -196,6 +196,17 @@ enum JWTone {
         }
     }
 
+    static func color(forAQI token: String) -> Color {
+        switch token {
+        case "green": return green
+        case "yellow": return yellow
+        case "orange": return orange
+        case "red": return red
+        case "purple": return Color(red: 192 / 255, green: 132 / 255, blue: 252 / 255)
+        default: return Color(red: 220 / 255, green: 38 / 255, blue: 38 / 255)
+        }
+    }
+
     static func color(forLabel label: String) -> Color {
         switch label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "low", "excellent": return green

@@ -2016,40 +2016,67 @@ function nearestTimeIndexMs(times, ms) {
   return nearestTimeIndex(times, asJsDate(ms));
 }
 
+function pollenSeries(series) {
+  if (Array.isArray(series)) return series;
+  if (series && typeof series !== 'string' && typeof series.length === 'number') return series;
+  return null;
+}
+
+function hourPollen(series, index) {
+  const values = pollenSeries(series);
+  if (!values || index < 0 || index >= values.length) return null;
+  const value = values[index];
+  if (!hasPollenValue(value)) return null;
+  return Number(value);
+}
+
+function forecastPollenLabel(value, displayNullAsNone) {
+  if (!hasPollenValue(value)) {
+    return displayNullAsNone
+      ? { label: 'None', colorClass: 'text-gray-400', level: 0 }
+      : { label: 'n/a', colorClass: 'text-gray-400', level: -1 };
+  }
+  return getPollenLevel(value);
+}
+
 function buildPollenForecastDays(aqiData) {
   const hourlyData = aqiData && aqiData.hourly;
-  if (!hourlyData || !Array.isArray(hourlyData.time)) return [];
+  const times = pollenSeries(hourlyData && hourlyData.time);
+  if (!times) return [];
   const dailyData = {};
-  for (let i = 0; i < hourlyData.time.length; i++) {
-    const date = String(hourlyData.time[i]).split('T')[0];
+  for (let i = 0; i < times.length; i++) {
+    const date = String(times[i]).split('T')[0];
     if (!dailyData[date]) {
       dailyData[date] = { date: date, tree: null, grass: null, weed: null, weedNullDisplayAsNone: false };
     }
     dailyData[date].weedNullDisplayAsNone = dailyData[date].weedNullDisplayAsNone || shouldDisplayNullPollenAsNone(aqiData, ['weed_pollen', 'mugwort_pollen', 'ragweed_pollen'], i);
     dailyData[date].tree = maxAvailablePollen([
       dailyData[date].tree,
-      hourlyData.tree_pollen && hourlyData.tree_pollen[i],
-      hourlyData.alder_pollen && hourlyData.alder_pollen[i],
-      hourlyData.birch_pollen && hourlyData.birch_pollen[i],
-      hourlyData.olive_pollen && hourlyData.olive_pollen[i]
+      hourPollen(hourlyData.tree_pollen, i),
+      hourPollen(hourlyData.alder_pollen, i),
+      hourPollen(hourlyData.birch_pollen, i),
+      hourPollen(hourlyData.olive_pollen, i)
     ]);
     dailyData[date].grass = maxAvailablePollen([
       dailyData[date].grass,
-      hourlyData.grass_pollen && hourlyData.grass_pollen[i]
+      hourPollen(hourlyData.grass_pollen, i)
     ]);
     dailyData[date].weed = maxAvailablePollen([
       dailyData[date].weed,
-      hourlyData.weed_pollen && hourlyData.weed_pollen[i],
-      hourlyData.mugwort_pollen && hourlyData.mugwort_pollen[i],
-      hourlyData.ragweed_pollen && hourlyData.ragweed_pollen[i]
+      hourPollen(hourlyData.weed_pollen, i),
+      hourPollen(hourlyData.mugwort_pollen, i),
+      hourPollen(hourlyData.ragweed_pollen, i)
     ]);
   }
   return Object.keys(dailyData).slice(0, 5).map(function (dateStr, index) {
     const data = dailyData[dateStr];
-    const treeLevel = getPollenLevel(data.tree);
-    const grassLevel = getPollenLevel(data.grass);
-    const weedLevel = getPollenLevel(data.weed, { displayNullAsNone: data.weedNullDisplayAsNone });
-    const overall = Math.max(treeLevel.level || 0, grassLevel.level || 0, weedLevel.level || 0);
+    const treeLevel = forecastPollenLabel(data.tree, false);
+    const grassLevel = forecastPollenLabel(data.grass, false);
+    const weedLevel = forecastPollenLabel(data.weed, data.weedNullDisplayAsNone);
+    const measured = [treeLevel, grassLevel, weedLevel].filter(function (level) { return level.level >= 0; });
+    const overall = measured.length
+      ? Math.max.apply(null, measured.map(function (level) { return level.level; }))
+      : -1;
     return {
       date: dateStr,
       index: index,
@@ -2059,7 +2086,7 @@ function buildPollenForecastDays(aqiData) {
       treeLabel: treeLevel.label,
       grassLabel: grassLevel.label,
       weedLabel: weedLevel.label,
-      emoji: pollenEmoji(overall)
+      emoji: overall < 0 ? '🌿' : pollenEmoji(overall)
     };
   });
 }

@@ -10,8 +10,24 @@ struct CurrentConditionsView: View {
 
     var body: some View {
         TabScreenScroll {
-            if !model.alerts.isEmpty { alertsCard }
+            // Pollen (and its AQI) arrives after the forecast. Keep the Now
+            // column in one stack so the air-quality row is not a lazy insert.
+            VStack(alignment: .leading, spacing: JWMetrics.sectionGap) {
+            if !model.alerts.isEmpty {
+                alertsCard
+            } else if model.alertsFailed {
+                WeatherCard(title: "NWS alerts") {
+                    Text("Alerts are unavailable right now.")
+                        .font(JWFont.body)
+                        .foregroundStyle(theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("nws-alerts-unavailable")
+                }
+            }
             header
+            if let aqi = USAQIDisplay.from(current: model.pollen?.map("current")) {
+                AirQualityCard(reading: aqi, compact: true)
+            }
             if let message = model.errorMessage {
                 Text(message).font(.footnote).foregroundStyle(.orange)
             }
@@ -22,6 +38,7 @@ struct CurrentConditionsView: View {
             if let snow = model.weeklySnow, !snow.periods.isEmpty { snowCard(snow) }
             moonCard
             if let tides = model.tides { tidesCard(tides) }
+            }
         }
         .navigationTitle("Now")
         .navigationBarTitleDisplayMode(.inline)
@@ -46,6 +63,12 @@ struct CurrentConditionsView: View {
         .onChange(of: model.routedAlert?.id) { _, id in
             guard id != nil, let alert = model.routedAlert else { return }
             selectedAlert = alert
+        }
+        .onChange(of: model.alerts.map(\.id)) { _, ids in
+            guard let selected = selectedAlert else { return }
+            if ids.contains(selected.id) { return }
+            if model.routedAlert?.id == selected.id { return }
+            selectedAlert = nil
         }
         .sheet(isPresented: $showMoon) { MoonSheet() }
         .sheet(item: $selectedAlert, onDismiss: { model.clearRoutedAlert() }) { alert in
@@ -394,12 +417,7 @@ struct CurrentConditionsView: View {
     }
 
     private func severityColor(_ severity: String) -> Color {
-        switch severity.lowercased() {
-        case "extreme", "severe": return .red
-        case "moderate": return .orange
-        case "minor": return theme.gold
-        default: return theme.muted
-        }
+        AlertSeverity.color(severity, gold: theme.gold, muted: theme.muted)
     }
 
     private func temp(_ value: Double?) -> String {
@@ -487,6 +505,17 @@ struct SunArcView: View {
     }
 }
 
+enum AlertSeverity {
+    static func color(_ severity: String, gold: Color, muted: Color) -> Color {
+        switch severity.lowercased() {
+        case "extreme", "severe": return .red
+        case "moderate": return .orange
+        case "minor": return gold
+        default: return muted
+        }
+    }
+}
+
 struct AlertDetailSheet: View {
     let alert: NWSAlertFeature
     @Environment(\.dismiss) private var dismiss
@@ -508,18 +537,21 @@ struct AlertDetailSheet: View {
                             if let severity = alert.properties.severity {
                                 Text([severity, alert.properties.urgency].compactMap { $0 }.joined(separator: " · "))
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(theme.gold)
+                                    .foregroundStyle(AlertSeverity.color(severity, gold: theme.gold, muted: theme.muted))
                             }
                         }
                     }
                     if let headline = alert.properties.headline {
-                        Text(headline).font(.subheadline)
+                        Text(headline).font(.subheadline).fixedSize(horizontal: false, vertical: true)
                     }
                     if let sender = alert.properties.senderName {
                         Text(sender).font(.caption).foregroundStyle(theme.muted)
                     }
-                    if let ends = alert.properties.ends {
-                        Text("Ends \(ends)").font(.caption).foregroundStyle(theme.muted)
+                    if let schedule = alert.scheduleLine {
+                        Text(schedule)
+                            .font(.caption)
+                            .foregroundStyle(theme.muted)
+                            .accessibilityIdentifier("alert-detail-ends")
                     }
                     if let description = alert.properties.description, !description.isEmpty {
                         Text(description).font(.body)

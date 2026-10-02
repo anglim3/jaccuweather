@@ -117,6 +117,7 @@ extension NWSAlertFeature {
         put("description", properties.description)
         put("instruction", properties.instruction)
         put("ends", properties.ends)
+        put("expires", properties.expires)
         put("sender", properties.senderName)
         return info
     }
@@ -138,6 +139,7 @@ extension NWSAlertFeature {
             description: str("description"),
             instruction: str("instruction"),
             ends: str("ends"),
+            expires: str("expires"),
             senderName: str("sender")
         ))
     }
@@ -290,6 +292,7 @@ final class AlertNotificationCoordinator: NSObject, UNUserNotificationCenterDele
             description: "Debug preview of a local notification. No National Weather Service alert was delivered.",
             instruction: "No action is required.",
             ends: nil,
+            expires: nil,
             senderName: "Debug preview"
         ))
         return await post(sample, placeName: placeName, identifier: "debug-sample-nws-alert")

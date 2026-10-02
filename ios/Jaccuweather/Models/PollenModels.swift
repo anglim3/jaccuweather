@@ -30,6 +30,45 @@ struct PollenSnapshot: Equatable {
     }
 }
 
+/// US AQI bands from the website `displayAirQuality` path.
+/// The integer on screen is the rounded reading, and the band uses that same integer.
+struct USAQIDisplay: Equatable {
+    let value: Int
+    let category: String
+    let colorToken: String
+
+    static func from(current: JSONMap?) -> USAQIDisplay? {
+        guard let raw = current?.number("us_aqi"), raw.isFinite, raw >= 0 else { return nil }
+        let value = Int(raw.rounded())
+        switch value {
+        case ...50: return USAQIDisplay(value: value, category: "Good", colorToken: "green")
+        case ...100: return USAQIDisplay(value: value, category: "Moderate", colorToken: "yellow")
+        case ...150: return USAQIDisplay(value: value, category: "Unhealthy for Sensitive Groups", colorToken: "orange")
+        case ...200: return USAQIDisplay(value: value, category: "Unhealthy", colorToken: "red")
+        case ...300: return USAQIDisplay(value: value, category: "Very Unhealthy", colorToken: "purple")
+        default: return USAQIDisplay(value: value, category: "Hazardous", colorToken: "maroon")
+        }
+    }
+}
+
+/// Null pollen is not a measured zero. A provider that reported the plant with
+/// no index can still be shown as None.
+enum PollenReading {
+    static func countText(_ value: Double?) -> String {
+        guard let value, value.isFinite else { return "—" }
+        return String(Int(value.rounded()))
+    }
+
+    static func levelText(_ value: Double?, nullAsNone: Bool) -> String {
+        guard let value, value.isFinite else { return nullAsNone ? "None" : "n/a" }
+        if value <= 0 { return "None" }
+        if value <= 20 { return "Low" }
+        if value <= 80 { return "Moderate" }
+        if value <= 200 { return "High" }
+        return "Very High"
+    }
+}
+
 struct PollenDay: Identifiable, Equatable {
     var id: String { time }
     let time: String
