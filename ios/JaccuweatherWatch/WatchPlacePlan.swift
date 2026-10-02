@@ -6,6 +6,35 @@ struct WatchPlace: Codable, Equatable {
     var locationName: String
     var latitude: Double
     var longitude: Double
+    /// True after a person picks a place on the watch. That file then stays
+    /// ahead of the phone's current city. Older files omit the flag.
+    var explicit: Bool
+
+    init(locationId: String, locationName: String, latitude: Double, longitude: Double, explicit: Bool = false) {
+        self.locationId = locationId
+        self.locationName = locationName
+        self.latitude = latitude
+        self.longitude = longitude
+        self.explicit = explicit
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        locationId = try container.decode(String.self, forKey: .locationId)
+        locationName = try container.decode(String.self, forKey: .locationName)
+        latitude = try container.decode(Double.self, forKey: .latitude)
+        longitude = try container.decode(Double.self, forKey: .longitude)
+        explicit = try container.decodeIfPresent(Bool.self, forKey: .explicit) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(locationId, forKey: .locationId)
+        try container.encode(locationName, forKey: .locationName)
+        try container.encode(latitude, forKey: .latitude)
+        try container.encode(longitude, forKey: .longitude)
+        try container.encode(explicit, forKey: .explicit)
+    }
 
     func choice(hasReading: Bool) -> WatchPlaceChoice {
         WatchPlaceChoice(
@@ -15,6 +44,10 @@ struct WatchPlace: Codable, Equatable {
             longitude: longitude,
             hasReading: hasReading
         )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case locationId, locationName, latitude, longitude, explicit
     }
 }
 
@@ -30,7 +63,9 @@ struct WatchPlaceChoice: Equatable {
 ///
 /// A shared place from the glance wins over the complication's own last
 /// reading when they differ, so the complication does not stay on the sample
-/// city after the glance has moved.
+/// city after the glance has moved. An explicit shared place is a selection
+/// the person made on the watch, and it stays ahead of a newer phone city.
+/// Without that flag, a phone reading still wins.
 enum WatchPlacePlan {
     static let defaultLatitude = 47.6062
     static let defaultLongitude = -122.3321
@@ -54,9 +89,11 @@ enum WatchPlacePlan {
         pinned: WatchPlaceChoice?,
         phone: WatchPlaceChoice?,
         saved: WatchPlaceChoice?,
-        shared: WatchPlaceChoice?
+        shared: WatchPlaceChoice?,
+        sharedExplicit: Bool = false
     ) -> WatchPlaceChoice {
         if let pinned { return pinned }
+        if sharedExplicit, let shared { return shared }
         if let phone, phone.hasReading { return phone }
         if let shared {
             if let saved, saved.hasReading, same(saved, shared) { return saved }
@@ -65,5 +102,21 @@ enum WatchPlacePlan {
         if let phone { return phone }
         if let saved { return saved }
         return seattle
+    }
+}
+
+/// Where the glance reads conditions for the place it already chose.
+///
+/// A fresh phone context for that place wins, including when the person
+/// pinned the place. Otherwise a fresh saved reading. Otherwise Open-Meteo.
+enum WatchConditionsSource: Equatable {
+    case phone
+    case saved
+    case fetch
+
+    static func pick(phoneMatchesAndFresh: Bool, savedMatchesAndFresh: Bool) -> WatchConditionsSource {
+        if phoneMatchesAndFresh { return .phone }
+        if savedMatchesAndFresh { return .saved }
+        return .fetch
     }
 }

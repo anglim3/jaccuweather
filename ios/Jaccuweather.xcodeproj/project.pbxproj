@@ -83,6 +83,9 @@
 		D7A1C0DE11A44E0A9B6C3002 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */; };
 		D7A1C0DE11A44E0A9B6C3003 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */; };
 		D7A1C0DE11A44E0A9B6C3004 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */; };
+		F6DF8DE6F0740036E5C49A9A /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
+		813535D72134E86F851BC1DE /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
+		7386196DB752D033B8164907 /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
 		E96ECF773452B63D9627C352 /* WatchPlaceLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */; };
 		BF6126D8D22D6534E95BFCDE /* WatchPlacePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */; };
 		0D200C258011DC89B42BB244 /* WatchPlaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */; };
@@ -256,6 +259,7 @@
 		1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNowIntent.swift; sourceTree = "<group>"; };
 		D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMirror.swift; sourceTree = "<group>"; };
 		D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAlertPayload.swift; sourceTree = "<group>"; };
+		9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchFavoritesPayload.swift; sourceTree = "<group>"; };
 		F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherActivityAttributes.swift; sourceTree = "<group>"; };
 		80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		39C4782FC4A30606584FC1D8 /* WidgetTimelinePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTimelinePlan.swift; sourceTree = "<group>"; };
@@ -390,6 +394,7 @@
 				1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */,
 				D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */,
 				D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */,
+				9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */,
 				F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */,
 				80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */,
 				39C4782FC4A30606584FC1D8 /* WidgetTimelinePlan.swift */,
@@ -725,6 +730,7 @@
 				1DFF93E6978AAD68061E29CF /* OpenNowIntent.swift in Sources */,
 				0CDDD9FA787F9B967DA896DF /* WatchMirror.swift in Sources */,
 				D7A1C0DE11A44E0A9B6C3002 /* WatchAlertPayload.swift in Sources */,
+				F6DF8DE6F0740036E5C49A9A /* WatchFavoritesPayload.swift in Sources */,
 				5EEFE05E21BF2DBE96D94601 /* WeatherActivityAttributes.swift in Sources */,
 				9A0BDCD75A45B4A3E9E7B1C6 /* WidgetSnapshot.swift in Sources */,
 				2D6C7C1D977250AFE2C627F0 /* WidgetTimelinePlan.swift in Sources */,
@@ -745,6 +751,7 @@
 				E2769EA84DBE6A6A41E1E71F /* OpenNowIntent.swift in Sources */,
 				B1D8D8E50B2F952C948842BA /* WatchMirror.swift in Sources */,
 				D7A1C0DE11A44E0A9B6C3003 /* WatchAlertPayload.swift in Sources */,
+				813535D72134E86F851BC1DE /* WatchFavoritesPayload.swift in Sources */,
 				0D521042819354B183008F5A /* WeatherActivityAttributes.swift in Sources */,
 				79350FEBEC637061A4916F18 /* WidgetSnapshot.swift in Sources */,
 				E3AE4CB7D6AAF60110BFC9DB /* WidgetTimelinePlan.swift in Sources */,
@@ -764,6 +771,7 @@
 				D7A1C0DE11A44E0A9B6C1002 /* WatchDailyPlan.swift in Sources */,
 				D7A1C0DE11A44E0A9B6C2002 /* WatchDailyStrip.swift in Sources */,
 				D7A1C0DE11A44E0A9B6C3004 /* WatchAlertPayload.swift in Sources */,
+				7386196DB752D033B8164907 /* WatchFavoritesPayload.swift in Sources */,
 				E96ECF773452B63D9627C352 /* WatchPlaceLink.swift in Sources */,
 				BF6126D8D22D6534E95BFCDE /* WatchPlacePlan.swift in Sources */,
 				0D200C258011DC89B42BB244 /* WatchPlaceStore.swift in Sources */,

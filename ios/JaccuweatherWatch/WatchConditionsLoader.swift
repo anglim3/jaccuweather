@@ -2,10 +2,13 @@ import Foundation
 
 /// Watch face and complication reading.
 ///
-/// A pinned place (launch argument or complication tap) wins. Otherwise a
-/// fresh WatchConnectivity context wins. The complication passes an empty
-/// context and reads the place the glance published, then loads
-/// `api.open-meteo.com/v1/forecast` for those coordinates.
+/// A pinned place (launch argument, complication tap, or favorites pick)
+/// wins. A place the person already picked, stored in `watch-place.json`,
+/// stays ahead of the phone's current city. Otherwise a fresh
+/// WatchConnectivity context wins. Conditions for that place come from the
+/// phone context when it is still fresh, then from the saved reading, then
+/// from `api.open-meteo.com/v1/forecast`. The complication passes an empty
+/// context and reads the place the glance published.
 enum WatchConditionsLoader {
     struct Reading {
         var snapshot: WidgetConditionsSnapshot
@@ -25,25 +28,31 @@ enum WatchConditionsLoader {
             pinned: pinned?.choice(hasReading: false),
             phone: phone?.placeChoice,
             saved: saved?.placeChoice,
-            shared: shared?.choice(hasReading: false)
+            shared: shared?.choice(hasReading: false),
+            sharedExplicit: shared?.explicit == true
         )
         let place = snapshot(matching: choice, phone: phone, saved: saved, shared: shared)
         let cached = WatchHourCache.load(matching: place)
+        let explicit = keepsExplicitSelection(pinned: pinned, shared: shared, choice: choice)
+        let source = WatchConditionsSource.pick(
+            phoneMatchesAndFresh: phone.map { $0.isFresh && $0.temperatureF != nil && same($0, choice) } ?? false,
+            savedMatchesAndFresh: saved.map { $0.isFresh && $0.temperatureF != nil && same($0, choice) } ?? false
+        )
 
-        if pinned == nil, let phone, phone.isFresh, phone.temperatureF != nil, same(phone, choice) {
-            publish(phone, enabled: publishPlace)
+        if source == .phone, let phone {
+            publish(phone, enabled: publishPlace, explicit: explicit)
             let forecast = await forecast(for: phone, cached: cached)
             return Reading(snapshot: phone, hours: forecast.hours, days: forecast.days)
         }
 
-        if let saved, saved.isFresh, saved.temperatureF != nil, same(saved, choice) {
-            publish(saved, enabled: publishPlace)
+        if source == .saved, let saved {
+            publish(saved, enabled: publishPlace, explicit: explicit)
             let forecast = await forecast(for: saved, cached: cached)
             return Reading(snapshot: saved, hours: forecast.hours, days: forecast.days)
         }
 
         if publishPlace {
-            WatchPlaceStore.save(WatchPlace(place))
+            WatchPlaceStore.save(WatchPlace(place, explicit: explicit))
         }
         if let fetched = await WatchForecastClient.fetch(place) {
             var snapshot = fetched.snapshot
@@ -54,7 +63,7 @@ enum WatchConditionsLoader {
                 snapshot.locationId = place.locationId
             }
             WatchMirrorStore.save(snapshot)
-            publish(snapshot, enabled: publishPlace)
+            publish(snapshot, enabled: publishPlace, explicit: explicit)
             WatchHourCache.save(hours: fetched.hours, days: fetched.days, snapshot: snapshot)
             return Reading(snapshot: snapshot, hours: fetched.hours, days: fetched.days)
         }
@@ -76,10 +85,22 @@ enum WatchConditionsLoader {
         return (fetched.hours, fetched.days)
     }
 
-    private static func publish(_ snapshot: WidgetConditionsSnapshot, enabled: Bool) {
+    private static func publish(_ snapshot: WidgetConditionsSnapshot, enabled: Bool, explicit: Bool) {
         WatchMirrorStore.save(snapshot)
         guard enabled else { return }
-        WatchPlaceStore.save(WatchPlace(snapshot))
+        WatchPlaceStore.save(WatchPlace(snapshot, explicit: explicit))
+    }
+
+    /// A pick on the watch, or a file that already recorded one, stays explicit
+    /// when this load is still showing that place.
+    private static func keepsExplicitSelection(
+        pinned: WatchPlace?,
+        shared: WatchPlace?,
+        choice: WatchPlaceChoice
+    ) -> Bool {
+        if pinned?.explicit == true { return true }
+        guard pinned == nil, let shared, shared.explicit else { return false }
+        return WatchPlacePlan.same(shared.choice(hasReading: false), choice)
     }
 
     private static func same(_ snapshot: WidgetConditionsSnapshot, _ choice: WatchPlaceChoice) -> Bool {
@@ -107,12 +128,13 @@ enum WatchConditionsLoader {
 }
 
 extension WatchPlace {
-    init(_ snapshot: WidgetConditionsSnapshot) {
+    init(_ snapshot: WidgetConditionsSnapshot, explicit: Bool = false) {
         self.init(
             locationId: snapshot.locationId,
             locationName: snapshot.locationName,
             latitude: snapshot.latitude,
-            longitude: snapshot.longitude
+            longitude: snapshot.longitude,
+            explicit: explicit
         )
     }
 
