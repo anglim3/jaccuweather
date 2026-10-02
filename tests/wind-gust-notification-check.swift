@@ -170,10 +170,17 @@ func run() {
     check(WindGustNotificationCopy.opensForecast(forecastURL), "forecast URL opens Forecast")
     check(WindGustNotificationCopy.opensForecast(URL(string: "jaccuweather://forecast/")!), "forecast path opens Forecast")
     check(!WindGustNotificationCopy.opensForecast(URL(string: "jaccuweather://now")!), "now URL is not the wind route")
-    check(
-        WindGustNotificationCopy.isForecastRoute(WindGustNotificationCopy.userInfo(hourKey: "2026-09-30T16", dedupeKey: placeKey)),
-        "posted info opens Forecast"
-    )
+    let posted = WindGustNotificationCopy.userInfo(hourKey: "2026-09-30T16", dedupeKey: placeKey)
+    check(WindGustNotificationCopy.ownsNotice(posted), "posted info is a high-wind notice")
+    check(WindGustNotificationCopy.isForecastRoute(posted), "posted info opens Forecast")
+    check(!WindGustNotificationCopy.ownsNotice(["url": "jaccuweather://forecast"]), "a forecast URL alone is not a wind notice")
+    let freezeNotice = [
+        "jaccuweatherRoute": "forecast",
+        "url": "jaccuweather://forecast",
+        "freezeDay": "2026-01-15"
+    ]
+    check(!WindGustNotificationCopy.ownsNotice(freezeNotice), "a freeze notice is not owned by wind")
+    check(!WindGustNotificationCopy.isForecastRoute(freezeNotice), "a freeze notice is not a wind route")
     check(WindGustNotificationCopy.isSample([WindGustNotificationCopy.sampleKey: "1"]), "sample flag")
     check(!WindGustNotificationCopy.isSample([:]), "live notice is not a sample")
 

@@ -136,8 +136,19 @@ func run() {
     check(FreezeWarningCopy.opensForecast(URL(string: "jaccuweather:///forecast")!), "forecast path opens Forecast")
     check(!FreezeWarningCopy.opensForecast(URL(string: "jaccuweather://now")!), "now stays on its own tab")
     check(!FreezeWarningCopy.opensForecast(URL(string: "https://example.com/forecast")!), "other schemes stay closed")
+    check(FreezeWarningCopy.ownsNotice([FreezeWarningCopy.routeKey: "forecast"]), "route user info is a freeze notice")
+    check(FreezeWarningCopy.ownsNotice([FreezeWarningCopy.routeKey: "Forecast"]), "route match ignores case")
+    check(!FreezeWarningCopy.ownsNotice(["url": "jaccuweather://forecast"]), "a forecast URL alone is not a freeze notice")
+    check(!FreezeWarningCopy.ownsNotice([:]), "empty user info is not a freeze notice")
     check(FreezeWarningCopy.isForecastRoute([FreezeWarningCopy.routeKey: "forecast"]), "route user info opens Forecast")
     check(FreezeWarningCopy.isForecastRoute(["url": "jaccuweather://forecast"]), "forecast url user info opens Forecast")
+    let windNotice = [
+        "windGustRoute": "forecast",
+        "url": "jaccuweather://forecast",
+        "windHour": "2026-01-15T16"
+    ]
+    check(!FreezeWarningCopy.ownsNotice(windNotice), "a high-wind notice is not owned by freeze")
+    check(!FreezeWarningCopy.isForecastRoute(windNotice), "a high-wind notice is not a freeze route")
     check(!FreezeWarningCopy.isForecastRoute(["nwsAlertID": "abc"]), "alert user info is not a freeze route")
     check(FreezeWarningCopy.isSample([FreezeWarningCopy.sampleKey: "1"]), "sample flag")
     check(!FreezeWarningCopy.isSample([:]), "live notice is not a sample")
