@@ -1064,6 +1064,8 @@ final class WeatherViewModel {
             highF: sun?.high ?? today?.high,
             lowF: sun?.low ?? today?.low,
             nextHoursHint: hint,
+            sunriseISO: Self.sunISO(today?.sunrise),
+            sunsetISO: Self.sunISO(today?.sunset),
             fetchedAt: fetchedAt
         )
         WidgetSnapshotStore.save(snapshot)
@@ -1092,6 +1094,13 @@ final class WeatherViewModel {
             conditionText: liveConditionText(code: code),
             symbolName: snapshot.symbolName
         )
+    }
+
+    /// Naive Open-Meteo sunrise or sunset. Blank values stay off the Watch payload.
+    private static func sunISO(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 
     private func liveConditionText(code: Int?) -> String {

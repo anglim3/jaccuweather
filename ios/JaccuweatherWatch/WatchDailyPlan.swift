@@ -111,3 +111,99 @@ enum WatchDailyPlan {
         return String(trimmed.prefix(10))
     }
 }
+
+/// Today's sunrise and sunset for the Watch glance.
+struct WatchSunTimes: Codable, Equatable {
+    var sunriseLabel: String?
+    var sunsetLabel: String?
+
+    var hasAny: Bool { sunriseLabel != nil || sunsetLabel != nil }
+
+    var line: String? {
+        switch (sunriseLabel, sunsetLabel) {
+        case let (rise?, set?):
+            return "↑ \(rise) · ↓ \(set)"
+        case let (rise?, nil):
+            return "↑ \(rise)"
+        case let (nil, set?):
+            return "↓ \(set)"
+        default:
+            return nil
+        }
+    }
+
+    var spoken: String {
+        switch (sunriseLabel, sunsetLabel) {
+        case let (rise?, set?):
+            return "Sunrise \(rise), sunset \(set)"
+        case let (rise?, nil):
+            return "Sunrise \(rise)"
+        case let (nil, set?):
+            return "Sunset \(set)"
+        default:
+            return ""
+        }
+    }
+}
+
+/// One Open-Meteo daily sunrise and sunset before today's row is chosen.
+struct WatchSunSample {
+    var date: String
+    var sunriseISO: String?
+    var sunsetISO: String?
+}
+
+/// Place-local sunrise and sunset.
+///
+/// Open-Meteo `timezone=auto` stamps are wall clocks. The clock is read from
+/// the stamp, the same way the iPhone formats `formatIsoLocalClock`, so a
+/// watch set to another zone still shows the place's sunrise and sunset.
+/// The row is today's civil day in `utc_offset_seconds`.
+enum WatchSunPlan {
+    struct Match {
+        var times: WatchSunTimes
+        var sunriseISO: String?
+        var sunsetISO: String?
+    }
+
+    /// Today's row. An empty match means that day had no rise or set.
+    static func resolved(samples: [WatchSunSample], utcOffsetSeconds: Int, now: Date = Date()) -> Match {
+        let day = WatchDailyPlan.placeLocalDay(now: now, utcOffsetSeconds: utcOffsetSeconds)
+        guard let sample = samples.first(where: { WatchDailyPlan.civilDay($0.date) == day }) else {
+            return Match(times: WatchSunTimes(sunriseLabel: nil, sunsetLabel: nil), sunriseISO: nil, sunsetISO: nil)
+        }
+        let rise = clock(from: sample.sunriseISO)
+        let set = clock(from: sample.sunsetISO)
+        return Match(
+            times: WatchSunTimes(sunriseLabel: rise, sunsetLabel: set),
+            sunriseISO: rise == nil ? nil : sample.sunriseISO,
+            sunsetISO: set == nil ? nil : sample.sunsetISO
+        )
+    }
+
+    /// A fresh phone snapshot already carried today's stamps.
+    static func carried(sunriseISO: String?, sunsetISO: String?) -> WatchSunTimes? {
+        let rise = clock(from: sunriseISO)
+        let set = clock(from: sunsetISO)
+        guard rise != nil || set != nil else { return nil }
+        return WatchSunTimes(sunriseLabel: rise, sunsetLabel: set)
+    }
+
+    /// `6:42` and `18:51` from `yyyy-MM-dd'T'HH:mm`. Minutes stay two digits.
+    static func clock(from iso: String?) -> String? {
+        let trimmed = iso?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard let match = clockPattern.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
+              let hour = integer(trimmed, match, 1),
+              let minute = integer(trimmed, match, 2),
+              (0...23).contains(hour),
+              (0...59).contains(minute) else { return nil }
+        return String(format: "%d:%02d", hour, minute)
+    }
+
+    private static func integer(_ text: String, _ match: NSTextCheckingResult, _ group: Int) -> Int? {
+        guard group < match.numberOfRanges, let range = Range(match.range(at: group), in: text) else { return nil }
+        return Int(text[range])
+    }
+
+    private static let clockPattern = try! NSRegularExpression(pattern: #"T(\d{2}):(\d{2})"#)
+}

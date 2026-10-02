@@ -58,6 +58,10 @@ struct WatchGlanceView: View {
                         }
                     }
                 }
+                if let sun = model.sun, sun.line != nil {
+                    WatchSunRow(sun: sun)
+                        .padding(.top, 1)
+                }
                 if let alert = model.alert {
                     WatchAlertBadge(alert: alert)
                         .padding(.top, 1)
@@ -123,6 +127,40 @@ struct WatchGlanceView: View {
                     }
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// Today's sunrise and sunset under the temperature. One line, no extra metrics.
+struct WatchSunRow: View {
+    var sun: WatchSunTimes
+
+    var body: some View {
+        HStack(spacing: 3) {
+            if let rise = sun.sunriseLabel {
+                Text("↑")
+                    .foregroundStyle(WidgetHorizon.gold)
+                Text(rise)
+                    .foregroundStyle(WidgetHorizon.text)
+            }
+            if sun.sunriseLabel != nil, sun.sunsetLabel != nil {
+                Text("·")
+                    .foregroundStyle(WidgetHorizon.faint)
+            }
+            if let set = sun.sunsetLabel {
+                Text("↓")
+                    .foregroundStyle(WidgetHorizon.gold)
+                Text(set)
+                    .foregroundStyle(WidgetHorizon.text)
+            }
+        }
+        .font(.system(size: 12, weight: .semibold))
+        .monospacedDigit()
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier("watch-sun")
+        .accessibilityLabel(sun.spoken)
     }
 }
 

@@ -9,6 +9,7 @@ final class WatchWeatherModel {
     var snapshot: WidgetConditionsSnapshot
     var hours: [WatchHourSlot] = []
     var days: [WatchDaySlot] = []
+    var sun: WatchSunTimes?
     var alert: WatchAlertSummary?
     var favorites: [WatchFavoritePlace] = []
     private let hub = WatchSessionHub()
@@ -92,6 +93,9 @@ final class WatchWeatherModel {
         if !upcomingDays.isEmpty {
             parts.append(upcomingDays.joined(separator: ", "))
         }
+        if let sun, sun.hasAny, !sun.spoken.isEmpty {
+            parts.append(sun.spoken)
+        }
         if let alert {
             if alert.count > 1 {
                 parts.append("\(alert.count) alerts, \(alert.title), \(alert.severity)")
@@ -143,6 +147,7 @@ final class WatchWeatherModel {
             snapshot = place.shell()
             hours = []
             days = []
+            sun = nil
             alert = nil
         } else if snapshot.locationName != place.locationName {
             snapshot.locationName = place.locationName
@@ -162,6 +167,7 @@ final class WatchWeatherModel {
         snapshot = reading.snapshot
         hours = reading.hours
         days = reading.days
+        sun = reading.sun
         alert = Self.alert(from: context, displayed: reading.snapshot)
         #if DEBUG
         WatchPlaceStore.writeProbe(role: "app")
