@@ -19,11 +19,11 @@ struct WatchDailyStrip: View {
 
     private var strip: some View {
         GeometryReader { geo in
-            let columnWidth = WatchStripLayout.columnWidth(container: geo.size.width, style: style)
+            let columns = WatchStripLayout.columns(container: geo.size.width, style: style)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: style.columnSpacing) {
                     ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
-                        column(day, emphasized: index == 0, width: columnWidth)
+                        column(day, emphasized: index == 0, width: columns.width)
                     }
                 }
                 .padding(.horizontal, style.horizontalPadding)
@@ -32,7 +32,7 @@ struct WatchDailyStrip: View {
             .mask {
                 HStack(spacing: 0) {
                     Rectangle()
-                    Color.clear.frame(width: style.horizontalPadding)
+                    Color.clear.frame(width: columns.trailingMask)
                 }
             }
             .background { cardShape.fill(WidgetHorizon.glass) }

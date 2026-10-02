@@ -258,21 +258,39 @@ struct WatchStripStyle {
     )
 }
 
-/// Column width for a strip. A whole number of columns fill the inset card.
-/// The following column begins inside the trailing inset, which the strip masks,
-/// so a cut-off day or hour does not show at the rounded edge.
+/// How a forecast strip fills its card. Large faces grow columns so the next
+/// one falls inside `trailingMask`. Narrow faces keep the preferred width so
+/// the last full column (Monday, on a 40mm glance) stays on screen.
+struct WatchStripColumns {
+    var width: CGFloat
+    var trailingMask: CGFloat
+}
+
 enum WatchStripLayout {
-    static func columnWidth(container: CGFloat, style: WatchStripStyle) -> CGFloat {
+    static func columns(container: CGFloat, style: WatchStripStyle) -> WatchStripColumns {
         let pad = style.horizontalPadding
         let gap = style.columnSpacing
+        let preferred = style.columnWidth
+        guard container > 1, preferred > 1, gap >= 0 else {
+            return WatchStripColumns(width: preferred, trailingMask: 0)
+        }
+        var count = 1
+        while true {
+            let next = count + 1
+            let end = pad + CGFloat(next) * preferred + CGFloat(next - 1) * gap
+            if end <= container + 0.5 {
+                count = next
+            } else {
+                break
+            }
+        }
         let inner = container - pad * 2
-        let pitch = style.columnWidth + gap
-        guard container > 0, inner > 0, pitch > 0 else { return style.columnWidth }
-        let count = max(CGFloat(1), floor((inner + gap) / pitch))
-        // 1pt of slack keeps the last full column off the mask boundary.
-        let width = (inner - (count - 1) * gap - 1) / count
-        guard width > 8 else { return style.columnWidth }
-        return width
+        let grown = (inner - CGFloat(count - 1) * gap) / CGFloat(count)
+        let width = max(preferred, grown)
+        let nextStart = pad + CGFloat(count) * (width + gap)
+        // Cover the peek, plus 1pt so a fractional column cannot show.
+        let trailingMask = max(0, container - nextStart + 1)
+        return WatchStripColumns(width: width, trailingMask: trailingMask)
     }
 }
 
