@@ -28,11 +28,13 @@ final class WatchSessionBridge: NSObject, WCSessionDelegate {
         activate()
         var payload = WatchMirrorPayload.dictionary(from: snapshot)
         let summary = WatchAlertSummaryPlan.summary(from: alerts.map { feature in
-            let event = feature.properties.event?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let headline = feature.properties.headline?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let title = event.isEmpty ? headline : event
-            let severity = feature.properties.severity?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return WatchAlertSummaryPlan.Item(title: title, severity: severity)
+            WatchAlertSummaryPlan.item(
+                event: feature.properties.event,
+                headline: feature.properties.headline,
+                severity: feature.properties.severity,
+                instruction: feature.properties.instruction,
+                ends: feature.scheduleLine
+            )
         })
         for (key, value) in WatchAlertPayload.fields(summary) {
             payload[key] = value
