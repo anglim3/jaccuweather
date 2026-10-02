@@ -1049,6 +1049,12 @@ final class WeatherViewModel {
         if hint.isEmpty { hint = precipTiming }
         let name = locationName.isEmpty ? "Current location" : locationName
         let fetchedAt = lastFetchMs > 0 ? Date(timeIntervalSince1970: lastFetchMs / 1000) : Date()
+        let atmosphere = WatchAtmosphere.metrics(
+            uvIndex: current?.number("uv_index"),
+            windSpeedMph: current?.number("wind_speed_10m"),
+            windDirectionDegrees: current?.number("wind_direction_10m"),
+            windGustMph: current?.number("wind_gusts_10m")
+        )
         let snapshot = WidgetConditionsSnapshot(
             locationId: String(format: "%.4f,%.4f", coordinate.latitude, coordinate.longitude),
             locationName: name,
@@ -1066,7 +1072,11 @@ final class WeatherViewModel {
             nextHoursHint: hint,
             sunriseISO: Self.sunISO(today?.sunrise),
             sunsetISO: Self.sunISO(today?.sunset),
-            fetchedAt: fetchedAt
+            fetchedAt: fetchedAt,
+            uvIndex: atmosphere.uvIndex,
+            windSpeedMph: atmosphere.windSpeedMph,
+            windDirectionDegrees: atmosphere.windDirectionDegrees,
+            windGustMph: atmosphere.windGustMph
         )
         WidgetSnapshotStore.save(snapshot)
         WatchSessionBridge.shared.push(snapshot, alerts: alerts)

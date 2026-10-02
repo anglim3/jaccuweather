@@ -23,6 +23,14 @@ struct WidgetConditionsSnapshot: Codable, Equatable {
     /// Today's Open-Meteo sunset, same shape as `sunriseISO`.
     var sunsetISO: String? = nil
     var fetchedAt: Date
+    /// Open-Meteo `uv_index` for the place's current hour. Nil when unknown.
+    var uvIndex: Double? = nil
+    /// Open-Meteo `wind_speed_10m` in miles per hour.
+    var windSpeedMph: Double? = nil
+    /// Open-Meteo `wind_direction_10m`, degrees the wind comes from.
+    var windDirectionDegrees: Double? = nil
+    /// Open-Meteo `wind_gusts_10m` in miles per hour, when the forecast has one.
+    var windGustMph: Double? = nil
 
     /// WidgetKit reloads on its own about every 20 minutes. Refetch only after this.
     static let refetchAfter: TimeInterval = 40 * 60
