@@ -2,18 +2,38 @@ import SwiftUI
 
 struct WatchGlanceView: View {
     var model: WatchWeatherModel
+    @State private var showPlaces = false
+    @State private var closedLaunchList = false
+
+    /// Open from the Places button, or from `-watchPlaces 1` until Close.
+    private var showingList: Bool {
+        if showPlaces { return true }
+        if closedLaunchList { return false }
+        return WatchFavoritesSample.presentsList
+    }
 
     var body: some View {
+        Group {
+            if showingList {
+                WatchPlacesSheet(model: model) {
+                    closedLaunchList = true
+                    showPlaces = false
+                }
+            } else {
+                glance
+            }
+        }
+        .preferredColorScheme(.dark)
+        .task { await model.start() }
+        .onOpenURL { model.open($0) }
+    }
+
+    private var glance: some View {
         ZStack {
             WidgetHorizonBackground()
                 .ignoresSafeArea()
             VStack(spacing: 1) {
-                Text(model.placeName)
-                    .font(WidgetHorizon.placeFont(size: 14))
-                    .foregroundStyle(WidgetHorizon.muted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .accessibilityIdentifier("watch-place")
+                placeTitle
                 HStack(alignment: .center, spacing: 6) {
                     symbol
                     VStack(alignment: .leading, spacing: 0) {
@@ -51,9 +71,32 @@ struct WatchGlanceView: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel(model.accessibilityLabel)
         }
-        .preferredColorScheme(.dark)
-        .task { await model.start() }
-        .onOpenURL { model.open($0) }
+    }
+
+    private var placeTitle: some View {
+        ZStack {
+            Text(model.placeName)
+                .font(WidgetHorizon.placeFont(size: 14))
+                .foregroundStyle(WidgetHorizon.muted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, 22)
+                .accessibilityIdentifier("watch-place")
+            HStack {
+                Spacer(minLength: 0)
+                Button {
+                    showPlaces = true
+                } label: {
+                    Image(systemName: "list.bullet")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(WidgetHorizon.accent)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("watch-places")
+                .accessibilityLabel("Places")
+            }
+        }
     }
 
     private var symbol: some View {
@@ -80,6 +123,49 @@ struct WatchGlanceView: View {
                     }
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// Current place plus the phone's favorites. Picking a row switches the glance.
+struct WatchPlacesSheet: View {
+    var model: WatchWeatherModel
+    var onClose: () -> Void
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(model.places) { place in
+                    Button {
+                        model.select(place)
+                        onClose()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(place.name)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            Spacer(minLength: 4)
+                            if model.isSelected(place) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(WidgetHorizon.accent)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                    }
+                    .accessibilityIdentifier(model.isSelected(place) ? "watch-place-selected" : "watch-place-option")
+                    .accessibilityLabel(place.name)
+                }
+            } header: {
+                Text("Places")
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close", action: onClose)
+                    .accessibilityIdentifier("watch-places-close")
+            }
+        }
+        .accessibilityIdentifier("watch-places-list")
     }
 }
 

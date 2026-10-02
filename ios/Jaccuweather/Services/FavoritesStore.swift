@@ -6,6 +6,8 @@ final class FavoritesStore {
     private let key = "weatherFavorites"
     private let defaults: UserDefaults
     private(set) var items: [GeoResult] = []
+    /// Called after the saved list changes. The watch bridge reads the same store.
+    @ObservationIgnored var onChange: (() -> Void)?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -72,5 +74,6 @@ final class FavoritesStore {
         if let data = try? JSONEncoder().encode(items) {
             defaults.set(data, forKey: key)
         }
+        onChange?()
     }
 }

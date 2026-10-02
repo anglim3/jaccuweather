@@ -10,6 +10,7 @@ final class WatchWeatherModel {
     var hours: [WatchHourSlot] = []
     var days: [WatchDaySlot] = []
     var alert: WatchAlertSummary?
+    var favorites: [WatchFavoritePlace] = []
     private let hub = WatchSessionHub()
     private var generation = 0
     private var pinned: WatchPlace?
@@ -20,6 +21,28 @@ final class WatchWeatherModel {
             pinned = launch
             snapshot = launch.shell()
         }
+        favorites = WatchFavoritesSample.places(in: [:])
+    }
+
+    /// Current place, then phone favorites that are not that same coordinate.
+    var places: [WatchFavoritePlace] {
+        WatchFavoritesPlan.switcher(
+            current: WatchFavoritePlace(
+                name: placeName,
+                latitude: snapshot.latitude,
+                longitude: snapshot.longitude
+            ),
+            favorites: favorites
+        )
+    }
+
+    func isSelected(_ place: WatchFavoritePlace) -> Bool {
+        WatchFavoritesPlan.sameCoordinates(
+            latitude: snapshot.latitude,
+            longitude: snapshot.longitude,
+            otherLatitude: place.latitude,
+            otherLongitude: place.longitude
+        )
     }
 
     var placeName: String {
@@ -91,12 +114,41 @@ final class WatchWeatherModel {
 
     /// Complication tap, or `jaccuweather://place?...` from the simulator.
     func open(_ url: URL) {
-        guard let place = WatchPlaceLink.place(from: url) else { return }
+        guard var place = WatchPlaceLink.place(from: url) else { return }
+        place.explicit = true
+        show(place)
+    }
+
+    /// Favorites row. Writes `watch-place.json` before the forecast returns
+    /// so the complication can move with the pick.
+    func select(_ favorite: WatchFavoritePlace) {
+        show(WatchPlace(
+            locationId: String(format: "%.4f,%.4f", favorite.latitude, favorite.longitude),
+            locationName: favorite.name,
+            latitude: favorite.latitude,
+            longitude: favorite.longitude,
+            explicit: true
+        ))
+    }
+
+    private func show(_ place: WatchPlace) {
+        let changed = !WatchFavoritesPlan.sameCoordinates(
+            latitude: snapshot.latitude,
+            longitude: snapshot.longitude,
+            otherLatitude: place.latitude,
+            otherLongitude: place.longitude
+        )
         pinned = place
-        snapshot = place.shell()
-        hours = []
-        days = []
-        alert = nil
+        if changed {
+            snapshot = place.shell()
+            hours = []
+            days = []
+            alert = nil
+        } else if snapshot.locationName != place.locationName {
+            snapshot.locationName = place.locationName
+        }
+        WatchPlaceStore.save(place)
+        WidgetCenter.shared.reloadTimelines(ofKind: WatchMirror.complicationKind)
         Task { await refresh() }
     }
 
@@ -104,6 +156,7 @@ final class WatchWeatherModel {
         generation += 1
         let token = generation
         let context = WatchAlertSample.context(hub.context)
+        favorites = WatchFavoritesSample.places(in: context)
         let reading = await WatchConditionsLoader.load(phoneContext: context, pinned: pinned, publishPlace: true)
         guard token == generation else { return }
         snapshot = reading.snapshot
@@ -130,6 +183,40 @@ final class WatchWeatherModel {
         guard let value, value.isFinite else { return "—" }
         return "\(Int(value.rounded()))°"
     }
+}
+
+enum WatchFavoritesSample {
+    /// Debug launches can seed a phone favorites list with `-watchFavoritesSample 1`
+    /// when the context has no `favorites` field. `-watchPlaces 1` opens the list.
+    static var presentsList: Bool {
+        #if DEBUG
+        return flag("watchPlaces")
+        #else
+        return false
+        #endif
+    }
+
+    static func places(in context: [String: Any]) -> [WatchFavoritePlace] {
+        let decoded = WatchFavoritesPlan.places(from: context)
+        #if DEBUG
+        if !decoded.isEmpty || !flag("watchFavoritesSample") { return decoded }
+        return WatchFavoritesPlan.compact([
+            WatchFavoritesPlan.Input(name: "Portland", latitude: 45.5152, longitude: -122.6784),
+            WatchFavoritesPlan.Input(name: "Denver", latitude: 39.7392, longitude: -104.9903),
+            WatchFavoritesPlan.Input(name: "Juneau", latitude: 58.3019, longitude: -134.4197)
+        ])
+        #else
+        return decoded
+        #endif
+    }
+
+    #if DEBUG
+    private static func flag(_ name: String) -> Bool {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-\(name)"), index + 1 < args.count else { return false }
+        return args[index + 1] == "1"
+    }
+    #endif
 }
 
 enum WatchAlertSample {

@@ -537,6 +537,9 @@ final class WeatherViewModel {
     }
 
     init() {
+        favorites.onChange = {
+            WatchSessionBridge.shared.favoritesChanged()
+        }
         _ = LogicEngine.shared
         preference = PlaceStore.load()
         followsDeviceLocation = preference.followsDeviceLocation
