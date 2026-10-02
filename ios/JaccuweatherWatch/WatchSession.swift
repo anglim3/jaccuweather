@@ -228,6 +228,19 @@ enum WatchFavoritesSample {
     #endif
 }
 
+enum WatchDayDetailLaunch {
+    /// Debug launches can open the first day sheet with `-watchDayDetail 1`.
+    static var opensFirst: Bool {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-watchDayDetail"), index + 1 < args.count else { return false }
+        return args[index + 1] == "1"
+        #else
+        return false
+        #endif
+    }
+}
+
 enum WatchAlertSample {
     /// Debug launches can seed a phone payload with `-watchAlertSample 1`.
     /// A context that already has title, severity, and count is left as the phone sent it.

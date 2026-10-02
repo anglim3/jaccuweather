@@ -5,6 +5,7 @@ struct WatchGlanceView: View {
     var model: WatchWeatherModel
     @State private var showPlaces = false
     @State private var closedLaunchList = false
+    @State private var selectedDay: WatchDaySlot?
 
     /// Open from the Places button, or from `-watchPlaces 1` until Close.
     private var showingList: Bool {
@@ -101,10 +102,29 @@ struct WatchGlanceView: View {
                 WatchAlertBadge(alert: alert)
             }
             WatchHourlyStrip(hours: model.hours, style: metrics.hourly)
-            WatchDailyStrip(days: model.days, style: metrics.daily)
+            WatchDailyStrip(days: model.days, style: metrics.daily) { day in
+                selectedDay = day
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(model.accessibilityLabel)
+        .sheet(item: $selectedDay) { day in
+            WatchDayDetailView(day: day)
+        }
+        .onChange(of: model.days) { _, days in
+            if let selected = selectedDay, let fresh = days.first(where: { $0.id == selected.id }), fresh != selected {
+                selectedDay = fresh
+            }
+            openLaunchDay(days)
+        }
+    }
+
+    /// `-watchDayDetail 1` opens the first place-local day once the strip has rows.
+    private func openLaunchDay(_ days: [WatchDaySlot]) {
+        #if DEBUG
+        guard selectedDay == nil, WatchDayDetailLaunch.opensFirst, let day = days.first else { return }
+        selectedDay = day
+        #endif
     }
 
     private func placeTitle(_ metrics: WatchGlanceMetrics) -> some View {
