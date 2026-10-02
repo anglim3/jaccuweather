@@ -9,7 +9,14 @@ struct HealthPollenView: View {
     var body: some View {
         TabScreenScroll {
             if let weather = model.weather {
+                // One stack, not a late first child of the screen's lazy stack.
+                // Pollen arrives after the forecast, and a new row inserted above
+                // the Health card stays offscreen at the current scroll offset.
+                VStack(alignment: .leading, spacing: JWMetrics.sectionGap) {
                 let health = model.health
+                if let aqi = USAQIDisplay.from(current: model.pollen?.map("current")) {
+                    AirQualityCard(reading: aqi)
+                }
                 WeatherCard(title: "Health", titleStyle: .section) {
                     VStack(spacing: 10) {
                         NavigationLink {
@@ -59,9 +66,9 @@ struct HealthPollenView: View {
                             .padding(.top, 4)
 
                         HStack(alignment: .top, spacing: 10) {
-                            pollenCol("Tree", maxTree(current), "pollen-tree")
-                            pollenCol("Grass", current.number("grass_pollen"), "pollen-grass")
-                            pollenCol("Weed", maxWeed(current), "pollen-weed")
+                            pollenCol("Tree", maxTree(current), "pollen-tree", nullAsNone: nullAsNone(pollen, ["alder_pollen", "birch_pollen", "olive_pollen", "tree_pollen"]))
+                            pollenCol("Grass", current.number("grass_pollen"), "pollen-grass", nullAsNone: nullAsNone(pollen, ["grass_pollen"]))
+                            pollenCol("Weed", maxWeed(current), "pollen-weed", nullAsNone: nullAsNone(pollen, ["weed_pollen", "mugwort_pollen", "ragweed_pollen"]))
                         }
 
                         if !days.isEmpty {
@@ -77,14 +84,17 @@ struct HealthPollenView: View {
                             }
                         }
 
-                        speciesBlock(current)
+                        speciesBlock(current, pollen: pollen)
                     }
                 } else {
                     WeatherCard(title: "Pollen Forecast", titleStyle: .section) {
-                        Text("Open-Meteo fallback when Google and Tomorrow keys are blank.")
+                        Text(model.pollenPending ? "Loading pollen…" : "Pollen is unavailable for this place right now.")
                             .font(JWFont.body)
                             .foregroundStyle(theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("pollen-unavailable")
                     }
+                }
                 }
             } else {
                 Text("Load a location first.")
@@ -192,13 +202,17 @@ struct HealthPollenView: View {
         ]])
     }
 
-    private func pollenLevel(_ value: Double?) -> (text: String, color: Color) {
-        let level = JSONMap(LogicEngine.shared.object("getPollenLevel", [value as Any]))
-        let label = level.string("label") ?? "None"
-        return (label, JWTone.color(forColorClass: level.string("colorClass")))
+    private func nullAsNone(_ pollen: JSONMap, _ fields: [String]) -> Bool {
+        let flags = pollen.map("pollen_null_display_as_none").map("current")
+        return fields.contains { flags.bool($0) }
     }
 
-    private func speciesBlock(_ current: JSONMap) -> some View {
+    private func pollenLevel(_ value: Double?, nullAsNone: Bool) -> (text: String, color: Color) {
+        let label = PollenReading.levelText(value, nullAsNone: nullAsNone)
+        return (label, JWTone.color(forLabel: label))
+    }
+
+    private func speciesBlock(_ current: JSONMap, pollen: JSONMap) -> some View {
         let fields = [
             ("Alder", "alder_pollen"),
             ("Birch", "birch_pollen"),
@@ -217,15 +231,17 @@ struct HealthPollenView: View {
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(fields, id: \.0) { name, key in
                 let value = current.number(key)
-                let level = pollenLevel(value)
+                let level = pollenLevel(value, nullAsNone: nullAsNone(pollen, [key]))
                 HStack {
                     Text(name)
-                    Spacer()
-                    Text(LogicEngine.shared.string("formatPollenValue", [value as Any]) ?? "n/a")
+                    Spacer(minLength: 8)
+                    Text(PollenReading.countText(value))
                         .foregroundStyle(theme.text)
                     Text(level.text)
                         .foregroundStyle(level.color)
-                        .frame(width: 72, alignment: .trailing)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(minWidth: 36, alignment: .trailing)
                 }
                 .font(.caption)
                 .foregroundStyle(theme.muted)
@@ -233,8 +249,8 @@ struct HealthPollenView: View {
         }
     }
 
-    private func pollenCol(_ name: String, _ value: Double?, _ icon: String) -> some View {
-        let level = pollenLevel(value)
+    private func pollenCol(_ name: String, _ value: Double?, _ icon: String, nullAsNone: Bool) -> some View {
+        let level = pollenLevel(value, nullAsNone: nullAsNone)
         return VStack(spacing: 4) {
             HStack(spacing: 4) {
                 SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 22)
@@ -242,8 +258,10 @@ struct HealthPollenView: View {
                 Text(name)
                     .font(.system(size: 12))
                     .foregroundStyle(theme.muted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            Text(LogicEngine.shared.string("formatPollenValue", [value as Any]) ?? "n/a")
+            Text(PollenReading.countText(value))
                 .font(.system(size: 20, weight: .bold))
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
@@ -269,10 +287,15 @@ struct HealthPollenView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(dayTitle(date, index: index))
                     .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Text(daySubtitle(date))
                     .font(.caption2)
                     .foregroundStyle(theme.muted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
+            .layoutPriority(1)
             Spacer(minLength: 4)
             forecastCol("Tree", day.string("treeLabel"))
             forecastCol("Grass", day.string("grassLabel"))
@@ -292,10 +315,11 @@ struct HealthPollenView: View {
             Text(text)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(JWTone.color(forLabel: text))
-                .lineLimit(1)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
                 .minimumScaleFactor(0.7)
         }
-        .frame(width: 58)
+        .frame(minWidth: 52, maxWidth: 76)
     }
 
     private func dayTitle(_ date: String, index: Int) -> String {
@@ -343,4 +367,65 @@ struct HealthPollenView: View {
         formatter.setLocalizedDateFormatFromTemplate("MMM d")
         return formatter
     }()
+}
+
+struct AirQualityCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let reading: USAQIDisplay
+    var compact: Bool = false
+
+    private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
+    private var tint: Color { JWTone.color(forAQI: reading.colorToken) }
+
+    var body: some View {
+        Group {
+            if compact { compactBody } else { healthBody }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(compact ? "now-air-quality" : "air-quality-card")
+        .accessibilityLabel("Air Quality \(reading.value), \(reading.category)")
+    }
+
+    private var healthBody: some View {
+        WeatherCard(title: "Air Quality", titleStyle: .section) {
+            HStack(alignment: .center, spacing: 14) {
+                SVGIconView(fileName: "smoke.svg", folder: "cards", pointSize: 36)
+                    .frame(width: 36, height: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(reading.value)")
+                        .font(JWFont.statValue)
+                        .foregroundStyle(tint)
+                    Text(reading.category)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(tint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var compactBody: some View {
+        HStack(spacing: 12) {
+            SVGIconView(fileName: "smoke.svg", folder: "cards", pointSize: 28)
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Air Quality")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.muted)
+                Text(reading.category)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(tint)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Text("\(reading.value)")
+                .font(JWFont.statValue)
+                .foregroundStyle(tint)
+                .lineLimit(1)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .jwGlass(.stat)
+    }
 }

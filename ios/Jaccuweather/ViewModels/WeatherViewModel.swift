@@ -195,7 +195,10 @@ final class WeatherViewModel {
     var coordinate = CLLocationCoordinate2D(latitude: 0, longitude: 0)
     var weather: WeatherBundle?
     var pollen: JSONMap?
+    /// True after a place change until that place's pollen request finishes.
+    var pollenPending = false
     var alerts: [NWSAlertFeature] = []
+    var alertsFailed = false
     var alertIconFiles: [String: String] = [:]
     var tides: TideSnapshot?
     var health: CachedHealth?
@@ -354,7 +357,12 @@ final class WeatherViewModel {
 
     func openRoutedAlert(userInfo: [AnyHashable: Any]) {
         guard let id = userInfo[NWSAlertFeature.notificationIDKey] as? String else { return }
-        if let match = alerts.first(where: { $0.id == id }) {
+        if let match = NWSAlertFeature.routedMatch(
+            id: id,
+            headline: userInfo["headline"] as? String,
+            event: userInfo["event"] as? String,
+            alerts: alerts
+        ) {
             routedAlert = match
             return
         }
@@ -636,11 +644,12 @@ final class WeatherViewModel {
         let weatherTask = Task.detached(priority: .userInitiated) {
             try await ForecastWork.load(latitude: lat, longitude: lon)
         }
+        if pollen == nil { pollenPending = true }
         let pollenTask = Task.detached(priority: .userInitiated) {
             await PollenService().load(latitude: lat, longitude: lon)
         }
         let alertsTask = Task.detached(priority: .userInitiated) {
-            await AlertsService().alerts(latitude: lat, longitude: lon)
+            await AlertsService().load(latitude: lat, longitude: lon)
         }
 
         do {
@@ -654,12 +663,23 @@ final class WeatherViewModel {
             isLoading = false
 
             let pollen = await pollenTask.value
-            let alerts = await alertsTask.value
+            let alertsLoad = await alertsTask.value
             let resolvedName = await nameTask?.value
             guard serial == refreshSerial else { return }
 
             self.pollen = pollen
-            self.alerts = alerts
+            pollenPending = false
+            switch alertsLoad {
+            case .none:
+                alerts = []
+                alertsFailed = false
+            case .list(let rows):
+                alerts = rows
+                alertsFailed = false
+            case .failed:
+                alerts = []
+                alertsFailed = true
+            }
             var icons: [String: String] = [:]
             for alert in alerts {
                 let key = alert.properties.event ?? ""
@@ -697,6 +717,7 @@ final class WeatherViewModel {
             }
         } catch {
             guard serial == refreshSerial else { return }
+            pollenPending = false
             errorMessage = error.localizedDescription
             if weather == nil {
                 WeatherLiveActivitySync.end()
@@ -707,6 +728,9 @@ final class WeatherViewModel {
     func select(_ place: GeoResult) async {
         let next = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
         let placeChanged = hasResolvedPlace && !Self.close(coordinate, next)
+        if placeChanged {
+            dropPreviousHealthAndAlerts(for: next)
+        }
         followsDeviceLocation = false
         holdingLastKnown = false
         sessionPinsLocation = false
@@ -797,6 +821,7 @@ final class WeatherViewModel {
         showsPlacePrompt = false
         holdingLastKnown = false
         hasResolvedPlace = true
+        if placeChanged { dropPreviousHealthAndAlerts(for: coordinate) }
         self.coordinate = coordinate
         if let last = preference.lastKnown, Self.near(last, coordinate) {
             locationName = last.displayName
@@ -835,8 +860,10 @@ final class WeatherViewModel {
             holdingLastKnown = true
             statusNote = "Location access is off. Showing the last place used on this phone."
             if !already {
+                let next = CLLocationCoordinate2D(latitude: last.latitude, longitude: last.longitude)
+                dropPreviousHealthAndAlerts(for: next)
                 hasResolvedPlace = true
-                coordinate = CLLocationCoordinate2D(latitude: last.latitude, longitude: last.longitude)
+                coordinate = next
                 locationName = last.displayName
                 lastFix = coordinate
                 Task { await refresh() }
@@ -851,6 +878,8 @@ final class WeatherViewModel {
     }
 
     /// Drop the previous place's forecast, tides, and moon times before the new fetch lands.
+    /// Health, pollen, and alerts are cleared here too so a place change cannot leave
+    /// the previous reading, a failed-alert banner, or an open alert sheet behind.
     private func hideStalePlaceReadings() {
         refreshSerial += 1
         snowTask?.cancel()
@@ -863,7 +892,10 @@ final class WeatherViewModel {
         tides = nil
         alerts = []
         alertIconFiles = [:]
+        alertsFailed = false
+        routedAlert = nil
         pollen = nil
+        pollenPending = true
         health = nil
         weeklySnow = nil
         precipTiming = ""
@@ -873,6 +905,20 @@ final class WeatherViewModel {
         conditionDescription = ""
         currentUVDetail = ""
         errorMessage = nil
+    }
+
+    /// Health scores, pollen, and NWS alerts belong to one place. Used when the
+    /// forecast clear does not run, and before the new coordinate is assigned.
+    private func dropPreviousHealthAndAlerts(for next: CLLocationCoordinate2D) {
+        guard hasResolvedPlace, !Self.close(coordinate, next) else { return }
+        refreshSerial += 1
+        pollen = nil
+        pollenPending = true
+        health = nil
+        alerts = []
+        alertIconFiles = [:]
+        alertsFailed = false
+        routedAlert = nil
     }
 
     private func rememberDevicePlace() {

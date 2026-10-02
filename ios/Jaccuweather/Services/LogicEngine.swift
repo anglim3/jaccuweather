@@ -5,6 +5,9 @@ import JavaScriptCore
 final class LogicEngine {
     static let shared = LogicEngine()
     private let ctx = JSContext()!
+    /// JavaScriptCore contexts are single-threaded. Forecast normalize and pollen
+    /// normalize run off the main actor while the Health and Now tabs call in.
+    private let gate = NSLock()
 
     private init() {
         ctx.exceptionHandler = { _, error in
@@ -27,28 +30,45 @@ final class LogicEngine {
         ctx.objectForKeyedSubscript("JaccuweatherLogic")
     }
 
-    func invoke(_ name: String, _ args: [Any] = []) -> JSValue? {
-        logic?.invokeMethod(name, withArguments: args)
-    }
-
     func object(_ name: String, _ args: [Any] = []) -> Any? {
-        guard let value = invoke(name, args), !value.isUndefined, !value.isNull else { return nil }
-        return value.toObject()
+        withContext { logic in
+            guard let value = logic?.invokeMethod(name, withArguments: args), !value.isUndefined, !value.isNull else { return nil }
+            return value.toObject()
+        }
     }
 
     func string(_ name: String, _ args: [Any] = []) -> String? {
-        invoke(name, args)?.toString()
+        withContext { logic in
+            logic?.invokeMethod(name, withArguments: args)?.toString()
+        }
     }
 
     func number(_ name: String, _ args: [Any] = []) -> Double? {
-        guard let value = invoke(name, args), value.isNumber else { return nil }
-        return value.toDouble()
+        withContext { logic in
+            guard let value = logic?.invokeMethod(name, withArguments: args), value.isNumber else { return nil }
+            return value.toDouble()
+        }
+    }
+
+    func array(_ name: String, _ args: [Any] = []) -> [Any]? {
+        withContext { logic in
+            guard let value = logic?.invokeMethod(name, withArguments: args), !value.isUndefined, !value.isNull else { return nil }
+            return value.toArray()
+        }
     }
 
     /// JSValue.toBool is a method on current SDKs (Xcode 26 / iOS 27); never read `.toBool` as a property.
     func bool(_ name: String, _ args: [Any] = []) -> Bool {
-        guard let value = invoke(name, args), !value.isUndefined, !value.isNull else { return false }
-        return value.toBool()
+        withContext { logic in
+            guard let value = logic?.invokeMethod(name, withArguments: args), !value.isUndefined, !value.isNull else { return false }
+            return value.toBool()
+        }
+    }
+
+    private func withContext<T>(_ body: (JSValue?) -> T) -> T {
+        gate.lock()
+        defer { gate.unlock() }
+        return body(logic)
     }
 
     func normalizeEnsemble(_ raw: Any, latitude: Double, longitude: Double) -> JSONMap {
@@ -56,10 +76,8 @@ final class LogicEngine {
     }
 
     func pollenForecastDays(_ pollen: JSONMap) -> [JSONMap] {
-        guard let value = invoke("buildPollenForecastDays", [pollen.raw]), !value.isUndefined, !value.isNull else {
-            return []
-        }
-        return (value.toArray() as? [Any] ?? []).map { JSONMap($0) }
+        let rows = array("buildPollenForecastDays", [pollen.raw]) ?? []
+        return rows.map { JSONMap($0) }
     }
 
     func weatherIconFile(code: Int?, isDay: Bool, precipProbability: Double? = nil) -> String {

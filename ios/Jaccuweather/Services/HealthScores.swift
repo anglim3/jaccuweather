@@ -40,25 +40,24 @@ enum HealthScores {
         let swing = (high ?? 0) - (low ?? 0)
         let score = LogicEngine.shared.number("calculateSinusRisk", [pressureChange, humidity, precip, swing]).map { Int($0) }
         let label = JSONMap(LogicEngine.shared.object("getSimpleRiskLabel", [score as Any])).string("label") ?? "No data"
-        let drivers = LogicEngine.shared.invoke("getSinusDrivers", [pressureChange, humidity, precip, swing])?.toArray() as? [String]
+        let drivers = LogicEngine.shared.array("getSinusDrivers", [pressureChange, humidity, precip, swing]) as? [String]
         return (label, (drivers ?? []).prefix(2).joined(separator: " · "), score)
     }
 
     static func allergy(pollen: JSONMap?, weather: WeatherBundle) -> (label: String, detail: String, score: Int?) {
         let todayStr = weather.daily.strings("time")[safe: weather.todayIndex]
         let todayAvg = JSONMap(LogicEngine.shared.object("calculateDailyAveragesForDateString", [weather.hourly.raw, todayStr as Any]))
-        let scoreVal = LogicEngine.shared.invoke("calculateAllergyRisk", [
+        let score = LogicEngine.shared.number("calculateAllergyRisk", [
             todayAvg.number("windMax") as Any,
             todayAvg.number("precipSum") as Any,
             pollen?.raw as Any
-        ])
-        let score = scoreVal?.isNumber == true ? Int(scoreVal!.toDouble()) : nil
+        ]).map { Int($0) }
         let label = JSONMap(LogicEngine.shared.object("getSimpleRiskLabel", [score as Any])).string("label") ?? "No data"
-        let drivers = LogicEngine.shared.invoke("getAllergyDrivers", [
+        let drivers = LogicEngine.shared.array("getAllergyDrivers", [
             pollen?.raw as Any,
             todayAvg.number("windMax") as Any,
             todayAvg.number("precipSum") as Any
-        ])?.toArray() as? [String]
+        ]) as? [String]
         return (label, (drivers ?? []).prefix(2).joined(separator: " · "), score)
     }
 
