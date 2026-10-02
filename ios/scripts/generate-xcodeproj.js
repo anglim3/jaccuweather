@@ -11,6 +11,8 @@ const root = path.resolve(__dirname, '..');
 const appDir = path.join(root, 'Jaccuweather');
 const widgetDir = path.join(root, 'JaccuweatherWidgets');
 const sharedDir = path.join(root, 'Shared');
+const watchDir = path.join(root, 'JaccuweatherWatch');
+const watchWidgetDir = path.join(root, 'JaccuweatherWatchWidgets');
 
 function walk(dir, ext, base = dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;
@@ -25,6 +27,8 @@ function walk(dir, ext, base = dir, acc = []) {
 const sources = walk(appDir, '.swift').sort();
 const sharedSources = walk(sharedDir, '.swift').sort();
 const widgetSources = walk(widgetDir, '.swift').sort();
+const watchSources = walk(watchDir, '.swift').sort();
+const watchWidgetSources = walk(watchWidgetDir, '.swift').sort();
 
 const ids = {
   project: hid('project'),
@@ -84,6 +88,41 @@ const ids = {
   widgetEntitlements: hid('widgetEntitlements'),
   projectConfigs: hid('projectConfigs'),
   targetConfigs: hid('targetConfigs'),
+  watchTarget: hid('watchTarget'),
+  watchProduct: hid('watchProduct'),
+  watchSourcesPhase: hid('watchSourcesPhase'),
+  watchFrameworksPhase: hid('watchFrameworksPhase'),
+  watchResourcesPhase: hid('watchResourcesPhase'),
+  watchDebug: hid('watchDebug'),
+  watchRelease: hid('watchRelease'),
+  watchConfigs: hid('watchConfigs'),
+  watchGroup: hid('watchGroup'),
+  watchAssets: hid('watchAssets'),
+  watchAssetsBuild: hid('watchAssetsBuild'),
+  watchPlist: hid('watchPlist'),
+  watchEmbed: hid('watchEmbed'),
+  watchEmbedPhase: hid('watchEmbedPhase'),
+  watchProxy: hid('watchProxy'),
+  watchDep: hid('watchDep'),
+  watchWidgetTarget: hid('watchWidgetTarget'),
+  watchWidgetProduct: hid('watchWidgetProduct'),
+  watchWidgetSourcesPhase: hid('watchWidgetSourcesPhase'),
+  watchWidgetFrameworksPhase: hid('watchWidgetFrameworksPhase'),
+  watchWidgetResourcesPhase: hid('watchWidgetResourcesPhase'),
+  watchWidgetDebug: hid('watchWidgetDebug'),
+  watchWidgetRelease: hid('watchWidgetRelease'),
+  watchWidgetConfigs: hid('watchWidgetConfigs'),
+  watchWidgetGroup: hid('watchWidgetGroup'),
+  watchWidgetPlist: hid('watchWidgetPlist'),
+  watchWidgetEmbed: hid('watchWidgetEmbed'),
+  watchWidgetEmbedPhase: hid('watchWidgetEmbedPhase'),
+  watchWidgetProxy: hid('watchWidgetProxy'),
+  watchWidgetDep: hid('watchWidgetDep'),
+  watchConnectivity: hid('watchConnectivity'),
+  watchConnectivityAppBuild: hid('watchConnectivityAppBuild'),
+  watchConnectivityWatchBuild: hid('watchConnectivityWatchBuild'),
+  widgetKitWatchBuild: hid('widgetKitWatchBuild'),
+  widgetKitWatchExtBuild: hid('widgetKitWatchExtBuild'),
 };
 
 const fileIds = {};
@@ -98,6 +137,34 @@ for (const file of sharedSources) {
 }
 const widgetIds = {};
 for (const file of widgetSources) widgetIds[file] = { ref: hid('widget-ref:' + file), build: hid('widget-build:' + file) };
+const watchIds = {};
+for (const file of watchSources) {
+  watchIds[file] = {
+    ref: hid('watch-ref:' + file),
+    build: hid('watch-build:' + file),
+    widgetBuild: hid('watch-widget-extra:' + file),
+  };
+}
+const watchWidgetIds = {};
+for (const file of watchWidgetSources) {
+  watchWidgetIds[file] = { ref: hid('watch-widget-ref:' + file), build: hid('watch-widget-build:' + file) };
+}
+const watchSupportFiles = [
+  { name: 'WidgetSnapshot.swift', ref: sharedIds['WidgetSnapshot.swift'].ref },
+  { name: 'WatchMirror.swift', ref: sharedIds['WatchMirror.swift'].ref },
+  { name: 'WidgetHorizon.swift', ref: widgetIds['WidgetHorizon.swift'].ref },
+  { name: 'WidgetRefresh.swift', ref: widgetIds['WidgetRefresh.swift'].ref },
+];
+const watchSupportIds = {};
+for (const file of watchSupportFiles) {
+  watchSupportIds[file.name] = {
+    app: hid('watch-support-app:' + file.name),
+    widget: hid('watch-support-widget:' + file.name),
+  };
+}
+if (!watchIds['WatchConditionsLoader.swift']) {
+  throw new Error('WatchConditionsLoader.swift missing');
+}
 
 const groups = {
   Models: sources.filter((f) => f.startsWith('Models/')),
@@ -129,6 +196,43 @@ const sharedRefs = sharedSources
 const widgetRefs = widgetSources
   .map((f) => `\t\t${widgetIds[f].ref} /* ${path.basename(f)} */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ${path.basename(f)}; sourceTree = "<group>"; };`)
   .join('\n');
+const watchBuildFiles = watchSources
+  .map((f) => `\t\t${watchIds[f].build} /* ${path.basename(f)} in Sources */ = {isa = PBXBuildFile; fileRef = ${watchIds[f].ref} /* ${path.basename(f)} */; };`)
+  .join('\n');
+const watchWidgetBuildFiles = watchWidgetSources
+  .map((f) => `\t\t${watchWidgetIds[f].build} /* ${path.basename(f)} in Sources */ = {isa = PBXBuildFile; fileRef = ${watchWidgetIds[f].ref} /* ${path.basename(f)} */; };`)
+  .join('\n');
+const watchLoaderInWidget = `\t\t${watchIds['WatchConditionsLoader.swift'].widgetBuild} /* WatchConditionsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = ${watchIds['WatchConditionsLoader.swift'].ref} /* WatchConditionsLoader.swift */; };`;
+const watchSupportAppBuilds = watchSupportFiles
+  .map((f) => `\t\t${watchSupportIds[f.name].app} /* ${f.name} in Sources */ = {isa = PBXBuildFile; fileRef = ${f.ref} /* ${f.name} */; };`)
+  .join('\n');
+const watchSupportWidgetBuilds = watchSupportFiles
+  .map((f) => `\t\t${watchSupportIds[f.name].widget} /* ${f.name} in Sources */ = {isa = PBXBuildFile; fileRef = ${f.ref} /* ${f.name} */; };`)
+  .join('\n');
+const watchRefs = watchSources
+  .map((f) => `\t\t${watchIds[f].ref} /* ${path.basename(f)} */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ${path.basename(f)}; sourceTree = "<group>"; };`)
+  .join('\n');
+const watchWidgetRefs = watchWidgetSources
+  .map((f) => `\t\t${watchWidgetIds[f].ref} /* ${path.basename(f)} */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ${path.basename(f)}; sourceTree = "<group>"; };`)
+  .join('\n');
+const watchSourceBuildPhase = watchSources
+  .map((f) => `\t\t\t\t${watchIds[f].build} /* ${path.basename(f)} in Sources */,`)
+  .concat(watchSupportFiles.map((f) => `\t\t\t\t${watchSupportIds[f.name].app} /* ${f.name} in Sources */,`))
+  .join('\n');
+const watchWidgetSourceBuildPhase = watchWidgetSources
+  .map((f) => `\t\t\t\t${watchWidgetIds[f].build} /* ${path.basename(f)} in Sources */,`)
+  .concat([`\t\t\t\t${watchIds['WatchConditionsLoader.swift'].widgetBuild} /* WatchConditionsLoader.swift in Sources */,`])
+  .concat(watchSupportFiles.map((f) => `\t\t\t\t${watchSupportIds[f.name].widget} /* ${f.name} in Sources */,`))
+  .join('\n');
+const watchGroupChildren = [
+  ...watchSources.map((f) => `\t\t\t\t${watchIds[f].ref} /* ${path.basename(f)} */,`),
+  `\t\t\t\t${ids.watchPlist} /* Info.plist */,`,
+  `\t\t\t\t${ids.watchAssets} /* Assets.xcassets */,`,
+].join('\n');
+const watchWidgetGroupChildren = [
+  ...watchWidgetSources.map((f) => `\t\t\t\t${watchWidgetIds[f].ref} /* ${path.basename(f)} */,`),
+  `\t\t\t\t${ids.watchWidgetPlist} /* Info.plist */,`,
+].join('\n');
 
 function groupBlock(id, name, files, folderPath) {
   const children = files.map((f) => `\t\t\t\t${fileIds[f].ref} /* ${path.basename(f)} */,`).join('\n');
@@ -177,6 +281,11 @@ ${swiftBuildFiles}
 ${sharedAppBuilds}
 ${sharedWidgetBuilds}
 ${widgetBuildFiles}
+${watchBuildFiles}
+${watchWidgetBuildFiles}
+${watchLoaderInWidget}
+${watchSupportAppBuilds}
+${watchSupportWidgetBuilds}
 		${ids.assetsBuild} /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.assets} /* Assets.xcassets */; };
 		${ids.logicBuild} /* Logic in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.logicFolder} /* Logic */; };
 		${ids.iconsBuild} /* Icons in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.iconsFolder} /* Icons */; };
@@ -186,6 +295,13 @@ ${widgetBuildFiles}
 		${ids.widgetKitAppBuild} /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.widgetKit} /* WidgetKit.framework */; };
 		${ids.widgetKitExtBuild} /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.widgetKit} /* WidgetKit.framework */; };
 		${ids.widgetEmbed} /* JaccuweatherWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = ${ids.widgetProduct} /* JaccuweatherWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		${ids.watchConnectivityAppBuild} /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.watchConnectivity} /* WatchConnectivity.framework */; };
+		${ids.watchConnectivityWatchBuild} /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.watchConnectivity} /* WatchConnectivity.framework */; };
+		${ids.widgetKitWatchBuild} /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.widgetKit} /* WidgetKit.framework */; };
+		${ids.widgetKitWatchExtBuild} /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ${ids.widgetKit} /* WidgetKit.framework */; };
+		${ids.watchEmbed} /* JaccuweatherWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = ${ids.watchProduct} /* JaccuweatherWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		${ids.watchWidgetEmbed} /* JaccuweatherWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = ${ids.watchWidgetProduct} /* JaccuweatherWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		${ids.watchAssetsBuild} /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ${ids.watchAssets} /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -195,6 +311,20 @@ ${widgetBuildFiles}
 			proxyType = 1;
 			remoteGlobalIDString = ${ids.widgetTarget};
 			remoteInfo = JaccuweatherWidgets;
+		};
+		${ids.watchProxy} /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ${ids.project} /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ${ids.watchTarget};
+			remoteInfo = JaccuweatherWatch;
+		};
+		${ids.watchWidgetProxy} /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ${ids.project} /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ${ids.watchWidgetTarget};
+			remoteInfo = JaccuweatherWatchWidgets;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -206,6 +336,28 @@ ${widgetBuildFiles}
 			dstSubfolderSpec = 13;
 			files = (
 				${ids.widgetEmbed} /* JaccuweatherWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		${ids.watchEmbedPhase} /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				${ids.watchEmbed} /* JaccuweatherWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		${ids.watchWidgetEmbedPhase} /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				${ids.watchWidgetEmbed} /* JaccuweatherWatchWidgets.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -230,9 +382,17 @@ ${widgetBuildFiles}
 		${ids.mapKit} /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		${ids.webKit} /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		${ids.widgetKit} /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		${ids.watchConnectivity} /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WatchConnectivity.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
+		${ids.watchProduct} /* JaccuweatherWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JaccuweatherWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		${ids.watchWidgetProduct} /* JaccuweatherWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = JaccuweatherWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		${ids.watchAssets} /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		${ids.watchPlist} /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		${ids.watchWidgetPlist} /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 ${fileRefs}
 ${sharedRefs}
 ${widgetRefs}
+${watchRefs}
+${watchWidgetRefs}
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -244,6 +404,24 @@ ${widgetRefs}
 				${ids.mapKitBuild} /* MapKit.framework in Frameworks */,
 				${ids.webKitBuild} /* WebKit.framework in Frameworks */,
 				${ids.widgetKitAppBuild} /* WidgetKit.framework in Frameworks */,
+				${ids.watchConnectivityAppBuild} /* WatchConnectivity.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		${ids.watchFrameworksPhase} /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				${ids.watchConnectivityWatchBuild} /* WatchConnectivity.framework in Frameworks */,
+				${ids.widgetKitWatchBuild} /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		${ids.watchWidgetFrameworksPhase} /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				${ids.widgetKitWatchExtBuild} /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,12 +441,15 @@ ${widgetRefs}
 			children = (
 				${ids.appGroup} /* Jaccuweather */,
 				${ids.widgetGroup} /* JaccuweatherWidgets */,
+				${ids.watchGroup} /* JaccuweatherWatch */,
+				${ids.watchWidgetGroup} /* JaccuweatherWatchWidgets */,
 				${ids.sharedGroup} /* Shared */,
 				${ids.productsGroup} /* Products */,
 				${ids.jsCore} /* JavaScriptCore.framework */,
 				${ids.mapKit} /* MapKit.framework */,
 				${ids.webKit} /* WebKit.framework */,
 				${ids.widgetKit} /* WidgetKit.framework */,
+				${ids.watchConnectivity} /* WatchConnectivity.framework */,
 			);
 			sourceTree = "<group>";
 		};
@@ -277,6 +458,8 @@ ${widgetRefs}
 			children = (
 				${ids.product} /* Jaccuweather.app */,
 				${ids.widgetProduct} /* JaccuweatherWidgets.appex */,
+				${ids.watchProduct} /* JaccuweatherWatch.app */,
+				${ids.watchWidgetProduct} /* JaccuweatherWatchWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -326,6 +509,22 @@ ${sharedGroupChildren}
 			path = Config;
 			sourceTree = "<group>";
 		};
+		${ids.watchGroup} /* JaccuweatherWatch */ = {
+			isa = PBXGroup;
+			children = (
+${watchGroupChildren}
+			);
+			path = JaccuweatherWatch;
+			sourceTree = "<group>";
+		};
+		${ids.watchWidgetGroup} /* JaccuweatherWatchWidgets */ = {
+			isa = PBXGroup;
+			children = (
+${watchWidgetGroupChildren}
+			);
+			path = JaccuweatherWatchWidgets;
+			sourceTree = "<group>";
+		};
 ${groupBlock(ids.modelsGroup, 'Models', groups.Models, 'Models')}
 ${groupBlock(ids.servicesGroup, 'Services', groups.Services, 'Services')}
 ${groupBlock(ids.viewModelsGroup, 'ViewModels', groups.ViewModels, 'ViewModels')}
@@ -341,11 +540,13 @@ ${groupBlock(ids.viewsGroup, 'Views', groups.Views, 'Views')}
 				${ids.frameworksPhase} /* Frameworks */,
 				${ids.resourcesPhase} /* Resources */,
 				${ids.embedPhase} /* Embed Foundation Extensions */,
+				${ids.watchEmbedPhase} /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				${ids.widgetDep} /* PBXTargetDependency */,
+				${ids.watchDep} /* PBXTargetDependency */,
 			);
 			name = Jaccuweather;
 			productName = Jaccuweather;
@@ -369,6 +570,43 @@ ${groupBlock(ids.viewsGroup, 'Views', groups.Views, 'Views')}
 			productReference = ${ids.widgetProduct} /* JaccuweatherWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		${ids.watchTarget} /* JaccuweatherWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ${ids.watchConfigs} /* Build configuration list for PBXNativeTarget "JaccuweatherWatch" */;
+			buildPhases = (
+				${ids.watchSourcesPhase} /* Sources */,
+				${ids.watchFrameworksPhase} /* Frameworks */,
+				${ids.watchResourcesPhase} /* Resources */,
+				${ids.watchWidgetEmbedPhase} /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				${ids.watchWidgetDep} /* PBXTargetDependency */,
+			);
+			name = JaccuweatherWatch;
+			productName = JaccuweatherWatch;
+			productReference = ${ids.watchProduct} /* JaccuweatherWatch.app */;
+			/* application, not application.watchapp2: watchapp2 both links this executable and lipos the WatchKit stub onto the same path. */
+			productType = "com.apple.product-type.application";
+		};
+		${ids.watchWidgetTarget} /* JaccuweatherWatchWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ${ids.watchWidgetConfigs} /* Build configuration list for PBXNativeTarget "JaccuweatherWatchWidgets" */;
+			buildPhases = (
+				${ids.watchWidgetSourcesPhase} /* Sources */,
+				${ids.watchWidgetFrameworksPhase} /* Frameworks */,
+				${ids.watchWidgetResourcesPhase} /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JaccuweatherWatchWidgets;
+			productName = JaccuweatherWatchWidgets;
+			productReference = ${ids.watchWidgetProduct} /* JaccuweatherWatchWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -383,6 +621,12 @@ ${groupBlock(ids.viewsGroup, 'Views', groups.Views, 'Views')}
 						CreatedOnToolsVersion = 15.0;
 					};
 					${ids.widgetTarget} = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					${ids.watchTarget} = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					${ids.watchWidgetTarget} = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
@@ -402,6 +646,8 @@ ${groupBlock(ids.viewsGroup, 'Views', groups.Views, 'Views')}
 			targets = (
 				${ids.target} /* Jaccuweather */,
 				${ids.widgetTarget} /* JaccuweatherWidgets */,
+				${ids.watchTarget} /* JaccuweatherWatch */,
+				${ids.watchWidgetTarget} /* JaccuweatherWatchWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -418,6 +664,21 @@ ${groupBlock(ids.viewsGroup, 'Views', groups.Views, 'Views')}
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		${ids.widgetResourcesPhase} /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		${ids.watchResourcesPhase} /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				${ids.watchAssetsBuild} /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		${ids.watchWidgetResourcesPhase} /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -443,6 +704,22 @@ ${widgetSourceBuildPhase}
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		${ids.watchSourcesPhase} /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+${watchSourceBuildPhase}
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		${ids.watchWidgetSourcesPhase} /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+${watchWidgetSourceBuildPhase}
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -450,6 +727,16 @@ ${widgetSourceBuildPhase}
 			isa = PBXTargetDependency;
 			target = ${ids.widgetTarget} /* JaccuweatherWidgets */;
 			targetProxy = ${ids.widgetProxy} /* PBXContainerItemProxy */;
+		};
+		${ids.watchDep} /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ${ids.watchTarget} /* JaccuweatherWatch */;
+			targetProxy = ${ids.watchProxy} /* PBXContainerItemProxy */;
+		};
+		${ids.watchWidgetDep} /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ${ids.watchWidgetTarget} /* JaccuweatherWatchWidgets */;
+			targetProxy = ${ids.watchWidgetProxy} /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -597,6 +884,118 @@ ${widgetSourceBuildPhase}
 			};
 			name = Release;
 		};
+		${ids.watchDebug} /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				${signing}
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = JaccuweatherWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Jaccuweather;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = cloud.janglim.jaccuweather;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 0.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.janglim.jaccuweather.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				ENABLE_DEBUG_DYLIB = NO;
+				"EXCLUDED_ARCHS[sdk=watchsimulator*]" = x86_64;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		${ids.watchRelease} /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				${signing}
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = JaccuweatherWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Jaccuweather;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = cloud.janglim.jaccuweather;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 0.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.janglim.jaccuweather.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				ENABLE_DEBUG_DYLIB = NO;
+				"EXCLUDED_ARCHS[sdk=watchsimulator*]" = x86_64;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		${ids.watchWidgetDebug} /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				${signing}
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = JaccuweatherWatchWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Jaccuweather;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 0.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.janglim.jaccuweather.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				ENABLE_DEBUG_DYLIB = NO;
+				"EXCLUDED_ARCHS[sdk=watchsimulator*]" = x86_64;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		${ids.watchWidgetRelease} /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				${signing}
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = JaccuweatherWatchWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Jaccuweather;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 0.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.janglim.jaccuweather.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				ENABLE_DEBUG_DYLIB = NO;
+				"EXCLUDED_ARCHS[sdk=watchsimulator*]" = x86_64;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -627,6 +1026,24 @@ ${widgetSourceBuildPhase}
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		${ids.watchConfigs} /* Build configuration list for PBXNativeTarget "JaccuweatherWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				${ids.watchDebug} /* Debug */,
+				${ids.watchRelease} /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		${ids.watchWidgetConfigs} /* Build configuration list for PBXNativeTarget "JaccuweatherWatchWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				${ids.watchWidgetDebug} /* Debug */,
+				${ids.watchWidgetRelease} /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 	};
 	rootObject = ${ids.project} /* Project object */;
@@ -645,6 +1062,18 @@ if (pbxproj.includes(topLevelResources)) {
 }
 if (/DEVELOPMENT_TEAM = "[A-Za-z0-9]+"/.test(pbxproj)) {
   throw new Error('Do not commit a DEVELOPMENT_TEAM id');
+}
+if (!pbxproj.includes('cloud.janglim.jaccuweather.watchkitapp')) {
+  throw new Error('Watch app bundle id missing');
+}
+if (!pbxproj.includes('SDKROOT = watchos;')) {
+  throw new Error('Watch targets must build with the watchOS SDK');
+}
+if (pbxproj.includes('JaccuweatherWatch.entitlements') || pbxproj.includes('JaccuweatherWatchWidgets.entitlements')) {
+  throw new Error('Do not add entitlements files to the watch targets');
+}
+if (pbxproj.includes('application-groups')) {
+  throw new Error('Do not put App Group identifiers in the Xcode project');
 }
 
 const outDir = path.join(root, 'Jaccuweather.xcodeproj');
@@ -740,4 +1169,20 @@ fs.writeFileSync(
   path.join(outDir, 'xcshareddata', 'xcschemes', 'JaccuweatherWidgets.xcscheme'),
   scheme(ids.widgetTarget, 'JaccuweatherWidgets.appex', 'JaccuweatherWidgets')
 );
-console.log('Wrote project with', sources.length, 'app swift files,', sharedSources.length, 'shared,', widgetSources.length, 'widget');
+fs.writeFileSync(
+  path.join(outDir, 'xcshareddata', 'xcschemes', 'JaccuweatherWatch.xcscheme'),
+  scheme(ids.watchTarget, 'JaccuweatherWatch.app', 'JaccuweatherWatch')
+);
+console.log(
+  'Wrote project with',
+  sources.length,
+  'app swift files,',
+  sharedSources.length,
+  'shared,',
+  widgetSources.length,
+  'widget,',
+  watchSources.length,
+  'watch,',
+  watchWidgetSources.length,
+  'watch widget'
+);

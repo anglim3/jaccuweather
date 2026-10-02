@@ -100,12 +100,18 @@ enum WidgetSnapshotStore {
         guard let data = try? encoder.encode(snapshot) else { return }
         try? data.write(to: url, options: .atomic)
         guard reloadWidgets else { return }
+        #if os(iOS)
         Task { @MainActor in
             WidgetCenter.shared.reloadTimelines(ofKind: kind)
             if #available(iOS 18.0, *) {
                 ControlCenter.shared.reloadControls(ofKind: openControlKind)
             }
         }
+        #else
+        Task { @MainActor in
+            WidgetCenter.shared.reloadTimelines(ofKind: kind)
+        }
+        #endif
     }
 }
 

@@ -1063,6 +1063,7 @@ final class WeatherViewModel {
             fetchedAt: fetchedAt
         )
         WidgetSnapshotStore.save(snapshot)
+        WatchSessionBridge.shared.push(snapshot)
         if let temperature = snapshot.temperatureF {
             let condition = conditionDescription.isEmpty ? snapshot.conditionText : conditionDescription
             IntentForecastStore.save(IntentForecastReading(
