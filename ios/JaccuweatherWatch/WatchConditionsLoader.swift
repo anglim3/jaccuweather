@@ -10,8 +10,9 @@ import Foundation
 /// from `api.open-meteo.com/v1/forecast`. Today's sunrise and sunset use a
 /// fresh snapshot's `sunriseISO` and `sunsetISO` when those stamps are
 /// present, and otherwise the Open-Meteo daily row for that same place.
-/// The complication passes an empty context and reads the place the glance
-/// published.
+/// UV and wind come from that fresh phone snapshot when it includes them,
+/// and from Open-Meteo otherwise. The complication passes an empty context
+/// and reads the place the glance published.
 enum WatchConditionsLoader {
     struct Reading {
         var snapshot: WidgetConditionsSnapshot
@@ -44,25 +45,15 @@ enum WatchConditionsLoader {
         )
 
         if source == .phone, let phone {
-            publish(phone, enabled: publishPlace, explicit: explicit)
-            let forecast = await forecast(for: phone, cached: cached)
-            return Reading(
-                snapshot: phone,
-                hours: forecast.hours,
-                days: forecast.days,
-                sun: displayedSun(snapshot: phone, fetched: forecast.sun)
-            )
+            let filled = await complete(phone, cached: cached)
+            publish(filled.snapshot, enabled: publishPlace, explicit: explicit)
+            return filled
         }
 
         if source == .saved, let saved {
-            publish(saved, enabled: publishPlace, explicit: explicit)
-            let forecast = await forecast(for: saved, cached: cached)
-            return Reading(
-                snapshot: saved,
-                hours: forecast.hours,
-                days: forecast.days,
-                sun: displayedSun(snapshot: saved, fetched: forecast.sun)
-            )
+            let filled = await complete(saved, cached: cached)
+            publish(filled.snapshot, enabled: publishPlace, explicit: explicit)
+            return filled
         }
 
         if publishPlace {
@@ -113,15 +104,40 @@ enum WatchConditionsLoader {
         return fetched
     }
 
-    private static func forecast(for snapshot: WidgetConditionsSnapshot, cached: WatchHourCache.Hit?) async -> (hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes?) {
-        if let cached, !cached.hours.isEmpty, !cached.days.isEmpty, cached.sun != nil {
-            return (cached.hours, cached.days, cached.sun)
+    /// Hours, days, and sun come from the cache when they are already stored.
+    /// UV and wind stay on the phone or saved reading when those fields are
+    /// present, and Open-Meteo fills whichever of them is missing.
+    private static func complete(_ snapshot: WidgetConditionsSnapshot, cached: WatchHourCache.Hit?) async -> Reading {
+        let cachedHours = cached?.hours ?? []
+        let cachedDays = cached?.days ?? []
+        let hoursReady = !cachedHours.isEmpty && !cachedDays.isEmpty
+        let sunReady = cached?.sun != nil
+        if hoursReady && sunReady && WatchAtmosphere.isComplete(snapshot.atmosphereMetrics) {
+            return Reading(
+                snapshot: snapshot,
+                hours: cachedHours,
+                days: cachedDays,
+                sun: displayedSun(snapshot: snapshot, fetched: cached?.sun)
+            )
         }
         guard let fetched = await WatchForecastClient.fetch(snapshot) else {
-            return (cached?.hours ?? [], cached?.days ?? [], cached?.sun)
+            return Reading(
+                snapshot: snapshot,
+                hours: cachedHours,
+                days: cachedDays,
+                sun: displayedSun(snapshot: snapshot, fetched: cached?.sun)
+            )
         }
-        WatchHourCache.save(hours: fetched.hours, days: fetched.days, sun: fetched.sun, snapshot: snapshot)
-        return (fetched.hours, fetched.days, fetched.sun)
+        let merged = snapshot.applyingAtmosphere(
+            WatchAtmosphere.preferringExisting(snapshot.atmosphereMetrics, fill: fetched.snapshot.atmosphereMetrics)
+        )
+        WatchHourCache.save(hours: fetched.hours, days: fetched.days, sun: fetched.sun, snapshot: merged)
+        return Reading(
+            snapshot: merged,
+            hours: fetched.hours,
+            days: fetched.days,
+            sun: displayedSun(snapshot: merged, fetched: fetched.sun)
+        )
     }
 
     private static func publish(_ snapshot: WidgetConditionsSnapshot, enabled: Bool, explicit: Bool) {

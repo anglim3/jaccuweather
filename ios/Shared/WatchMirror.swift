@@ -35,7 +35,11 @@ enum WatchMirror {
         highF: nil,
         lowF: nil,
         nextHoursHint: "",
-        fetchedAt: Date()
+        fetchedAt: Date(),
+        uvIndex: 3,
+        windSpeedMph: 8,
+        windDirectionDegrees: 220,
+        windGustMph: 14
     )
 
     static func samePlace(_ lhs: WidgetConditionsSnapshot, _ rhs: WidgetConditionsSnapshot) -> Bool {

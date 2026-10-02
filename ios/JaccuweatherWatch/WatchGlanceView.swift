@@ -43,6 +43,11 @@ struct WatchGlanceView: View {
         WKInterfaceDevice.current().screenBounds.height >= 240 ? .regular : .compact
     }
 
+    /// Wind when the forecast has a speed or gust, otherwise UV. Gusts stay spoken.
+    private var glanceMetric: WatchAtmosphere.GlanceLine? {
+        WatchAtmosphere.glanceLine(model.snapshot.atmosphereMetrics)
+    }
+
     private func fittedStack(_ metrics: WatchGlanceMetrics) -> some View {
         glanceStack(metrics)
             .padding(.horizontal, metrics.horizontalPadding)
@@ -76,8 +81,19 @@ struct WatchGlanceView: View {
                     }
                 }
             }
-            if let sun = model.sun, sun.line != nil {
-                WatchSunRow(sun: sun, size: metrics.sunSize)
+            if metrics.foldsMetric {
+                if let sun = model.sun, sun.line != nil {
+                    WatchSunRow(sun: sun, size: metrics.sunSize, metric: glanceMetric)
+                } else if let metric = glanceMetric {
+                    WatchMetricLine(metric: metric, size: metrics.sunSize)
+                }
+            } else {
+                if let sun = model.sun, sun.line != nil {
+                    WatchSunRow(sun: sun, size: metrics.sunSize)
+                }
+                if let metric = glanceMetric {
+                    WatchMetricLine(metric: metric, size: metrics.sunSize)
+                }
             }
             if let alert = model.alert {
                 WatchAlertBadge(alert: alert)
@@ -142,10 +158,12 @@ struct WatchGlanceView: View {
     }
 }
 
-/// Today's sunrise and sunset under the temperature. One line, no extra metrics.
+/// Today's sunrise and sunset under the temperature.
+/// On a short watch the wind or UV metric shares this line.
 struct WatchSunRow: View {
     var sun: WatchSunTimes
     var size: CGFloat = 12
+    var metric: WatchAtmosphere.GlanceLine? = nil
 
     var body: some View {
         HStack(spacing: 3) {
@@ -165,20 +183,52 @@ struct WatchSunRow: View {
                 Text(set)
                     .foregroundStyle(WidgetHorizon.text)
             }
+            if let metric {
+                if sun.line != nil {
+                    Text("·")
+                        .foregroundStyle(WidgetHorizon.faint)
+                }
+                Text(metric.text)
+                    .foregroundStyle(WidgetHorizon.muted)
+            }
         }
         .font(.system(size: size, weight: .semibold))
         .monospacedDigit()
         .lineLimit(1)
-        .minimumScaleFactor(0.6)
+        .minimumScaleFactor(0.55)
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityIdentifier("watch-sun")
-        .accessibilityLabel(sun.spoken)
+        .accessibilityLabel(spoken)
+    }
+
+    private var spoken: String {
+        guard let metric else { return sun.spoken }
+        if sun.spoken.isEmpty { return metric.spoken }
+        return "\(sun.spoken), \(metric.spoken)"
+    }
+}
+
+/// Wind or UV under the sun line. One string, no icon and no gust.
+struct WatchMetricLine: View {
+    var metric: WatchAtmosphere.GlanceLine
+    var size: CGFloat
+
+    var body: some View {
+        Text(metric.text)
+            .font(.system(size: size, weight: .semibold))
+            .foregroundStyle(WidgetHorizon.muted)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .frame(maxWidth: .infinity)
+            .accessibilityIdentifier(metric.identifier)
+            .accessibilityLabel(metric.spoken)
     }
 }
 
 /// Type and strip sizes for the glance. Shorter watches use the compact set
-/// so the header, sun line, hours, and day highs and lows all stay on screen.
+/// so the header, sun line, one wind or UV metric, and both strips stay on screen.
 struct WatchGlanceMetrics {
     var placeSize: CGFloat
     var tempSize: CGFloat
@@ -191,6 +241,8 @@ struct WatchGlanceMetrics {
     var spacing: CGFloat
     var horizontalPadding: CGFloat
     var bottomPadding: CGFloat
+    /// Short watches put wind or UV on the sun line instead of adding a row.
+    var foldsMetric: Bool
     var hourly: WatchStripStyle
     var daily: WatchStripStyle
 
@@ -206,6 +258,7 @@ struct WatchGlanceMetrics {
         spacing: 1,
         horizontalPadding: 4,
         bottomPadding: 0,
+        foldsMetric: false,
         hourly: .hourlyRegular,
         daily: .dailyRegular
     )
@@ -222,6 +275,7 @@ struct WatchGlanceMetrics {
         spacing: 0,
         horizontalPadding: 2,
         bottomPadding: 2,
+        foldsMetric: true,
         hourly: .hourlyCompact,
         daily: .dailyCompact
     )

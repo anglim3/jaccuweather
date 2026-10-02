@@ -78,6 +78,9 @@ final class WatchWeatherModel {
         var parts = [placeName, temperatureText]
         if !detailText.isEmpty, detailText != "Updating" { parts.append(detailText) }
         if !conditionText.isEmpty { parts.append(conditionText) }
+        let atmosphere = snapshot.atmosphereMetrics
+        if let uv = WatchAtmosphere.uvChip(atmosphere) { parts.append(uv.spoken) }
+        if let wind = WatchAtmosphere.windChip(atmosphere) { parts.append(wind.spoken) }
         let upcoming = hours.prefix(4).map { slot in
             let degrees = slot.temperatureF.map { "\(Int($0.rounded()))°" } ?? "—"
             return "\(slot.label) \(degrees)"

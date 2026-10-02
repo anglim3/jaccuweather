@@ -29,11 +29,12 @@ enum WatchForecastClient {
         components?.queryItems = [
             URLQueryItem(name: "latitude", value: String(place.latitude)),
             URLQueryItem(name: "longitude", value: String(place.longitude)),
-            URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability"),
+            URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m"),
             URLQueryItem(name: "hourly", value: "temperature_2m,precipitation_probability,weather_code,precipitation,snowfall"),
             URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset"),
             URLQueryItem(name: "forecast_days", value: "8"),
             URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
+            URLQueryItem(name: "windspeed_unit", value: "mph"),
             URLQueryItem(name: "timezone", value: "auto")
         ]
         return components?.url
@@ -54,6 +55,13 @@ enum WatchForecastClient {
         if let chance = current.precipitationProbability {
             snapshot.precipChance = Int(chance.rounded())
         }
+        let atmosphere = WatchAtmosphere.metrics(
+            uvIndex: current.uvIndex,
+            windSpeedMph: current.windSpeed10m,
+            windDirectionDegrees: current.windDirection10m,
+            windGustMph: current.windGusts10m
+        )
+        snapshot = snapshot.applyingAtmosphere(atmosphere)
         let hours = slots(payload.hourly, offset: offset, now: now)
         let days = daySlots(payload.daily, offset: offset, now: now)
         let sun = sunMatch(payload.daily, offset: offset, now: now)
@@ -251,6 +259,10 @@ private struct Current: Decodable {
     let weatherCode: Int?
     let isDay: Int?
     let precipitationProbability: Double?
+    let uvIndex: Double?
+    let windSpeed10m: Double?
+    let windDirection10m: Double?
+    let windGusts10m: Double?
 
     enum CodingKeys: String, CodingKey {
         case temperature2m = "temperature_2m"
@@ -258,6 +270,30 @@ private struct Current: Decodable {
         case weatherCode = "weather_code"
         case isDay = "is_day"
         case precipitationProbability = "precipitation_probability"
+        case uvIndex = "uv_index"
+        case windSpeed10m = "wind_speed_10m"
+        case windDirection10m = "wind_direction_10m"
+        case windGusts10m = "wind_gusts_10m"
+    }
+}
+
+extension WidgetConditionsSnapshot {
+    var atmosphereMetrics: WatchAtmosphere.Metrics {
+        WatchAtmosphere.metrics(
+            uvIndex: uvIndex,
+            windSpeedMph: windSpeedMph,
+            windDirectionDegrees: windDirectionDegrees,
+            windGustMph: windGustMph
+        )
+    }
+
+    func applyingAtmosphere(_ metrics: WatchAtmosphere.Metrics) -> WidgetConditionsSnapshot {
+        var copy = self
+        copy.uvIndex = metrics.uvIndex
+        copy.windSpeedMph = metrics.windSpeedMph
+        copy.windDirectionDegrees = metrics.windDirectionDegrees
+        copy.windGustMph = metrics.windGustMph
+        return copy
     }
 }
 
