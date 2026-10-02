@@ -92,6 +92,10 @@
 		473472D3E9E8E1E62003FD3D /* WatchSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F1F299AC49CF80F0484C2F /* WatchSession.swift */; };
 		483EF70F568F68B1229ABB4C /* ConditionsComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6E191B58B2597648CF0289 /* ConditionsComplication.swift */; };
 		C0FFEE01A11CE0FACE000002 /* WatchComplicationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE01A11CE0FACE000001 /* WatchComplicationCopy.swift */; };
+		C0FFEE01A11CE0FACE000004 /* WatchWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE01A11CE0FACE000003 /* WatchWidgetsBundle.swift */; };
+		C0FFEE01A11CE0FACE000005 /* ConditionsComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6E191B58B2597648CF0289 /* ConditionsComplication.swift */; };
+		C0FFEE01A11CE0FACE000006 /* WatchComplicationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE01A11CE0FACE000001 /* WatchComplicationCopy.swift */; };
+		C0FFEE01A11CE0FACE000008 /* WatchComplicationGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE01A11CE0FACE000007 /* WatchComplicationGallery.swift */; };
 		BF30C1914C8EEBFAE63876FC /* WatchConditionsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F887278C1A0A4C9DBAC031F /* WatchConditionsLoader.swift */; };
 		FCC02F7F7D42E5C493362814 /* WatchForecastClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5257B14C548441D830921 /* WatchForecastClient.swift */; };
 		EA70793FF8A8368A348BA195 /* WatchHourlyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */; };
@@ -291,6 +295,8 @@
 		E0F1F299AC49CF80F0484C2F /* WatchSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSession.swift; sourceTree = "<group>"; };
 		2C6E191B58B2597648CF0289 /* ConditionsComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsComplication.swift; sourceTree = "<group>"; };
 		C0FFEE01A11CE0FACE000001 /* WatchComplicationCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchComplicationCopy.swift; sourceTree = "<group>"; };
+		C0FFEE01A11CE0FACE000003 /* WatchWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWidgetsBundle.swift; sourceTree = "<group>"; };
+		C0FFEE01A11CE0FACE000007 /* WatchComplicationGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchComplicationGallery.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -438,6 +444,7 @@
 				DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */,
 				5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */,
 				E0F1F299AC49CF80F0484C2F /* WatchSession.swift */,
+				C0FFEE01A11CE0FACE000007 /* WatchComplicationGallery.swift */,
 				642F47E75C21459DBFEF0948 /* Info.plist */,
 				5723EE59579F37F7262B4135 /* Assets.xcassets */,
 			);
@@ -449,6 +456,7 @@
 			children = (
 				2C6E191B58B2597648CF0289 /* ConditionsComplication.swift */,
 				C0FFEE01A11CE0FACE000001 /* WatchComplicationCopy.swift */,
+				C0FFEE01A11CE0FACE000003 /* WatchWidgetsBundle.swift */,
 				790672F3731C8EF5B9C89729 /* Info.plist */,
 			);
 			path = JaccuweatherWatchWidgets;
@@ -776,6 +784,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				3B075A7ADE3C83E884481315 /* JaccuweatherWatchApp.swift in Sources */,
+				C0FFEE01A11CE0FACE000008 /* WatchComplicationGallery.swift in Sources */,
+				C0FFEE01A11CE0FACE000005 /* ConditionsComplication.swift in Sources */,
+				C0FFEE01A11CE0FACE000006 /* WatchComplicationCopy.swift in Sources */,
 				3F2088651A11797B2AFEF8AA /* WatchConditionsLoader.swift in Sources */,
 				0A3D54A1D0B2FADD4B2EB40E /* WatchDailyPlan.swift in Sources */,
 				0351CE08B2331EFC1662017B /* WatchDailyStrip.swift in Sources */,
@@ -803,6 +814,7 @@
 			files = (
 				483EF70F568F68B1229ABB4C /* ConditionsComplication.swift in Sources */,
 				C0FFEE01A11CE0FACE000002 /* WatchComplicationCopy.swift in Sources */,
+				C0FFEE01A11CE0FACE000004 /* WatchWidgetsBundle.swift in Sources */,
 				BF30C1914C8EEBFAE63876FC /* WatchConditionsLoader.swift in Sources */,
 				FCC02F7F7D42E5C493362814 /* WatchForecastClient.swift in Sources */,
 				EA70793FF8A8368A348BA195 /* WatchHourlyPlan.swift in Sources */,

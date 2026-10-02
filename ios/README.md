@@ -80,7 +80,7 @@ The same context includes `favorites`, a JSON array of `{name, latitude, longitu
 
 Personal Team provisioning cannot create App Groups, and the watch targets do not add one. The Watch app writes the last place to `watch-place.json` in its documents directory and in the complication extension’s documents directory, which sit next to each other. The complication reads that file and loads Open-Meteo for those coordinates, instead of staying on Seattle after the glance has another city. Tapping a complication opens the Watch app with `jaccuweather://place`, which shows that city’s glance. Circular, rectangular, inline, and corner slots share that place and that link. The inline slot is the temperature and a short condition. The corner slot shows the temperature, with the condition as an SF Symbol and a short label.
 
-Open the `JaccuweatherWatch` scheme and pick a watchOS Simulator to run the glance. Install the iPhone app as well when you want the phone's current place to mirror across. A simulator launch can pin a city with `-name Juneau -lat 58.3019 -lon -134.4197`.
+Open the `JaccuweatherWatch` scheme and pick a watchOS Simulator to run the glance. Install the iPhone app as well when you want the phone's current place to mirror across. A simulator launch can pin a city with `-name Juneau -lat 58.3019 -lon -134.4197`. Adding `-complicationGallery 1` shows the circular, rectangular, inline, and corner slots for that place.
 
 Signing stays Automatic. The committed project leaves `DEVELOPMENT_TEAM` empty — pick your Personal Team locally in Xcode. Do not commit a team id.
 

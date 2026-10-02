@@ -80,7 +80,11 @@ struct WatchComplicationProvider: TimelineProvider {
 
 struct WatchComplicationView: View {
     var entry: WatchComplicationEntry
-    @Environment(\.widgetFamily) private var family
+    /// Set by the debug gallery. The widget leaves this nil and uses the slot WidgetKit provides.
+    var familyOverride: WidgetFamily? = nil
+    @Environment(\.widgetFamily) private var environmentFamily
+
+    private var family: WidgetFamily { familyOverride ?? environmentFamily }
 
     var body: some View {
         content
@@ -218,9 +222,3 @@ struct WatchComplicationView: View {
     }
 }
 
-@main
-struct JaccuweatherWatchWidgets: WidgetBundle {
-    var body: some Widget {
-        WatchConditionsComplication()
-    }
-}

@@ -20,6 +20,8 @@ struct WatchGlanceView: View {
                     closedLaunchList = true
                     showPlaces = false
                 }
+            } else if WatchComplicationGalleryLaunch.requested {
+                WatchComplicationGallery(snapshot: model.snapshot)
             } else {
                 glance
             }
