@@ -582,6 +582,7 @@ struct ForecastView: View {
         switch hourlyMode {
         case "humidity", "brightness": return 0...100
         case "niceweather": return 0...10
+        case "moon": return 0...1
         case "uv": return 0...max(1, model.hourlyRows.map { $0.uv ?? 0 }.max() ?? 1)
         default: return nil
         }

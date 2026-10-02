@@ -265,7 +265,14 @@ final class WeatherViewModel {
 
     var pressureDisplay: (value: String, trend: String) { (pressureText, pressureTrend) }
 
+    /// True while a newly chosen place is still showing the previous place's readings.
+    var hidingStalePlace = false
+
     var blockingMessage: String? {
+        if hidingStalePlace {
+            if let errorMessage, !isLoading { return errorMessage }
+            return "Fetching ensemble forecast…"
+        }
         guard weather == nil, !showsPlacePrompt else { return nil }
         if isLocating { return "Finding your location…" }
         if isLoading { return "Fetching ensemble forecast…" }
@@ -698,6 +705,8 @@ final class WeatherViewModel {
     }
 
     func select(_ place: GeoResult) async {
+        let next = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
+        let placeChanged = hasResolvedPlace && !Self.close(coordinate, next)
         followsDeviceLocation = false
         holdingLastKnown = false
         sessionPinsLocation = false
@@ -706,7 +715,7 @@ final class WeatherViewModel {
         preference.explicit = place
         preference.lastKnown = place
         PlaceStore.save(preference)
-        coordinate = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
+        coordinate = next
         locationName = place.displayName
         lastFix = coordinate
         hasResolvedPlace = true
@@ -714,6 +723,9 @@ final class WeatherViewModel {
         searchResults = []
         statusNote = nil
         weeklySnow = nil
+        if placeChanged {
+            hideStalePlaceReadings()
+        }
         await refresh()
     }
 
@@ -779,6 +791,7 @@ final class WeatherViewModel {
             isLocating = false
             return
         }
+        let placeChanged = hasResolvedPlace && !Self.close(self.coordinate, coordinate)
         lastFix = coordinate
         isLocating = false
         showsPlacePrompt = false
@@ -792,6 +805,9 @@ final class WeatherViewModel {
         }
         statusNote = nil
         weeklySnow = nil
+        if placeChanged {
+            hideStalePlaceReadings()
+        }
         Task { await refresh() }
     }
 
@@ -834,6 +850,31 @@ final class WeatherViewModel {
         }
     }
 
+    /// Drop the previous place's forecast, tides, and moon times before the new fetch lands.
+    private func hideStalePlaceReadings() {
+        refreshSerial += 1
+        snowTask?.cancel()
+        snowTask = nil
+        hidingStalePlace = true
+        isLoading = true
+        hourlyRows = []
+        dailyRows = []
+        sun = nil
+        tides = nil
+        alerts = []
+        alertIconFiles = [:]
+        pollen = nil
+        health = nil
+        weeklySnow = nil
+        precipTiming = ""
+        moon = MoonSnapshot()
+        pressureText = "—"
+        pressureTrend = "Steady"
+        conditionDescription = ""
+        currentUVDetail = ""
+        errorMessage = nil
+    }
+
     private func rememberDevicePlace() {
         let name = locationName.isEmpty ? "Current location" : locationName
         preference.followsDeviceLocation = true
@@ -860,6 +901,7 @@ final class WeatherViewModel {
     }
 
     private func apply(_ derived: DerivedForecast, bundle: WeatherBundle) {
+        hidingStalePlace = false
         weather = bundle
         hourlyRows = derived.hourly
         dailyRows = derived.daily
@@ -1019,8 +1061,9 @@ final class WeatherViewModel {
 private enum ForecastWork {
     static func load(latitude: Double, longitude: Double) async throws -> (WeatherBundle, DerivedForecast) {
         let bundle = try await WeatherService().ensemble(latitude: latitude, longitude: longitude)
-        let derived = DerivedForecast.build(bundle, latitude: latitude, longitude: longitude)
-        return (bundle, derived)
+        let aligned = bundle.alignedToLocationHour()
+        let derived = DerivedForecast.build(aligned, latitude: latitude, longitude: longitude)
+        return (aligned, derived)
     }
 }
 
@@ -1284,20 +1327,7 @@ struct DerivedForecast {
     }
 
     private static func hourlyStartIndex(times: [String], utcOffset: Int) -> Int {
-        let nowMs = Date().timeIntervalSince1970 * 1000
-        if let idx = LogicEngine.shared.number("nearestTimeIndex", [times, nowMs]) {
-            return Int(idx)
-        }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
-        formatter.timeZone = TimeZone(secondsFromGMT: utcOffset)
-        let now = Date()
-        for (i, stamp) in times.enumerated() {
-            if let date = formatter.date(from: String(stamp.prefix(16))), date >= now.addingTimeInterval(-1800) {
-                return i
-            }
-        }
-        return min(2 * 24, max(0, times.count - 1))
+        LocationHour.nearestIndex(times: times, utcOffsetSeconds: utcOffset, now: Date())
     }
 }
 
