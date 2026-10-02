@@ -258,6 +258,24 @@ struct WatchStripStyle {
     )
 }
 
+/// Column width for a strip. A whole number of columns fill the inset card.
+/// The following column begins inside the trailing inset, which the strip masks,
+/// so a cut-off day or hour does not show at the rounded edge.
+enum WatchStripLayout {
+    static func columnWidth(container: CGFloat, style: WatchStripStyle) -> CGFloat {
+        let pad = style.horizontalPadding
+        let gap = style.columnSpacing
+        let inner = container - pad * 2
+        let pitch = style.columnWidth + gap
+        guard container > 0, inner > 0, pitch > 0 else { return style.columnWidth }
+        let count = max(CGFloat(1), floor((inner + gap) / pitch))
+        // 1pt of slack keeps the last full column off the mask boundary.
+        let width = (inner - (count - 1) * gap - 1) / count
+        guard width > 8 else { return style.columnWidth }
+        return width
+    }
+}
+
 /// Current place plus the phone's favorites. Picking a row switches the glance.
 struct WatchPlacesSheet: View {
     var model: WatchWeatherModel

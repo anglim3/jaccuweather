@@ -13,29 +13,37 @@ struct WatchDailyStrip: View {
         }
     }
 
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+    }
+
     private var strip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: style.columnSpacing) {
-                ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
-                    column(day, emphasized: index == 0)
+        GeometryReader { geo in
+            let columnWidth = WatchStripLayout.columnWidth(container: geo.size.width, style: style)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: style.columnSpacing) {
+                    ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
+                        column(day, emphasized: index == 0, width: columnWidth)
+                    }
+                }
+                .padding(.horizontal, style.horizontalPadding)
+                .padding(.vertical, style.verticalPadding)
+            }
+            .mask {
+                HStack(spacing: 0) {
+                    Rectangle()
+                    Color.clear.frame(width: style.horizontalPadding)
                 }
             }
-            .padding(.horizontal, style.horizontalPadding)
-            .padding(.vertical, style.verticalPadding)
-        }
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(WidgetHorizon.glass)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1)
-                }
+            .background { cardShape.fill(WidgetHorizon.glass) }
+            .clipShape(cardShape)
+            .overlay { cardShape.strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1) }
         }
         .frame(height: style.bandHeight)
         .accessibilityIdentifier("watch-daily-strip")
     }
 
-    private func column(_ day: WatchDaySlot, emphasized: Bool) -> some View {
+    private func column(_ day: WatchDaySlot, emphasized: Bool, width: CGFloat) -> some View {
         VStack(spacing: 0) {
             Text(day.label)
                 .font(.system(size: style.labelSize, weight: .medium))
@@ -57,7 +65,7 @@ struct WatchDailyStrip: View {
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
         }
-        .frame(width: style.columnWidth, height: style.bandHeight - style.verticalPadding * 2)
+        .frame(width: width, height: style.bandHeight - style.verticalPadding * 2)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(day))
     }
