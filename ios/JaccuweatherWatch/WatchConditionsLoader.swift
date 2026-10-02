@@ -107,13 +107,15 @@ enum WatchConditionsLoader {
     /// Hours, days, and sun come from the cache when they are already stored.
     /// UV and wind stay on the phone or saved reading when those fields are
     /// present, and Open-Meteo fills whichever of them is missing.
-    /// A cache from before the day sheet is refreshed so precip and UV max are stored.
+    /// A cache from before the day sheet or the hour sheet is refreshed so
+    /// those precip, condition, and UV fields are stored.
     private static func complete(_ snapshot: WidgetConditionsSnapshot, cached: WatchHourCache.Hit?) async -> Reading {
         let cachedHours = cached?.hours ?? []
         let cachedDays = cached?.days ?? []
         let hoursReady = !cachedHours.isEmpty && !cachedDays.isEmpty
         let sunReady = cached?.sun != nil
-        if hoursReady && sunReady && cached?.includesDayDetail == true && WatchAtmosphere.isComplete(snapshot.atmosphereMetrics) {
+        let detailsReady = cached?.includesDayDetail == true && cached?.includesHourDetail == true
+        if hoursReady && sunReady && detailsReady && WatchAtmosphere.isComplete(snapshot.atmosphereMetrics) {
             return Reading(
                 snapshot: snapshot,
                 hours: cachedHours,

@@ -1,9 +1,11 @@
 import SwiftUI
 
 /// Next place-local hours: temperature, chance of precipitation, and a rain or snow cue.
+/// Each column opens that hour's sheet. The strip itself stays these three lines.
 struct WatchHourlyStrip: View {
     var hours: [WatchHourSlot]
     var style: WatchStripStyle = .hourlyRegular
+    var onSelect: (WatchHourSlot) -> Void = { _ in }
 
     var body: some View {
         Group {
@@ -24,6 +26,12 @@ struct WatchHourlyStrip: View {
                 HStack(alignment: .top, spacing: style.columnSpacing) {
                     ForEach(Array(hours.enumerated()), id: \.element.id) { index, hour in
                         column(hour, emphasized: index == 0, width: columns.width)
+                            .contentShape(Rectangle())
+                            .onTapGesture { onSelect(hour) }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityLabel(spoken(hour))
+                            .accessibilityIdentifier("watch-hour-\(index)")
                     }
                 }
                 .padding(.horizontal, style.horizontalPadding)
@@ -57,8 +65,6 @@ struct WatchHourlyStrip: View {
             cueLine(hour)
         }
         .frame(width: width, height: style.bandHeight - style.verticalPadding * 2)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spoken(hour))
     }
 
     @ViewBuilder

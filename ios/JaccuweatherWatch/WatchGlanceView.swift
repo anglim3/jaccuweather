@@ -1,11 +1,24 @@
 import SwiftUI
 import WatchKit
 
+/// One glance sheet. A single presentation keeps the day sheet and the hour sheet from replacing each other.
+private enum WatchGlanceDetail: Identifiable {
+    case day(WatchDaySlot)
+    case hour(WatchHourSlot)
+
+    var id: String {
+        switch self {
+        case .day(let day): return "day-\(day.id)"
+        case .hour(let hour): return "hour-\(hour.id)"
+        }
+    }
+}
+
 struct WatchGlanceView: View {
     var model: WatchWeatherModel
     @State private var showPlaces = false
     @State private var closedLaunchList = false
-    @State private var selectedDay: WatchDaySlot?
+    @State private var detail: WatchGlanceDetail?
 
     /// Open from the Places button, or from `-watchPlaces 1` until Close.
     private var showingList: Bool {
@@ -101,29 +114,50 @@ struct WatchGlanceView: View {
             if let alert = model.alert {
                 WatchAlertBadge(alert: alert)
             }
-            WatchHourlyStrip(hours: model.hours, style: metrics.hourly)
+            WatchHourlyStrip(hours: model.hours, style: metrics.hourly) { hour in
+                detail = .hour(hour)
+            }
             WatchDailyStrip(days: model.days, style: metrics.daily) { day in
-                selectedDay = day
+                detail = .day(day)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(model.accessibilityLabel)
-        .sheet(item: $selectedDay) { day in
-            WatchDayDetailView(day: day)
+        .sheet(item: $detail) { item in
+            switch item {
+            case .day(let day):
+                WatchDayDetailView(day: day)
+            case .hour(let hour):
+                WatchHourDetailView(hour: hour)
+            }
         }
         .onChange(of: model.days) { _, days in
-            if let selected = selectedDay, let fresh = days.first(where: { $0.id == selected.id }), fresh != selected {
-                selectedDay = fresh
+            if case .day(let selected) = detail, let fresh = days.first(where: { $0.id == selected.id }), fresh != selected {
+                detail = .day(fresh)
             }
             openLaunchDay(days)
+        }
+        .onChange(of: model.hours) { _, hours in
+            if case .hour(let selected) = detail, let fresh = hours.first(where: { $0.id == selected.id }), fresh != selected {
+                detail = .hour(fresh)
+            }
+            openLaunchHour(hours)
         }
     }
 
     /// `-watchDayDetail 1` opens the first place-local day once the strip has rows.
     private func openLaunchDay(_ days: [WatchDaySlot]) {
         #if DEBUG
-        guard selectedDay == nil, WatchDayDetailLaunch.opensFirst, let day = days.first else { return }
-        selectedDay = day
+        guard detail == nil, WatchDayDetailLaunch.opensFirst, let day = days.first else { return }
+        detail = .day(day)
+        #endif
+    }
+
+    /// `-watchHourDetail 1` opens the first place-local hour once the strip has rows.
+    private func openLaunchHour(_ hours: [WatchHourSlot]) {
+        #if DEBUG
+        guard detail == nil, WatchHourDetailLaunch.opensFirst, let hour = hours.first else { return }
+        detail = .hour(hour)
         #endif
     }
 
