@@ -37,6 +37,7 @@ struct JaccuweatherApp: App {
     init() {
         NowLink.startObserving()
         AlertNotificationCoordinator.shared.install()
+        WatchSessionBridge.shared.activate()
     }
 
     var body: some Scene {
