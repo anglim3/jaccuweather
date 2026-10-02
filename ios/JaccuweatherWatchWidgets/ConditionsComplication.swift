@@ -12,34 +12,64 @@ struct WatchConditionsComplication: Widget {
             WatchComplicationView(entry: entry)
         }
         .configurationDisplayName("Conditions")
-        .description("Temperature and condition for the last place.")
+        .description("Temperature and condition for the Watch's place.")
         .supportedFamilies([.accessoryCircular, .accessoryRectangular])
     }
 }
 
 struct WatchComplicationProvider: TimelineProvider {
     func placeholder(in context: Context) -> WatchComplicationEntry {
-        WatchComplicationEntry(date: Date(), snapshot: WatchMirror.placeholder)
+        #if DEBUG
+        WatchPlaceStore.writeProbe(role: "placeholder")
+        #endif
+        return WatchComplicationEntry(date: Date(), snapshot: Self.sample())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (WatchComplicationEntry) -> Void) {
         if context.isPreview {
-            completion(WatchComplicationEntry(date: Date(), snapshot: WatchMirror.placeholder))
+            completion(WatchComplicationEntry(date: Date(), snapshot: Self.sample()))
             return
         }
         Task {
-            let snapshot = await WatchConditionsLoader.load(phoneContext: [:])
+            let snapshot = await Self.reading()
             completion(WatchComplicationEntry(date: Date(), snapshot: snapshot))
         }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WatchComplicationEntry>) -> Void) {
         Task {
-            let snapshot = await WatchConditionsLoader.load(phoneContext: [:])
+            let snapshot = await Self.reading()
             let entry = WatchComplicationEntry(date: Date(), snapshot: snapshot)
             let next = Date().addingTimeInterval(20 * 60)
             completion(Timeline(entries: [entry], policy: .after(next)))
         }
+    }
+
+    private static func reading() async -> WidgetConditionsSnapshot {
+        let reading = await WatchConditionsLoader.load(phoneContext: [:], publishPlace: false)
+        #if DEBUG
+        WatchPlaceStore.writeProbe(role: "complication")
+        #endif
+        return reading.snapshot
+    }
+
+    /// Gallery sample until the glance has published a place. After that, the
+    /// sample city is not shown.
+    private static func sample() -> WidgetConditionsSnapshot {
+        let shared = WatchPlaceStore.load()
+        if let saved = WatchMirrorStore.load(), saved.temperatureF != nil {
+            if let shared {
+                if WatchPlacePlan.same(saved.placeChoice, shared.choice(hasReading: false)) {
+                    return saved
+                }
+            } else {
+                return saved
+            }
+        }
+        if let shared {
+            return shared.shell()
+        }
+        return WatchMirror.placeholder
     }
 }
 
@@ -49,6 +79,7 @@ struct WatchComplicationView: View {
 
     var body: some View {
         content
+            .widgetURL(WatchPlaceLink.url(for: WatchPlace(entry.snapshot)))
             .containerBackground(for: .widget) {
                 WidgetHorizonBackground()
             }

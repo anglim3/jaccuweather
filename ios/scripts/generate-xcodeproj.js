@@ -162,8 +162,16 @@ for (const file of watchSupportFiles) {
     widget: hid('watch-support-widget:' + file.name),
   };
 }
-if (!watchIds['WatchConditionsLoader.swift']) {
-  throw new Error('WatchConditionsLoader.swift missing');
+const watchFilesInWidget = [
+  'WatchConditionsLoader.swift',
+  'WatchForecastClient.swift',
+  'WatchHourlyPlan.swift',
+  'WatchPlaceLink.swift',
+  'WatchPlacePlan.swift',
+  'WatchPlaceStore.swift',
+];
+for (const name of watchFilesInWidget) {
+  if (!watchIds[name]) throw new Error(name + ' missing from the Watch app sources');
 }
 
 const groups = {
@@ -202,7 +210,9 @@ const watchBuildFiles = watchSources
 const watchWidgetBuildFiles = watchWidgetSources
   .map((f) => `\t\t${watchWidgetIds[f].build} /* ${path.basename(f)} in Sources */ = {isa = PBXBuildFile; fileRef = ${watchWidgetIds[f].ref} /* ${path.basename(f)} */; };`)
   .join('\n');
-const watchLoaderInWidget = `\t\t${watchIds['WatchConditionsLoader.swift'].widgetBuild} /* WatchConditionsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = ${watchIds['WatchConditionsLoader.swift'].ref} /* WatchConditionsLoader.swift */; };`;
+const watchLoaderInWidget = watchFilesInWidget
+  .map((name) => `\t\t${watchIds[name].widgetBuild} /* ${name} in Sources */ = {isa = PBXBuildFile; fileRef = ${watchIds[name].ref} /* ${name} */; };`)
+  .join('\n');
 const watchSupportAppBuilds = watchSupportFiles
   .map((f) => `\t\t${watchSupportIds[f.name].app} /* ${f.name} in Sources */ = {isa = PBXBuildFile; fileRef = ${f.ref} /* ${f.name} */; };`)
   .join('\n');
@@ -221,7 +231,7 @@ const watchSourceBuildPhase = watchSources
   .join('\n');
 const watchWidgetSourceBuildPhase = watchWidgetSources
   .map((f) => `\t\t\t\t${watchWidgetIds[f].build} /* ${path.basename(f)} in Sources */,`)
-  .concat([`\t\t\t\t${watchIds['WatchConditionsLoader.swift'].widgetBuild} /* WatchConditionsLoader.swift in Sources */,`])
+  .concat(watchFilesInWidget.map((name) => `\t\t\t\t${watchIds[name].widgetBuild} /* ${name} in Sources */,`))
   .concat(watchSupportFiles.map((f) => `\t\t\t\t${watchSupportIds[f.name].widget} /* ${f.name} in Sources */,`))
   .join('\n');
 const watchGroupChildren = [

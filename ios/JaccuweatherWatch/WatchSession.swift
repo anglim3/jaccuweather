@@ -7,11 +7,17 @@ import WidgetKit
 @Observable
 final class WatchWeatherModel {
     var snapshot: WidgetConditionsSnapshot
+    var hours: [WatchHourSlot] = []
     private let hub = WatchSessionHub()
     private var generation = 0
+    private var pinned: WatchPlace?
 
     init() {
         snapshot = WatchMirrorStore.load() ?? WatchMirror.defaultPlace
+        if let launch = WatchLaunchPlace.pinned() {
+            pinned = launch
+            snapshot = launch.shell()
+        }
     }
 
     var placeName: String {
@@ -46,6 +52,13 @@ final class WatchWeatherModel {
         var parts = [placeName, temperatureText]
         if !detailText.isEmpty, detailText != "Updating" { parts.append(detailText) }
         if !conditionText.isEmpty { parts.append(conditionText) }
+        let upcoming = hours.prefix(4).map { slot in
+            let degrees = slot.temperatureF.map { "\(Int($0.rounded()))°" } ?? "—"
+            return "\(slot.label) \(degrees)"
+        }
+        if !upcoming.isEmpty {
+            parts.append(upcoming.joined(separator: ", "))
+        }
         return parts.joined(separator: ", ")
     }
 
@@ -59,12 +72,25 @@ final class WatchWeatherModel {
         await refresh()
     }
 
+    /// Complication tap, or `jaccuweather://place?...` from the simulator.
+    func open(_ url: URL) {
+        guard let place = WatchPlaceLink.place(from: url) else { return }
+        pinned = place
+        snapshot = place.shell()
+        hours = []
+        Task { await refresh() }
+    }
+
     func refresh() async {
         generation += 1
         let token = generation
-        let next = await WatchConditionsLoader.load(phoneContext: hub.context)
+        let reading = await WatchConditionsLoader.load(phoneContext: hub.context, pinned: pinned, publishPlace: true)
         guard token == generation else { return }
-        snapshot = next
+        snapshot = reading.snapshot
+        hours = reading.hours
+        #if DEBUG
+        WatchPlaceStore.writeProbe(role: "app")
+        #endif
         WidgetCenter.shared.reloadTimelines(ofKind: WatchMirror.complicationKind)
     }
 
