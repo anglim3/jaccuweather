@@ -7,13 +7,17 @@ import Foundation
 /// stays ahead of the phone's current city. Otherwise a fresh
 /// WatchConnectivity context wins. Conditions for that place come from the
 /// phone context when it is still fresh, then from the saved reading, then
-/// from `api.open-meteo.com/v1/forecast`. The complication passes an empty
-/// context and reads the place the glance published.
+/// from `api.open-meteo.com/v1/forecast`. Today's sunrise and sunset use a
+/// fresh snapshot's `sunriseISO` and `sunsetISO` when those stamps are
+/// present, and otherwise the Open-Meteo daily row for that same place.
+/// The complication passes an empty context and reads the place the glance
+/// published.
 enum WatchConditionsLoader {
     struct Reading {
         var snapshot: WidgetConditionsSnapshot
         var hours: [WatchHourSlot]
         var days: [WatchDaySlot]
+        var sun: WatchSunTimes?
     }
 
     static func load(
@@ -42,13 +46,23 @@ enum WatchConditionsLoader {
         if source == .phone, let phone {
             publish(phone, enabled: publishPlace, explicit: explicit)
             let forecast = await forecast(for: phone, cached: cached)
-            return Reading(snapshot: phone, hours: forecast.hours, days: forecast.days)
+            return Reading(
+                snapshot: phone,
+                hours: forecast.hours,
+                days: forecast.days,
+                sun: displayedSun(snapshot: phone, fetched: forecast.sun)
+            )
         }
 
         if source == .saved, let saved {
             publish(saved, enabled: publishPlace, explicit: explicit)
             let forecast = await forecast(for: saved, cached: cached)
-            return Reading(snapshot: saved, hours: forecast.hours, days: forecast.days)
+            return Reading(
+                snapshot: saved,
+                hours: forecast.hours,
+                days: forecast.days,
+                sun: displayedSun(snapshot: saved, fetched: forecast.sun)
+            )
         }
 
         if publishPlace {
@@ -64,25 +78,50 @@ enum WatchConditionsLoader {
             }
             WatchMirrorStore.save(snapshot)
             publish(snapshot, enabled: publishPlace, explicit: explicit)
-            WatchHourCache.save(hours: fetched.hours, days: fetched.days, snapshot: snapshot)
-            return Reading(snapshot: snapshot, hours: fetched.hours, days: fetched.days)
+            WatchHourCache.save(hours: fetched.hours, days: fetched.days, sun: fetched.sun, snapshot: snapshot)
+            return Reading(
+                snapshot: snapshot,
+                hours: fetched.hours,
+                days: fetched.days,
+                sun: displayedSun(snapshot: snapshot, fetched: fetched.sun)
+            )
         }
 
         if let saved, saved.temperatureF != nil, same(saved, choice) {
-            return Reading(snapshot: saved, hours: cached?.hours ?? [], days: cached?.days ?? [])
+            return Reading(
+                snapshot: saved,
+                hours: cached?.hours ?? [],
+                days: cached?.days ?? [],
+                sun: displayedSun(snapshot: saved, fetched: cached?.sun)
+            )
         }
-        return Reading(snapshot: place, hours: cached?.hours ?? [], days: cached?.days ?? [])
+        return Reading(
+            snapshot: place,
+            hours: cached?.hours ?? [],
+            days: cached?.days ?? [],
+            sun: displayedSun(snapshot: place, fetched: cached?.sun)
+        )
     }
 
-    private static func forecast(for snapshot: WidgetConditionsSnapshot, cached: WatchHourCache.Hit?) async -> (hours: [WatchHourSlot], days: [WatchDaySlot]) {
-        if let cached, !cached.hours.isEmpty, !cached.days.isEmpty {
-            return (cached.hours, cached.days)
+    /// A fresh snapshot that already includes sunrise and sunset wins.
+    /// Otherwise the Open-Meteo daily row for this place is used.
+    private static func displayedSun(snapshot: WidgetConditionsSnapshot, fetched: WatchSunTimes?) -> WatchSunTimes? {
+        if snapshot.isFresh, let carried = WatchSunPlan.carried(sunriseISO: snapshot.sunriseISO, sunsetISO: snapshot.sunsetISO) {
+            return carried
+        }
+        guard let fetched, fetched.hasAny else { return nil }
+        return fetched
+    }
+
+    private static func forecast(for snapshot: WidgetConditionsSnapshot, cached: WatchHourCache.Hit?) async -> (hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes?) {
+        if let cached, !cached.hours.isEmpty, !cached.days.isEmpty, cached.sun != nil {
+            return (cached.hours, cached.days, cached.sun)
         }
         guard let fetched = await WatchForecastClient.fetch(snapshot) else {
-            return (cached?.hours ?? [], cached?.days ?? [])
+            return (cached?.hours ?? [], cached?.days ?? [], cached?.sun)
         }
-        WatchHourCache.save(hours: fetched.hours, days: fetched.days, snapshot: snapshot)
-        return (fetched.hours, fetched.days)
+        WatchHourCache.save(hours: fetched.hours, days: fetched.days, sun: fetched.sun, snapshot: snapshot)
+        return (fetched.hours, fetched.days, fetched.sun)
     }
 
     private static func publish(_ snapshot: WidgetConditionsSnapshot, enabled: Bool, explicit: Bool) {

@@ -17,6 +17,11 @@ struct WidgetConditionsSnapshot: Codable, Equatable {
     var highF: Double?
     var lowF: Double?
     var nextHoursHint: String
+    /// Today's Open-Meteo sunrise, a place-local `yyyy-MM-dd'T'HH:mm` stamp.
+    /// Missing on older snapshots. The Watch formats the clock from the stamp.
+    var sunriseISO: String? = nil
+    /// Today's Open-Meteo sunset, same shape as `sunriseISO`.
+    var sunsetISO: String? = nil
     var fetchedAt: Date
 
     /// WidgetKit reloads on its own about every 20 minutes. Refetch only after this.

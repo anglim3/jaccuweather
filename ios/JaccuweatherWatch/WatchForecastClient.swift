@@ -1,12 +1,13 @@
 import Foundation
 
 /// One Open-Meteo forecast for the Watch glance and the complication.
-/// Current conditions plus the next place-local hours.
+/// Current conditions, the next place-local hours, and today's sunrise and sunset.
 enum WatchForecastClient {
     struct Reading {
         var snapshot: WidgetConditionsSnapshot
         var hours: [WatchHourSlot]
         var days: [WatchDaySlot]
+        var sun: WatchSunTimes
     }
 
     static func fetch(_ place: WidgetConditionsSnapshot, now: Date = Date()) async -> Reading? {
@@ -30,7 +31,7 @@ enum WatchForecastClient {
             URLQueryItem(name: "longitude", value: String(place.longitude)),
             URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability"),
             URLQueryItem(name: "hourly", value: "temperature_2m,precipitation_probability,weather_code,precipitation,snowfall"),
-            URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min"),
+            URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset"),
             URLQueryItem(name: "forecast_days", value: "8"),
             URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
             URLQueryItem(name: "timezone", value: "auto")
@@ -55,6 +56,9 @@ enum WatchForecastClient {
         }
         let hours = slots(payload.hourly, offset: offset, now: now)
         let days = daySlots(payload.daily, offset: offset, now: now)
+        let sun = sunMatch(payload.daily, offset: offset, now: now)
+        snapshot.sunriseISO = sun.sunriseISO
+        snapshot.sunsetISO = sun.sunsetISO
         if !hours.isEmpty {
             snapshot.nextHoursHint = hours.prefix(4).map { slot in
                 let degrees = slot.temperatureF.map { "\(Int($0.rounded()))°" } ?? "—"
@@ -65,7 +69,7 @@ enum WatchForecastClient {
             }.joined(separator: " · ")
         }
         snapshot.fetchedAt = Date()
-        return Reading(snapshot: snapshot, hours: hours, days: days)
+        return Reading(snapshot: snapshot, hours: hours, days: days, sun: sun.times)
     }
 
     private static func slots(_ hourly: Hourly?, offset: Int, now: Date) -> [WatchHourSlot] {
@@ -102,9 +106,31 @@ enum WatchForecastClient {
         return WatchDailyPlan.slots(samples: samples, utcOffsetSeconds: offset, now: now)
     }
 
+    private static func sunMatch(_ daily: Daily?, offset: Int, now: Date) -> WatchSunPlan.Match {
+        guard let daily else {
+            return WatchSunPlan.Match(times: WatchSunTimes(sunriseLabel: nil, sunsetLabel: nil), sunriseISO: nil, sunsetISO: nil)
+        }
+        var samples: [WatchSunSample] = []
+        samples.reserveCapacity(daily.time.count)
+        for (index, stamp) in daily.time.enumerated() {
+            samples.append(WatchSunSample(
+                date: stamp,
+                sunriseISO: text(daily.sunrise, index),
+                sunsetISO: text(daily.sunset, index)
+            ))
+        }
+        return WatchSunPlan.resolved(samples: samples, utcOffsetSeconds: offset, now: now)
+    }
+
     private static func value(_ series: [Double?]?, _ index: Int) -> Double? {
         guard let series, series.indices.contains(index) else { return nil }
         return series[index]
+    }
+
+    private static func text(_ series: [String?]?, _ index: Int) -> String? {
+        guard let series, series.indices.contains(index) else { return nil }
+        let trimmed = series[index]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -114,6 +140,8 @@ enum WatchHourCache {
     struct Hit {
         var hours: [WatchHourSlot]
         var days: [WatchDaySlot]
+        /// Nil when this cache was written before sunrise and sunset were stored.
+        var sun: WatchSunTimes?
     }
 
     static func load(matching snapshot: WidgetConditionsSnapshot) -> Hit? {
@@ -137,17 +165,18 @@ enum WatchHourCache {
             hasReading: true
         )
         guard WatchPlacePlan.same(cached, wanted) else { return nil }
-        return Hit(hours: cache.hours, days: cache.days)
+        return Hit(hours: cache.hours, days: cache.days, sun: cache.sun)
     }
 
-    static func save(hours: [WatchHourSlot], days: [WatchDaySlot], snapshot: WidgetConditionsSnapshot) {
+    static func save(hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes, snapshot: WidgetConditionsSnapshot) {
         let cache = Cache(
             locationId: snapshot.locationId,
             latitude: snapshot.latitude,
             longitude: snapshot.longitude,
             fetchedAt: Date(),
             hours: hours,
-            days: days
+            days: days,
+            sun: sun
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -162,18 +191,20 @@ enum WatchHourCache {
         var fetchedAt: Date
         var hours: [WatchHourSlot]
         var days: [WatchDaySlot]
+        var sun: WatchSunTimes?
 
         enum CodingKeys: String, CodingKey {
-            case locationId, latitude, longitude, fetchedAt, hours, days
+            case locationId, latitude, longitude, fetchedAt, hours, days, sun
         }
 
-        init(locationId: String, latitude: Double, longitude: Double, fetchedAt: Date, hours: [WatchHourSlot], days: [WatchDaySlot]) {
+        init(locationId: String, latitude: Double, longitude: Double, fetchedAt: Date, hours: [WatchHourSlot], days: [WatchDaySlot], sun: WatchSunTimes?) {
             self.locationId = locationId
             self.latitude = latitude
             self.longitude = longitude
             self.fetchedAt = fetchedAt
             self.hours = hours
             self.days = days
+            self.sun = sun
         }
 
         init(from decoder: Decoder) throws {
@@ -184,6 +215,7 @@ enum WatchHourCache {
             fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
             hours = try container.decodeIfPresent([WatchHourSlot].self, forKey: .hours) ?? []
             days = try container.decodeIfPresent([WatchDaySlot].self, forKey: .days) ?? []
+            sun = try container.decodeIfPresent(WatchSunTimes.self, forKey: .sun)
         }
 
         func encode(to encoder: Encoder) throws {
@@ -194,6 +226,7 @@ enum WatchHourCache {
             try container.encode(fetchedAt, forKey: .fetchedAt)
             try container.encode(hours, forKey: .hours)
             try container.encode(days, forKey: .days)
+            try container.encodeIfPresent(sun, forKey: .sun)
         }
     }
 }
@@ -261,12 +294,16 @@ private struct Daily: Decodable {
     let weatherCode: [Double?]
     let temperature2mMax: [Double?]
     let temperature2mMin: [Double?]
+    let sunrise: [String?]
+    let sunset: [String?]
 
     enum CodingKeys: String, CodingKey {
         case time
         case weatherCode = "weather_code"
         case temperature2mMax = "temperature_2m_max"
         case temperature2mMin = "temperature_2m_min"
+        case sunrise
+        case sunset
     }
 
     init(from decoder: Decoder) throws {
@@ -275,5 +312,7 @@ private struct Daily: Decodable {
         weatherCode = try container.decodeIfPresent([Double?].self, forKey: .weatherCode) ?? []
         temperature2mMax = try container.decodeIfPresent([Double?].self, forKey: .temperature2mMax) ?? []
         temperature2mMin = try container.decodeIfPresent([Double?].self, forKey: .temperature2mMin) ?? []
+        sunrise = try container.decodeIfPresent([String?].self, forKey: .sunrise) ?? []
+        sunset = try container.decodeIfPresent([String?].self, forKey: .sunset) ?? []
     }
 }
