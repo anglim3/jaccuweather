@@ -3,7 +3,12 @@ import Foundation
 @main
 struct FavoritesOrderCheck {
     static func main() {
-        run()
+        do {
+            try run()
+        } catch {
+            fputs("FAIL \(error)\n", stderr)
+            exit(1)
+        }
     }
 }
 
@@ -22,7 +27,7 @@ func names(_ items: [GeoResult]) -> [String] {
     items.map(\.name)
 }
 
-func run() {
+func run() throws {
     let suite = "jaccuweather.favorites-order-check"
     guard let defaults = UserDefaults(suiteName: suite) else {
         fputs("FAIL defaults suite\n", stderr)
@@ -75,6 +80,21 @@ func run() {
 
     afterRemove.toggle(portland)
     check(names(afterRemove.items) == ["Portland", "Denver", "Seattle"], "adding a favorite still inserts at the front")
+
+    let here = place("Current location", -77.8, 166.6)
+    let renamed = place("McMurdo Sound, Antarctica", -77.8, 166.6)
+    afterRemove.toggle(here)
+    check(afterRemove.contains(renamed), "a renamed fix stays the same favorite")
+    check(afterRemove.contains(here), "the saved name still matches that favorite")
+    afterRemove.toggle(renamed)
+    check(afterRemove.contains(here) == false, "starring the renamed place removes the one favorite")
+
+    let encoded = try JSONEncoder().encode([here, renamed, portland])
+    defaults.set(encoded, forKey: "weatherFavorites")
+    let deduped = FavoritesStore(defaults: defaults)
+    check(names(deduped.items) == ["Current location", "Portland"], "duplicate coordinates collapse to one favorite, got \(names(deduped.items))")
+    let reloadedDupes = FavoritesStore(defaults: defaults)
+    check(names(reloadedDupes.items) == ["Current location", "Portland"], "the collapsed list is what gets saved")
 
     defaults.removePersistentDomain(forName: suite)
     print("ok")

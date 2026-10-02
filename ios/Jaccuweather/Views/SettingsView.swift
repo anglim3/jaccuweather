@@ -468,6 +468,7 @@ struct SettingsView: View {
         } else {
             KeychainStore.set(agent, for: KeychainStore.nwsUserAgentKey)
         }
+        load()
         savedNote = "Saved on this device. Pollen path: \(Secrets.pollenSourceLabel)."
         if refresh {
             Task { await model.refresh() }
@@ -478,9 +479,7 @@ struct SettingsView: View {
         KeychainStore.delete(KeychainStore.googlePollenKey)
         KeychainStore.delete(KeychainStore.tomorrowKey)
         KeychainStore.delete(KeychainStore.nwsUserAgentKey)
-        googleKey = ""
-        tomorrowKey = ""
-        nwsAgent = Secrets.defaultNWSUserAgent
+        load()
         savedNote = "Keychain cleared. Pollen uses Open-Meteo until you add a key."
         Task { await model.refresh() }
     }
