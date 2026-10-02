@@ -264,12 +264,6 @@ final class WeatherViewModel {
     private var snowTask: Task<Void, Never>?
     private var openObserver: NSObjectProtocol?
 
-    init() {
-        favorites.onChange = {
-            WatchSessionBridge.shared.favoritesChanged()
-        }
-    }
-
     var currentPlace: GeoResult {
         GeoResult(name: locationName, latitude: coordinate.latitude, longitude: coordinate.longitude, admin1: nil, country: nil)
     }
@@ -543,6 +537,9 @@ final class WeatherViewModel {
     }
 
     init() {
+        favorites.onChange = {
+            WatchSessionBridge.shared.favoritesChanged()
+        }
         _ = LogicEngine.shared
         preference = PlaceStore.load()
         followsDeviceLocation = preference.followsDeviceLocation
