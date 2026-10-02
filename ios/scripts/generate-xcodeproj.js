@@ -152,6 +152,7 @@ for (const file of watchWidgetSources) {
 const watchSupportFiles = [
   { name: 'WidgetSnapshot.swift', ref: sharedIds['WidgetSnapshot.swift'].ref },
   { name: 'WatchMirror.swift', ref: sharedIds['WatchMirror.swift'].ref },
+  { name: 'WatchAlertPayload.swift', ref: sharedIds['WatchAlertPayload.swift'].ref },
   { name: 'WidgetHorizon.swift', ref: widgetIds['WidgetHorizon.swift'].ref },
   { name: 'WidgetRefresh.swift', ref: widgetIds['WidgetRefresh.swift'].ref },
 ];
@@ -166,6 +167,7 @@ const watchFilesInWidget = [
   'WatchConditionsLoader.swift',
   'WatchForecastClient.swift',
   'WatchHourlyPlan.swift',
+  'WatchDailyPlan.swift',
   'WatchPlaceLink.swift',
   'WatchPlacePlan.swift',
   'WatchPlaceStore.swift',

@@ -22,10 +22,21 @@ final class WatchSessionBridge: NSObject, WCSessionDelegate {
         session.activate()
     }
 
-    func push(_ snapshot: WidgetConditionsSnapshot) {
+    func push(_ snapshot: WidgetConditionsSnapshot, alerts: [NWSAlertFeature] = []) {
         guard snapshot.temperatureF != nil else { return }
         activate()
-        deliver(WatchMirrorPayload.dictionary(from: snapshot))
+        var payload = WatchMirrorPayload.dictionary(from: snapshot)
+        let summary = WatchAlertSummaryPlan.summary(from: alerts.map { feature in
+            let event = feature.properties.event?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let headline = feature.properties.headline?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let title = event.isEmpty ? headline : event
+            let severity = feature.properties.severity?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return WatchAlertSummaryPlan.Item(title: title, severity: severity)
+        })
+        for (key, value) in WatchAlertPayload.fields(summary) {
+            payload[key] = value
+        }
+        deliver(payload)
     }
 
     private func deliver(_ payload: [String: Any]) {

@@ -30,6 +30,7 @@ struct WatchHourlyStrip: View {
                         .strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1)
                 }
         }
+        .frame(height: 56)
         .accessibilityIdentifier("watch-hourly-strip")
     }
 

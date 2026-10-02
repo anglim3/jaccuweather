@@ -78,6 +78,11 @@
 		E870779CF31B212FA77A8A70 /* WatchGlanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */; };
 		DD69C864262CEAD2E235A9DE /* WatchHourlyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */; };
 		DA5BE5B447A1D71B0485405E /* WatchHourlyStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */; };
+		D7A1C0DE11A44E0A9B6C1002 /* WatchDailyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C1001 /* WatchDailyPlan.swift */; };
+		D7A1C0DE11A44E0A9B6C2002 /* WatchDailyStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C2001 /* WatchDailyStrip.swift */; };
+		D7A1C0DE11A44E0A9B6C3002 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */; };
+		D7A1C0DE11A44E0A9B6C3003 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */; };
+		D7A1C0DE11A44E0A9B6C3004 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */; };
 		E96ECF773452B63D9627C352 /* WatchPlaceLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */; };
 		BF6126D8D22D6534E95BFCDE /* WatchPlacePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */; };
 		0D200C258011DC89B42BB244 /* WatchPlaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */; };
@@ -86,6 +91,7 @@
 		BF30C1914C8EEBFAE63876FC /* WatchConditionsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F887278C1A0A4C9DBAC031F /* WatchConditionsLoader.swift */; };
 		FCC02F7F7D42E5C493362814 /* WatchForecastClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D5257B14C548441D830921 /* WatchForecastClient.swift */; };
 		EA70793FF8A8368A348BA195 /* WatchHourlyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */; };
+		D7A1C0DE11A44E0A9B6C1003 /* WatchDailyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE11A44E0A9B6C1001 /* WatchDailyPlan.swift */; };
 		189E0E46073CCEC76C991174 /* WatchPlaceLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */; };
 		131031FC20ABB686BA40A750 /* WatchPlacePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */; };
 		16E637F55C93CD7DC65F53FA /* WatchPlaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */; };
@@ -249,6 +255,7 @@
 		C41448397A3B92F460854420 /* ControlOpen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlOpen.swift; sourceTree = "<group>"; };
 		1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNowIntent.swift; sourceTree = "<group>"; };
 		D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMirror.swift; sourceTree = "<group>"; };
+		D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAlertPayload.swift; sourceTree = "<group>"; };
 		F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherActivityAttributes.swift; sourceTree = "<group>"; };
 		80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		39C4782FC4A30606584FC1D8 /* WidgetTimelinePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTimelinePlan.swift; sourceTree = "<group>"; };
@@ -264,6 +271,8 @@
 		0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchGlanceView.swift; sourceTree = "<group>"; };
 		FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHourlyPlan.swift; sourceTree = "<group>"; };
 		FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHourlyStrip.swift; sourceTree = "<group>"; };
+		D7A1C0DE11A44E0A9B6C1001 /* WatchDailyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDailyPlan.swift; sourceTree = "<group>"; };
+		D7A1C0DE11A44E0A9B6C2001 /* WatchDailyStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDailyStrip.swift; sourceTree = "<group>"; };
 		6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlaceLink.swift; sourceTree = "<group>"; };
 		DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlacePlan.swift; sourceTree = "<group>"; };
 		5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlaceStore.swift; sourceTree = "<group>"; };
@@ -380,6 +389,7 @@
 				C41448397A3B92F460854420 /* ControlOpen.swift */,
 				1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */,
 				D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */,
+				D7A1C0DE11A44E0A9B6C3001 /* WatchAlertPayload.swift */,
 				F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */,
 				80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */,
 				39C4782FC4A30606584FC1D8 /* WidgetTimelinePlan.swift */,
@@ -407,6 +417,8 @@
 				0DA53B53892D42F2D23E4719 /* WatchGlanceView.swift */,
 				FAC032E40F2AF3BBA046440A /* WatchHourlyPlan.swift */,
 				FA4DBC2376DCEA8E02202E14 /* WatchHourlyStrip.swift */,
+				D7A1C0DE11A44E0A9B6C1001 /* WatchDailyPlan.swift */,
+				D7A1C0DE11A44E0A9B6C2001 /* WatchDailyStrip.swift */,
 				6AC839BACEB20DAED9BCB16E /* WatchPlaceLink.swift */,
 				DA9FB8BA2BE82DC2C910CF71 /* WatchPlacePlan.swift */,
 				5FDEEE1E550C592F94885A54 /* WatchPlaceStore.swift */,
@@ -712,6 +724,7 @@
 				2030B64F2A17C73FBF6E64AE /* ControlOpen.swift in Sources */,
 				1DFF93E6978AAD68061E29CF /* OpenNowIntent.swift in Sources */,
 				0CDDD9FA787F9B967DA896DF /* WatchMirror.swift in Sources */,
+				D7A1C0DE11A44E0A9B6C3002 /* WatchAlertPayload.swift in Sources */,
 				5EEFE05E21BF2DBE96D94601 /* WeatherActivityAttributes.swift in Sources */,
 				9A0BDCD75A45B4A3E9E7B1C6 /* WidgetSnapshot.swift in Sources */,
 				2D6C7C1D977250AFE2C627F0 /* WidgetTimelinePlan.swift in Sources */,
@@ -731,6 +744,7 @@
 				9C8F292CD7C3BECF7469BFF1 /* ControlOpen.swift in Sources */,
 				E2769EA84DBE6A6A41E1E71F /* OpenNowIntent.swift in Sources */,
 				B1D8D8E50B2F952C948842BA /* WatchMirror.swift in Sources */,
+				D7A1C0DE11A44E0A9B6C3003 /* WatchAlertPayload.swift in Sources */,
 				0D521042819354B183008F5A /* WeatherActivityAttributes.swift in Sources */,
 				79350FEBEC637061A4916F18 /* WidgetSnapshot.swift in Sources */,
 				E3AE4CB7D6AAF60110BFC9DB /* WidgetTimelinePlan.swift in Sources */,
@@ -747,6 +761,9 @@
 				E870779CF31B212FA77A8A70 /* WatchGlanceView.swift in Sources */,
 				DD69C864262CEAD2E235A9DE /* WatchHourlyPlan.swift in Sources */,
 				DA5BE5B447A1D71B0485405E /* WatchHourlyStrip.swift in Sources */,
+				D7A1C0DE11A44E0A9B6C1002 /* WatchDailyPlan.swift in Sources */,
+				D7A1C0DE11A44E0A9B6C2002 /* WatchDailyStrip.swift in Sources */,
+				D7A1C0DE11A44E0A9B6C3004 /* WatchAlertPayload.swift in Sources */,
 				E96ECF773452B63D9627C352 /* WatchPlaceLink.swift in Sources */,
 				BF6126D8D22D6534E95BFCDE /* WatchPlacePlan.swift in Sources */,
 				0D200C258011DC89B42BB244 /* WatchPlaceStore.swift in Sources */,
@@ -766,6 +783,7 @@
 				BF30C1914C8EEBFAE63876FC /* WatchConditionsLoader.swift in Sources */,
 				FCC02F7F7D42E5C493362814 /* WatchForecastClient.swift in Sources */,
 				EA70793FF8A8368A348BA195 /* WatchHourlyPlan.swift in Sources */,
+				D7A1C0DE11A44E0A9B6C1003 /* WatchDailyPlan.swift in Sources */,
 				189E0E46073CCEC76C991174 /* WatchPlaceLink.swift in Sources */,
 				131031FC20ABB686BA40A750 /* WatchPlacePlan.swift in Sources */,
 				16E637F55C93CD7DC65F53FA /* WatchPlaceStore.swift in Sources */,

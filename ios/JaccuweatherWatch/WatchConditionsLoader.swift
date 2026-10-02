@@ -10,6 +10,7 @@ enum WatchConditionsLoader {
     struct Reading {
         var snapshot: WidgetConditionsSnapshot
         var hours: [WatchHourSlot]
+        var days: [WatchDaySlot]
     }
 
     static func load(
@@ -31,14 +32,14 @@ enum WatchConditionsLoader {
 
         if pinned == nil, let phone, phone.isFresh, phone.temperatureF != nil, same(phone, choice) {
             publish(phone, enabled: publishPlace)
-            let hours = await hours(for: phone, cached: cached)
-            return Reading(snapshot: phone, hours: hours)
+            let forecast = await forecast(for: phone, cached: cached)
+            return Reading(snapshot: phone, hours: forecast.hours, days: forecast.days)
         }
 
         if let saved, saved.isFresh, saved.temperatureF != nil, same(saved, choice) {
             publish(saved, enabled: publishPlace)
-            let hours = await hours(for: saved, cached: cached)
-            return Reading(snapshot: saved, hours: hours)
+            let forecast = await forecast(for: saved, cached: cached)
+            return Reading(snapshot: saved, hours: forecast.hours, days: forecast.days)
         }
 
         if publishPlace {
@@ -54,21 +55,25 @@ enum WatchConditionsLoader {
             }
             WatchMirrorStore.save(snapshot)
             publish(snapshot, enabled: publishPlace)
-            WatchHourCache.save(hours: fetched.hours, snapshot: snapshot)
-            return Reading(snapshot: snapshot, hours: fetched.hours)
+            WatchHourCache.save(hours: fetched.hours, days: fetched.days, snapshot: snapshot)
+            return Reading(snapshot: snapshot, hours: fetched.hours, days: fetched.days)
         }
 
         if let saved, saved.temperatureF != nil, same(saved, choice) {
-            return Reading(snapshot: saved, hours: cached ?? [])
+            return Reading(snapshot: saved, hours: cached?.hours ?? [], days: cached?.days ?? [])
         }
-        return Reading(snapshot: place, hours: cached ?? [])
+        return Reading(snapshot: place, hours: cached?.hours ?? [], days: cached?.days ?? [])
     }
 
-    private static func hours(for snapshot: WidgetConditionsSnapshot, cached: [WatchHourSlot]?) async -> [WatchHourSlot] {
-        if let cached, !cached.isEmpty { return cached }
-        guard let fetched = await WatchForecastClient.fetch(snapshot) else { return [] }
-        WatchHourCache.save(hours: fetched.hours, snapshot: snapshot)
-        return fetched.hours
+    private static func forecast(for snapshot: WidgetConditionsSnapshot, cached: WatchHourCache.Hit?) async -> (hours: [WatchHourSlot], days: [WatchDaySlot]) {
+        if let cached, !cached.hours.isEmpty, !cached.days.isEmpty {
+            return (cached.hours, cached.days)
+        }
+        guard let fetched = await WatchForecastClient.fetch(snapshot) else {
+            return (cached?.hours ?? [], cached?.days ?? [])
+        }
+        WatchHourCache.save(hours: fetched.hours, days: fetched.days, snapshot: snapshot)
+        return (fetched.hours, fetched.days)
     }
 
     private static func publish(_ snapshot: WidgetConditionsSnapshot, enabled: Bool) {

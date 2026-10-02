@@ -6,6 +6,7 @@ enum WatchForecastClient {
     struct Reading {
         var snapshot: WidgetConditionsSnapshot
         var hours: [WatchHourSlot]
+        var days: [WatchDaySlot]
     }
 
     static func fetch(_ place: WidgetConditionsSnapshot, now: Date = Date()) async -> Reading? {
@@ -29,7 +30,8 @@ enum WatchForecastClient {
             URLQueryItem(name: "longitude", value: String(place.longitude)),
             URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability"),
             URLQueryItem(name: "hourly", value: "temperature_2m,precipitation_probability,weather_code,precipitation,snowfall"),
-            URLQueryItem(name: "forecast_days", value: "2"),
+            URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min"),
+            URLQueryItem(name: "forecast_days", value: "8"),
             URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
             URLQueryItem(name: "timezone", value: "auto")
         ]
@@ -52,6 +54,7 @@ enum WatchForecastClient {
             snapshot.precipChance = Int(chance.rounded())
         }
         let hours = slots(payload.hourly, offset: offset, now: now)
+        let days = daySlots(payload.daily, offset: offset, now: now)
         if !hours.isEmpty {
             snapshot.nextHoursHint = hours.prefix(4).map { slot in
                 let degrees = slot.temperatureF.map { "\(Int($0.rounded()))°" } ?? "—"
@@ -62,7 +65,7 @@ enum WatchForecastClient {
             }.joined(separator: " · ")
         }
         snapshot.fetchedAt = Date()
-        return Reading(snapshot: snapshot, hours: hours)
+        return Reading(snapshot: snapshot, hours: hours, days: days)
     }
 
     private static func slots(_ hourly: Hourly?, offset: Int, now: Date) -> [WatchHourSlot] {
@@ -83,6 +86,22 @@ enum WatchForecastClient {
         return WatchHourlyPlan.slots(samples: samples, utcOffsetSeconds: offset, now: now)
     }
 
+    private static func daySlots(_ daily: Daily?, offset: Int, now: Date) -> [WatchDaySlot] {
+        guard let daily else { return [] }
+        var samples: [WatchDaySample] = []
+        samples.reserveCapacity(daily.time.count)
+        for (index, stamp) in daily.time.enumerated() {
+            let code = value(daily.weatherCode, index).map { Int($0.rounded()) }
+            samples.append(WatchDaySample(
+                date: stamp,
+                highF: value(daily.temperature2mMax, index),
+                lowF: value(daily.temperature2mMin, index),
+                weatherCode: code
+            ))
+        }
+        return WatchDailyPlan.slots(samples: samples, utcOffsetSeconds: offset, now: now)
+    }
+
     private static func value(_ series: [Double?]?, _ index: Int) -> Double? {
         guard let series, series.indices.contains(index) else { return nil }
         return series[index]
@@ -92,7 +111,12 @@ enum WatchForecastClient {
 enum WatchHourCache {
     private static let key = "jaccuweather.watch.hours"
 
-    static func load(matching snapshot: WidgetConditionsSnapshot) -> [WatchHourSlot]? {
+    struct Hit {
+        var hours: [WatchHourSlot]
+        var days: [WatchDaySlot]
+    }
+
+    static func load(matching snapshot: WidgetConditionsSnapshot) -> Hit? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -113,16 +137,17 @@ enum WatchHourCache {
             hasReading: true
         )
         guard WatchPlacePlan.same(cached, wanted) else { return nil }
-        return cache.hours
+        return Hit(hours: cache.hours, days: cache.days)
     }
 
-    static func save(hours: [WatchHourSlot], snapshot: WidgetConditionsSnapshot) {
+    static func save(hours: [WatchHourSlot], days: [WatchDaySlot], snapshot: WidgetConditionsSnapshot) {
         let cache = Cache(
             locationId: snapshot.locationId,
             latitude: snapshot.latitude,
             longitude: snapshot.longitude,
             fetchedAt: Date(),
-            hours: hours
+            hours: hours,
+            days: days
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -136,6 +161,40 @@ enum WatchHourCache {
         var longitude: Double
         var fetchedAt: Date
         var hours: [WatchHourSlot]
+        var days: [WatchDaySlot]
+
+        enum CodingKeys: String, CodingKey {
+            case locationId, latitude, longitude, fetchedAt, hours, days
+        }
+
+        init(locationId: String, latitude: Double, longitude: Double, fetchedAt: Date, hours: [WatchHourSlot], days: [WatchDaySlot]) {
+            self.locationId = locationId
+            self.latitude = latitude
+            self.longitude = longitude
+            self.fetchedAt = fetchedAt
+            self.hours = hours
+            self.days = days
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            locationId = try container.decode(String.self, forKey: .locationId)
+            latitude = try container.decode(Double.self, forKey: .latitude)
+            longitude = try container.decode(Double.self, forKey: .longitude)
+            fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
+            hours = try container.decodeIfPresent([WatchHourSlot].self, forKey: .hours) ?? []
+            days = try container.decodeIfPresent([WatchDaySlot].self, forKey: .days) ?? []
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(locationId, forKey: .locationId)
+            try container.encode(latitude, forKey: .latitude)
+            try container.encode(longitude, forKey: .longitude)
+            try container.encode(fetchedAt, forKey: .fetchedAt)
+            try container.encode(hours, forKey: .hours)
+            try container.encode(days, forKey: .days)
+        }
     }
 }
 
@@ -143,11 +202,13 @@ private struct Payload: Decodable {
     let utcOffsetSeconds: Int?
     let current: Current?
     let hourly: Hourly?
+    let daily: Daily?
 
     enum CodingKeys: String, CodingKey {
         case utcOffsetSeconds = "utc_offset_seconds"
         case current
         case hourly
+        case daily
     }
 }
 
@@ -192,5 +253,27 @@ private struct Hourly: Decodable {
         weatherCode = try container.decodeIfPresent([Double?].self, forKey: .weatherCode) ?? []
         precipitation = try container.decodeIfPresent([Double?].self, forKey: .precipitation) ?? []
         snowfall = try container.decodeIfPresent([Double?].self, forKey: .snowfall) ?? []
+    }
+}
+
+private struct Daily: Decodable {
+    let time: [String]
+    let weatherCode: [Double?]
+    let temperature2mMax: [Double?]
+    let temperature2mMin: [Double?]
+
+    enum CodingKeys: String, CodingKey {
+        case time
+        case weatherCode = "weather_code"
+        case temperature2mMax = "temperature_2m_max"
+        case temperature2mMin = "temperature_2m_min"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        time = try container.decodeIfPresent([String].self, forKey: .time) ?? []
+        weatherCode = try container.decodeIfPresent([Double?].self, forKey: .weatherCode) ?? []
+        temperature2mMax = try container.decodeIfPresent([Double?].self, forKey: .temperature2mMax) ?? []
+        temperature2mMin = try container.decodeIfPresent([Double?].self, forKey: .temperature2mMin) ?? []
     }
 }

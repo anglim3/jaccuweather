@@ -690,6 +690,7 @@ final class WeatherViewModel {
                 }
             }
             alertIconFiles = icons
+            publishWidgetSnapshot()
             await AlertNotificationCoordinator.shared.handleFreshAlerts(alerts, placeName: locationName)
             guard serial == refreshSerial else { return }
             if let resolvedName, Self.shownName(resolvedName) == resolvedName {
@@ -1063,7 +1064,7 @@ final class WeatherViewModel {
             fetchedAt: fetchedAt
         )
         WidgetSnapshotStore.save(snapshot)
-        WatchSessionBridge.shared.push(snapshot)
+        WatchSessionBridge.shared.push(snapshot, alerts: alerts)
         if let temperature = snapshot.temperatureF {
             let condition = conditionDescription.isEmpty ? snapshot.conditionText : conditionDescription
             IntentForecastStore.save(IntentForecastReading(
