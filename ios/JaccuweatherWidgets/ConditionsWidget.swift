@@ -16,7 +16,7 @@ struct ConditionsProvider: AppIntentTimelineProvider {
     func snapshot(for configuration: PlaceWidgetIntent, in context: Context) async -> ConditionsEntry {
         let place = Self.chosenPlace(configuration)
         let stored = WidgetSnapshotStore.load()
-        if let stored {
+        if let stored, WidgetTimelineLoader.snapshotBelongsToWidget(stored, place: place) {
             return ConditionsEntry(date: Date(), snapshot: stored, unavailablePlaceName: nil)
         }
         if context.isPreview {
@@ -67,28 +67,78 @@ enum WidgetTimelineLoader {
         var unavailablePlaceName: String?
     }
 
-    /// Fresh App Group snapshot wins. Otherwise fetch the configured place.
-    /// A missing container (Personal Team) skips the snapshot and uses that place.
+    /// A fresh App Group snapshot is used only when it is this widget's place,
+    /// or when the widget has no chosen place and follows the app.
+    /// A different chosen place is loaded from Open-Meteo, which is also the
+    /// Personal Team path when the container is missing.
     static func load(place: WidgetPlace?) async -> Loaded {
         let stored = WidgetSnapshotStore.load()
-        if let stored, stored.isFresh {
+        let matches = stored.map { snapshotBelongsToWidget($0, place: place) } ?? false
+        switch WidgetTimelinePlan.decide(
+            hasSnapshot: stored != nil,
+            snapshotFresh: stored?.isFresh ?? false,
+            hasConfiguredPlace: place != nil,
+            snapshotMatchesPlace: matches
+        ) {
+        case .useSnapshot:
             return Loaded(snapshot: stored, unavailablePlaceName: nil)
+        case .fetchConfiguredPlace:
+            if let place,
+               let fetched = await WidgetCurrentRefresh.fetch(
+                   name: place.name,
+                   latitude: place.latitude,
+                   longitude: place.longitude,
+                   locationId: place.id
+               ) {
+                return Loaded(snapshot: fetched, unavailablePlaceName: nil)
+            }
+            return await finish(stored: stored, place: place, matches: matches, fetchFailed: true)
+        case .refreshSnapshot:
+            return await finish(stored: stored, place: place, matches: matches, fetchFailed: false)
+        case .keepStaleSnapshot, .unavailable, .empty:
+            if let place {
+                return Loaded(snapshot: nil, unavailablePlaceName: place.name)
+            }
+            return Loaded(snapshot: nil, unavailablePlaceName: nil)
         }
-        if let place,
-           let fetched = await WidgetCurrentRefresh.fetch(
-               name: place.name,
-               latitude: place.latitude,
-               longitude: place.longitude,
-               locationId: place.id
-           ) {
-            return Loaded(snapshot: fetched, unavailablePlaceName: nil)
-        }
-        if let stored {
+    }
+
+    /// The snapshot belongs to this widget when there is no chosen place, or the coordinates match.
+    static func snapshotBelongsToWidget(_ stored: WidgetConditionsSnapshot, place: WidgetPlace?) -> Bool {
+        guard let place else { return true }
+        return WidgetTimelinePlan.samePlace(
+            snapshotLatitude: stored.latitude,
+            snapshotLongitude: stored.longitude,
+            snapshotLocationId: stored.locationId,
+            placeLatitude: place.latitude,
+            placeLongitude: place.longitude,
+            placeId: place.id
+        )
+    }
+
+    private static func finish(
+        stored: WidgetConditionsSnapshot?,
+        place: WidgetPlace?,
+        matches: Bool,
+        fetchFailed: Bool
+    ) async -> Loaded {
+        let refreshPlan = fetchFailed
+            ? WidgetTimelinePlan.afterFailedFetch(
+                hasSnapshot: stored != nil,
+                snapshotMatchesPlace: matches,
+                hasConfiguredPlace: place != nil
+            )
+            : WidgetTimelinePlan.refreshSnapshot
+        if refreshPlan == .refreshSnapshot, let stored {
             if let refreshed = await WidgetCurrentRefresh.refresh(stored) {
                 WidgetSnapshotStore.save(refreshed, reloadWidgets: false)
                 return Loaded(snapshot: refreshed, unavailablePlaceName: nil)
             }
-            if stored.age < WidgetConditionsSnapshot.showStaleUntil {
+            let stalePlan = WidgetTimelinePlan.afterFailedRefresh(
+                hasConfiguredPlace: place != nil,
+                withinStaleWindow: stored.age < WidgetConditionsSnapshot.showStaleUntil
+            )
+            if stalePlan == .keepStaleSnapshot {
                 return Loaded(snapshot: stored, unavailablePlaceName: nil)
             }
         }
@@ -105,7 +155,7 @@ struct ConditionsWidget: Widget {
             ConditionsWidgetView(entry: entry)
         }
         .configurationDisplayName("Current conditions")
-        .description("Temperature and sky for a place you choose. A fresh reading from the app is used when sharing is available.")
+        .description("Temperature and sky for a place you choose. A fresh reading from the app is used when it is that place.")
         .supportedFamilies([
             .systemSmall,
             .systemMedium,
