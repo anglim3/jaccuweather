@@ -390,12 +390,12 @@ struct WatchStripStyle {
         labelSize: 10, primarySize: 13, secondarySize: 9, symbolSize: 8, cueHeight: 12, bandHeight: 46
     )
     static let dailyRegular = WatchStripStyle(
-        columnWidth: 42, columnSpacing: 2, horizontalPadding: 6, verticalPadding: 4,
-        labelSize: 11, primarySize: 13, secondarySize: 11, symbolSize: 12, cueHeight: 14, bandHeight: 60
+        columnWidth: 42, columnSpacing: 2, horizontalPadding: 6, verticalPadding: 3,
+        labelSize: 10, primarySize: 12, secondarySize: 9, symbolSize: 11, cueHeight: 13, bandHeight: 70
     )
     static let dailyCompact = WatchStripStyle(
         columnWidth: 36, columnSpacing: 2, horizontalPadding: 4, verticalPadding: 2,
-        labelSize: 10, primarySize: 12, secondarySize: 10, symbolSize: 11, cueHeight: 12, bandHeight: 58
+        labelSize: 9, primarySize: 11, secondarySize: 9, symbolSize: 10, cueHeight: 12, bandHeight: 64
     )
 }
 

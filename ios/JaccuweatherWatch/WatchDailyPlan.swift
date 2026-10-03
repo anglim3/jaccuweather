@@ -36,7 +36,7 @@ struct WatchDaySlot: Codable, Equatable, Identifiable {
     var id: String { date }
 }
 
-/// Copy for the day sheet. The glance strip does not show these lines.
+/// Copy for the day sheet. Rain amounts, snow amounts, and UV stay on the sheet.
 struct WatchDayDetailCopy: Equatable {
     var title: String
     var condition: String
@@ -133,6 +133,53 @@ enum WatchDailyPlan {
     static func probability(_ value: Double?) -> Int? {
         guard let value, value.isFinite else { return nil }
         return min(100, max(0, Int(value.rounded())))
+    }
+
+    /// Same cutoff as the hourly strip. A smaller chance still shows when rain or snow is present.
+    static let stripChanceMinimum = 10
+
+    /// Rain or snow for the glance column. Amounts above zero win, then the WMO symbol.
+    static func stripCue(for day: WatchDaySlot) -> WatchPrecipCue {
+        WatchHourlyPlan.cue(
+            code: cueCode(symbolName: day.symbolName),
+            precipitation: day.rainInches,
+            snowfall: day.snowInches
+        )
+    }
+
+    /// Percent text for the column. Nil when the chance stays off that column.
+    static func stripChance(probability: Int?, cue: WatchPrecipCue) -> Int? {
+        guard showsStripPrecip(probability: probability, cue: cue) else { return nil }
+        return probability
+    }
+
+    /// True when the column draws a percent, a rain or snow cue, or both.
+    static func showsStripPrecip(probability: Int?, cue: WatchPrecipCue) -> Bool {
+        probability.map { $0 >= stripChanceMinimum || cue != .none } ?? (cue != .none)
+    }
+
+    /// VoiceOver for one daily column. A stored chance is spoken even when the column hides it.
+    static func stripSpoken(for day: WatchDaySlot) -> String {
+        var parts = [day.label, "high \(degrees(day.highF))", "low \(degrees(day.lowF))"]
+        if let chance = day.precipProbability {
+            parts.append("\(chance) percent")
+        }
+        switch stripCue(for: day) {
+        case .rain: parts.append("rain")
+        case .snow: parts.append("snow")
+        case .none: break
+        }
+        return parts.joined(separator: ", ")
+    }
+
+    /// Representative code so `WatchHourlyPlan.cue` can read the symbol already stored on the slot.
+    private static func cueCode(symbolName: String) -> Int? {
+        switch symbolName {
+        case "cloud.snow.fill": return 73
+        case "cloud.rain.fill": return 61
+        case "cloud.bolt.rain.fill": return 95
+        default: return nil
+        }
     }
 
     /// Rain inches for the sheet.
