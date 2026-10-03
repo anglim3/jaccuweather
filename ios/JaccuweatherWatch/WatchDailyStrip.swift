@@ -53,7 +53,7 @@ struct WatchDailyStrip: View {
 
     private func column(_ day: WatchDaySlot, emphasized: Bool, width: CGFloat) -> some View {
         let rows = rowHeights
-        VStack(spacing: 0) {
+        return VStack(spacing: 0) {
             Text(day.label)
                 .font(.system(size: style.labelSize, weight: .medium))
                 .foregroundStyle(emphasized ? WidgetHorizon.text : WidgetHorizon.muted)
