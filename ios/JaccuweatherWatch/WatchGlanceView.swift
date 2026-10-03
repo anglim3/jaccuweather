@@ -251,54 +251,51 @@ struct WatchGlanceView: View {
 }
 
 /// Today's sunrise and sunset under the temperature.
-/// On a short watch, wind and humidity share this line.
+/// On a short watch, wind and humidity share this line and scale together.
 struct WatchSunRow: View {
     var sun: WatchSunTimes
     var size: CGFloat = 12
     var chips: [WatchAtmosphere.GlanceLine] = []
 
     var body: some View {
-        HStack(spacing: 3) {
-            sunCluster
-            if !chips.isEmpty {
-                if sun.line != nil {
-                    Text("·")
-                        .foregroundStyle(WidgetHorizon.faint)
-                        .accessibilityHidden(true)
-                }
-                WatchAtmosphereChipRow(chips: chips)
-            }
-        }
-        .font(.system(size: size, weight: .semibold))
-        .monospacedDigit()
-        .lineLimit(1)
-        .minimumScaleFactor(0.5)
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .contain)
+        line
+            .font(.system(size: size, weight: .semibold))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.45)
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier("watch-sun")
+            .accessibilityLabel(spoken)
     }
 
-    private var sunCluster: some View {
-        HStack(spacing: 3) {
-            if let rise = sun.sunriseLabel {
-                Text("↑")
-                    .foregroundStyle(WidgetHorizon.gold)
-                Text(rise)
-                    .foregroundStyle(WidgetHorizon.text)
-            }
-            if sun.sunriseLabel != nil, sun.sunsetLabel != nil {
-                Text("·")
-                    .foregroundStyle(WidgetHorizon.faint)
-            }
-            if let set = sun.sunsetLabel {
-                Text("↓")
-                    .foregroundStyle(WidgetHorizon.gold)
-                Text(set)
-                    .foregroundStyle(WidgetHorizon.text)
-            }
+    /// One run so the clocks, wind, and humidity shrink together instead of truncating.
+    private var line: Text {
+        var parts: [Text] = []
+        if let rise = sun.sunriseLabel {
+            parts.append(Text("↑").foregroundStyle(WidgetHorizon.gold) + Text(" \(rise)").foregroundStyle(WidgetHorizon.text))
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityIdentifier("watch-sun")
-        .accessibilityLabel(sun.spoken)
+        if let set = sun.sunsetLabel {
+            parts.append(Text("↓").foregroundStyle(WidgetHorizon.gold) + Text(" \(set)").foregroundStyle(WidgetHorizon.text))
+        }
+        for chip in chips {
+            var chipText = Text("")
+            if let symbol = chip.symbolName {
+                chipText = chipText + Text(Image(systemName: symbol)).foregroundStyle(WidgetHorizon.accent) + Text(" ")
+            }
+            let color = chip.symbolName == nil ? WidgetHorizon.muted : WidgetHorizon.text
+            chipText = chipText + Text(chip.text).foregroundStyle(color)
+            parts.append(chipText)
+        }
+        let dot = Text(" · ").foregroundStyle(WidgetHorizon.faint)
+        return parts.dropFirst().reduce(parts.first ?? Text(""), { $0 + dot + $1 })
+    }
+
+    private var spoken: String {
+        var parts: [String] = []
+        if !sun.spoken.isEmpty { parts.append(sun.spoken) }
+        parts.append(contentsOf: chips.map(\.spoken))
+        return parts.joined(separator: ", ")
     }
 }
 
