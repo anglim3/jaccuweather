@@ -77,9 +77,14 @@ struct WatchGlanceView: View {
         WKInterfaceDevice.current().screenBounds.height >= 240 ? .regular : .compact
     }
 
-    /// Wind when the forecast has a speed or gust, otherwise UV. Gusts stay spoken.
-    private var glanceMetric: WatchAtmosphere.GlanceLine? {
-        WatchAtmosphere.glanceLine(model.snapshot.atmosphereMetrics)
+    /// Short face: wind and humidity on the sun line. UV only when both are missing.
+    private var compactChips: [WatchAtmosphere.GlanceLine] {
+        WatchAtmosphere.glanceChips(model.snapshot.atmosphereMetrics, roomy: false)
+    }
+
+    /// Roomy face: wind or UV, with humidity beside it when the forecast has it.
+    private var roomyChips: [WatchAtmosphere.GlanceLine] {
+        WatchAtmosphere.glanceChips(model.snapshot.atmosphereMetrics, roomy: true)
     }
 
     private func fittedStack(_ metrics: WatchGlanceMetrics) -> some View {
@@ -117,16 +122,16 @@ struct WatchGlanceView: View {
             }
             if metrics.foldsMetric {
                 if let sun = model.sun, sun.line != nil {
-                    WatchSunRow(sun: sun, size: metrics.sunSize, metric: glanceMetric)
-                } else if let metric = glanceMetric {
-                    WatchMetricLine(metric: metric, size: metrics.sunSize)
+                    WatchSunRow(sun: sun, size: metrics.sunSize, chips: compactChips)
+                } else if !compactChips.isEmpty {
+                    WatchAtmosphereChips(chips: compactChips, size: metrics.sunSize)
                 }
             } else {
                 if let sun = model.sun, sun.line != nil {
                     WatchSunRow(sun: sun, size: metrics.sunSize)
                 }
-                if let metric = glanceMetric {
-                    WatchMetricLine(metric: metric, size: metrics.sunSize)
+                if !roomyChips.isEmpty {
+                    WatchAtmosphereChips(chips: roomyChips, size: metrics.sunSize)
                 }
             }
             if let alert = model.alert {
@@ -246,13 +251,33 @@ struct WatchGlanceView: View {
 }
 
 /// Today's sunrise and sunset under the temperature.
-/// On a short watch the wind or UV metric shares this line.
+/// On a short watch, wind and humidity share this line.
 struct WatchSunRow: View {
     var sun: WatchSunTimes
     var size: CGFloat = 12
-    var metric: WatchAtmosphere.GlanceLine? = nil
+    var chips: [WatchAtmosphere.GlanceLine] = []
 
     var body: some View {
+        HStack(spacing: 3) {
+            sunCluster
+            if !chips.isEmpty {
+                if sun.line != nil {
+                    Text("·")
+                        .foregroundStyle(WidgetHorizon.faint)
+                        .accessibilityHidden(true)
+                }
+                WatchAtmosphereChipRow(chips: chips)
+            }
+        }
+        .font(.system(size: size, weight: .semibold))
+        .monospacedDigit()
+        .lineLimit(1)
+        .minimumScaleFactor(0.5)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var sunCluster: some View {
         HStack(spacing: 3) {
             if let rise = sun.sunriseLabel {
                 Text("↑")
@@ -270,52 +295,67 @@ struct WatchSunRow: View {
                 Text(set)
                     .foregroundStyle(WidgetHorizon.text)
             }
-            if let metric {
-                if sun.line != nil {
-                    Text("·")
-                        .foregroundStyle(WidgetHorizon.faint)
-                }
-                Text(metric.text)
-                    .foregroundStyle(WidgetHorizon.muted)
-            }
         }
-        .font(.system(size: size, weight: .semibold))
-        .monospacedDigit()
-        .lineLimit(1)
-        .minimumScaleFactor(0.55)
-        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityIdentifier("watch-sun")
-        .accessibilityLabel(spoken)
-    }
-
-    private var spoken: String {
-        guard let metric else { return sun.spoken }
-        if sun.spoken.isEmpty { return metric.spoken }
-        return "\(sun.spoken), \(metric.spoken)"
+        .accessibilityLabel(sun.spoken)
     }
 }
 
-/// Wind or UV under the sun line. One string, no icon and no gust.
-struct WatchMetricLine: View {
-    var metric: WatchAtmosphere.GlanceLine
+/// Wind, humidity, or UV on one line. Humidity draws a drop before the percent.
+struct WatchAtmosphereChips: View {
+    var chips: [WatchAtmosphere.GlanceLine]
     var size: CGFloat
 
     var body: some View {
-        Text(metric.text)
+        WatchAtmosphereChipRow(chips: chips)
             .font(.system(size: size, weight: .semibold))
-            .foregroundStyle(WidgetHorizon.muted)
             .monospacedDigit()
             .lineLimit(1)
-            .minimumScaleFactor(0.6)
+            .minimumScaleFactor(0.5)
             .frame(maxWidth: .infinity)
-            .accessibilityIdentifier(metric.identifier)
-            .accessibilityLabel(metric.spoken)
+            .accessibilityElement(children: .contain)
+    }
+}
+
+struct WatchAtmosphereChipRow: View {
+    var chips: [WatchAtmosphere.GlanceLine]
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(Array(chips.enumerated()), id: \.element.identifier) { index, chip in
+                if index > 0 {
+                    Text("·")
+                        .foregroundStyle(WidgetHorizon.faint)
+                        .accessibilityHidden(true)
+                }
+                WatchGlanceChipLabel(chip: chip)
+            }
+        }
+    }
+}
+
+struct WatchGlanceChipLabel: View {
+    var chip: WatchAtmosphere.GlanceLine
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if let symbol = chip.symbolName {
+                Image(systemName: symbol)
+                    .foregroundStyle(WidgetHorizon.accent)
+                    .accessibilityHidden(true)
+            }
+            Text(chip.text)
+                .foregroundStyle(chip.symbolName == nil ? WidgetHorizon.muted : WidgetHorizon.text)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier(chip.identifier)
+        .accessibilityLabel(chip.spoken)
     }
 }
 
 /// Type and strip sizes for the glance. Shorter watches use the compact set
-/// so the header, sun line, one wind or UV metric, and both strips stay on screen.
+/// so the header, sun line, wind and humidity, and both strips stay on screen.
 struct WatchGlanceMetrics {
     var placeSize: CGFloat
     var tempSize: CGFloat
@@ -328,7 +368,7 @@ struct WatchGlanceMetrics {
     var spacing: CGFloat
     var horizontalPadding: CGFloat
     var bottomPadding: CGFloat
-    /// Short watches put wind or UV on the sun line instead of adding a row.
+    /// Short watches put wind and humidity on the sun line instead of adding a row.
     var foldsMetric: Bool
     var hourly: WatchStripStyle
     var daily: WatchStripStyle
