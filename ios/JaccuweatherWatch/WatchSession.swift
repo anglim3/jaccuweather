@@ -58,25 +58,32 @@ final class WatchWeatherModel {
         Self.degrees(snapshot.temperatureF)
     }
 
-    /// Feels-like when the forecast has it, otherwise the condition.
+    /// Feels-like when it is far enough from the displayed temperature to show.
+    var feelsChip: WatchFeelsLike.Chip? {
+        WatchFeelsLike.chip(temperatureF: snapshot.temperatureF, feelsLikeF: snapshot.feelsLikeF)
+    }
+
+    /// Feels-like when the chip is visible, otherwise the condition.
     var detailText: String {
         if snapshot.temperatureF == nil { return "Updating" }
-        if let feels = snapshot.feelsLikeF, feels.isFinite {
-            return "Feels \(Self.degrees(feels))"
-        }
+        if let chip = feelsChip { return chip.text }
         if !snapshot.conditionText.isEmpty { return snapshot.conditionText }
         return ""
     }
 
     var conditionText: String {
         if snapshot.temperatureF == nil { return "" }
-        if snapshot.feelsLikeF != nil { return snapshot.conditionText }
+        if feelsChip != nil { return snapshot.conditionText }
         return ""
     }
 
     var accessibilityLabel: String {
         var parts = [placeName, temperatureText]
-        if !detailText.isEmpty, detailText != "Updating" { parts.append(detailText) }
+        if let chip = feelsChip {
+            parts.append(chip.spoken)
+        } else if !detailText.isEmpty, detailText != "Updating" {
+            parts.append(detailText)
+        }
         if !conditionText.isEmpty { parts.append(conditionText) }
         let atmosphere = snapshot.atmosphereMetrics
         if let uv = WatchAtmosphere.uvChip(atmosphere) { parts.append(uv.spoken) }

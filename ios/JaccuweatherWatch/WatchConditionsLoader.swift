@@ -11,8 +11,11 @@ import Foundation
 /// fresh snapshot's `sunriseISO` and `sunsetISO` when those stamps are
 /// present, and otherwise the Open-Meteo daily row for that same place.
 /// UV and wind come from that fresh phone snapshot when it includes them,
-/// and from Open-Meteo otherwise. The complication passes an empty context
-/// and reads the place the glance published.
+/// and from Open-Meteo otherwise. Apparent temperature prefers that same
+/// fresh phone `feelsLikeF` when the phone already has one for the place.
+/// Otherwise Open-Meteo `current.apparent_temperature` fills it, or the
+/// nearest hourly `apparent_temperature` when current omits it. The
+/// complication passes an empty context and reads the place the glance published.
 enum WatchConditionsLoader {
     struct Reading {
         var snapshot: WidgetConditionsSnapshot
@@ -107,6 +110,8 @@ enum WatchConditionsLoader {
     /// Hours, days, and sun come from the cache when they are already stored.
     /// UV and wind stay on the phone or saved reading when those fields are
     /// present, and Open-Meteo fills whichever of them is missing.
+    /// A fresh feels-like on that reading stays. Open-Meteo fills it only
+    /// when the reading left it empty.
     /// A cache from before the day sheet or the hour sheet is refreshed so
     /// those precip, condition, and UV fields are stored.
     private static func complete(_ snapshot: WidgetConditionsSnapshot, cached: WatchHourCache.Hit?) async -> Reading {
@@ -115,7 +120,8 @@ enum WatchConditionsLoader {
         let hoursReady = !cachedHours.isEmpty && !cachedDays.isEmpty
         let sunReady = cached?.sun != nil
         let detailsReady = cached?.includesDayDetail == true && cached?.includesHourDetail == true
-        if hoursReady && sunReady && detailsReady && WatchAtmosphere.isComplete(snapshot.atmosphereMetrics) {
+        let feelsReady = WatchFeelsLike.usable(snapshot.feelsLikeF) != nil
+        if hoursReady && sunReady && detailsReady && WatchAtmosphere.isComplete(snapshot.atmosphereMetrics) && feelsReady {
             return Reading(
                 snapshot: snapshot,
                 hours: cachedHours,
@@ -131,8 +137,13 @@ enum WatchConditionsLoader {
                 sun: displayedSun(snapshot: snapshot, fetched: cached?.sun)
             )
         }
-        let merged = snapshot.applyingAtmosphere(
+        var merged = snapshot.applyingAtmosphere(
             WatchAtmosphere.preferringExisting(snapshot.atmosphereMetrics, fill: fetched.snapshot.atmosphereMetrics)
+        )
+        merged.feelsLikeF = WatchFeelsLike.filled(
+            existingFeelsLikeF: snapshot.feelsLikeF,
+            preferExisting: true,
+            openMeteoFeelsLikeF: fetched.snapshot.feelsLikeF
         )
         WatchHourCache.save(hours: fetched.hours, days: fetched.days, sun: fetched.sun, snapshot: merged)
         return Reading(
