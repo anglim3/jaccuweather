@@ -1055,6 +1055,7 @@ final class WeatherViewModel {
             windDirectionDegrees: current?.number("wind_direction_10m"),
             windGustMph: current?.number("wind_gusts_10m")
         )
+        let air = USAQIDisplay.from(current: pollen?.map("current"))
         let snapshot = WidgetConditionsSnapshot(
             locationId: String(format: "%.4f,%.4f", coordinate.latitude, coordinate.longitude),
             locationName: name,
@@ -1076,7 +1077,9 @@ final class WeatherViewModel {
             uvIndex: atmosphere.uvIndex,
             windSpeedMph: atmosphere.windSpeedMph,
             windDirectionDegrees: atmosphere.windDirectionDegrees,
-            windGustMph: atmosphere.windGustMph
+            windGustMph: atmosphere.windGustMph,
+            usAqi: air.map { Double($0.value) },
+            usAqiCategory: air?.category
         )
         WidgetSnapshotStore.save(snapshot)
         WatchSessionBridge.shared.push(snapshot, alerts: alerts)

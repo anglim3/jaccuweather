@@ -11,8 +11,10 @@ import Foundation
 /// fresh snapshot's `sunriseISO` and `sunsetISO` when those stamps are
 /// present, and otherwise the Open-Meteo daily row for that same place.
 /// UV and wind come from that fresh phone snapshot when it includes them,
-/// and from Open-Meteo otherwise. The complication passes an empty context
-/// and reads the place the glance published.
+/// and from Open-Meteo otherwise. US AQI uses a fresh snapshot's `usAqi`
+/// when that field is present, and otherwise Open-Meteo air quality for the
+/// same coordinates. The complication passes an empty context and reads the
+/// place the glance published. It does not request air quality.
 enum WatchConditionsLoader {
     struct Reading {
         var snapshot: WidgetConditionsSnapshot
@@ -45,13 +47,15 @@ enum WatchConditionsLoader {
         )
 
         if source == .phone, let phone {
-            let filled = await complete(phone, cached: cached)
+            var filled = await complete(phone, cached: cached)
+            filled.snapshot = await withAirQuality(filled.snapshot, enabled: publishPlace)
             publish(filled.snapshot, enabled: publishPlace, explicit: explicit)
             return filled
         }
 
         if source == .saved, let saved {
-            let filled = await complete(saved, cached: cached)
+            var filled = await complete(saved, cached: cached)
+            filled.snapshot = await withAirQuality(filled.snapshot, enabled: publishPlace)
             publish(filled.snapshot, enabled: publishPlace, explicit: explicit)
             return filled
         }
@@ -67,6 +71,7 @@ enum WatchConditionsLoader {
             if !place.locationId.isEmpty {
                 snapshot.locationId = place.locationId
             }
+            snapshot = await withAirQuality(snapshot, enabled: publishPlace)
             WatchMirrorStore.save(snapshot)
             publish(snapshot, enabled: publishPlace, explicit: explicit)
             WatchHourCache.save(hours: fetched.hours, days: fetched.days, sun: fetched.sun, snapshot: snapshot)
@@ -79,19 +84,42 @@ enum WatchConditionsLoader {
         }
 
         if let saved, saved.temperatureF != nil, same(saved, choice) {
+            let shown = await withAirQuality(saved, enabled: publishPlace)
+            if publishPlace, shown.usAqi != nil {
+                WatchMirrorStore.save(shown)
+            }
             return Reading(
-                snapshot: saved,
+                snapshot: shown,
                 hours: cached?.hours ?? [],
                 days: cached?.days ?? [],
-                sun: displayedSun(snapshot: saved, fetched: cached?.sun)
+                sun: displayedSun(snapshot: shown, fetched: cached?.sun)
             )
         }
+        let shown = await withAirQuality(place, enabled: publishPlace)
         return Reading(
-            snapshot: place,
+            snapshot: shown,
             hours: cached?.hours ?? [],
             days: cached?.days ?? [],
-            sun: displayedSun(snapshot: place, fetched: cached?.sun)
+            sun: displayedSun(snapshot: shown, fetched: cached?.sun)
         )
+    }
+
+    /// Keep a usable `usAqi` already on the snapshot. Otherwise ask Open-Meteo
+    /// air quality. A failed or empty response leaves the chip hidden.
+    /// The complication skips this request.
+    private static func withAirQuality(_ snapshot: WidgetConditionsSnapshot, enabled: Bool) async -> WidgetConditionsSnapshot {
+        guard enabled else { return snapshot }
+        if WatchAQI.chip(usAqi: snapshot.usAqi, category: snapshot.usAqiCategory) != nil {
+            return snapshot
+        }
+        guard let value = await WatchAirQualityClient.current(latitude: snapshot.latitude, longitude: snapshot.longitude),
+              WatchAQI.chip(usAqi: value) != nil else {
+            return snapshot
+        }
+        var copy = snapshot
+        copy.usAqi = value
+        copy.usAqiCategory = WatchAQI.chip(usAqi: value)?.category
+        return copy
     }
 
     /// A fresh snapshot that already includes sunrise and sunset wins.
