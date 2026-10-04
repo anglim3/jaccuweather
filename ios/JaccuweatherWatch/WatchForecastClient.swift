@@ -29,7 +29,7 @@ enum WatchForecastClient {
         components?.queryItems = [
             URLQueryItem(name: "latitude", value: String(place.latitude)),
             URLQueryItem(name: "longitude", value: String(place.longitude)),
-            URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m"),
+            URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m,dew_point_2m"),
             URLQueryItem(name: "hourly", value: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code,precipitation,rain,snowfall,wind_speed_10m,uv_index,is_day"),
             URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,rain_sum,snowfall_sum,uv_index_max,sunrise,sunset"),
             URLQueryItem(name: "forecast_days", value: "8"),
@@ -63,6 +63,7 @@ enum WatchForecastClient {
             windGustMph: current.windGusts10m
         )
         snapshot = snapshot.applyingAtmosphere(atmosphere)
+        snapshot.dewPointF = WatchDewPoint.usable(current.dewPoint2m)
         let hours = slots(payload.hourly, offset: offset, now: now)
         let days = daySlots(payload.daily, offset: offset, now: now)
         let sun = sunMatch(payload.daily, offset: offset, now: now)
@@ -300,6 +301,7 @@ private struct Current: Decodable {
     let windSpeed10m: Double?
     let windDirection10m: Double?
     let windGusts10m: Double?
+    let dewPoint2m: Double?
 
     enum CodingKeys: String, CodingKey {
         case temperature2m = "temperature_2m"
@@ -311,6 +313,7 @@ private struct Current: Decodable {
         case windSpeed10m = "wind_speed_10m"
         case windDirection10m = "wind_direction_10m"
         case windGusts10m = "wind_gusts_10m"
+        case dewPoint2m = "dew_point_2m"
     }
 }
 

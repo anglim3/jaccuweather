@@ -115,7 +115,8 @@ enum WatchConditionsLoader {
         let hoursReady = !cachedHours.isEmpty && !cachedDays.isEmpty
         let sunReady = cached?.sun != nil
         let detailsReady = cached?.includesDayDetail == true && cached?.includesHourDetail == true
-        if hoursReady && sunReady && detailsReady && WatchAtmosphere.isComplete(snapshot.atmosphereMetrics) {
+        let dewReady = WatchDewPoint.usable(snapshot.dewPointF) != nil
+        if hoursReady && sunReady && detailsReady && WatchAtmosphere.isComplete(snapshot.atmosphereMetrics) && dewReady {
             return Reading(
                 snapshot: snapshot,
                 hours: cachedHours,
@@ -131,9 +132,10 @@ enum WatchConditionsLoader {
                 sun: displayedSun(snapshot: snapshot, fetched: cached?.sun)
             )
         }
-        let merged = snapshot.applyingAtmosphere(
+        var merged = snapshot.applyingAtmosphere(
             WatchAtmosphere.preferringExisting(snapshot.atmosphereMetrics, fill: fetched.snapshot.atmosphereMetrics)
         )
+        merged.dewPointF = WatchDewPoint.preferringExisting(snapshot.dewPointF, fill: fetched.snapshot.dewPointF)
         WatchHourCache.save(hours: fetched.hours, days: fetched.days, sun: fetched.sun, snapshot: merged)
         return Reading(
             snapshot: merged,

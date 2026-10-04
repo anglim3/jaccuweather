@@ -1076,7 +1076,8 @@ final class WeatherViewModel {
             uvIndex: atmosphere.uvIndex,
             windSpeedMph: atmosphere.windSpeedMph,
             windDirectionDegrees: atmosphere.windDirectionDegrees,
-            windGustMph: atmosphere.windGustMph
+            windGustMph: atmosphere.windGustMph,
+            dewPointF: WatchDewPoint.usable(current?.number("dewpoint_2m") ?? current?.number("dew_point_2m"))
         )
         WidgetSnapshotStore.save(snapshot)
         WatchSessionBridge.shared.push(snapshot, alerts: alerts)

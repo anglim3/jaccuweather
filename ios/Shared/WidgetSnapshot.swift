@@ -31,6 +31,9 @@ struct WidgetConditionsSnapshot: Codable, Equatable {
     var windDirectionDegrees: Double? = nil
     /// Open-Meteo `wind_gusts_10m` in miles per hour, when the forecast has one.
     var windGustMph: Double? = nil
+    /// Dew point in Fahrenheit. The phone copies current `dewpoint_2m`.
+    /// Missing on older snapshots. The Watch fills it from the forecast when absent.
+    var dewPointF: Double? = nil
 
     /// WidgetKit reloads on its own about every 20 minutes. Refetch only after this.
     static let refetchAfter: TimeInterval = 40 * 60
