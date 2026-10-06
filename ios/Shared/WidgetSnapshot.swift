@@ -36,6 +36,9 @@ struct WidgetConditionsSnapshot: Codable, Equatable {
     var usAqi: Double? = nil
     /// Optional band name from the phone, such as "Good". The chip follows `usAqi`.
     var usAqiCategory: String? = nil
+    /// Open-Meteo `relative_humidity_2m` for the current conditions, percent.
+    /// Missing on older snapshots. The Watch fills it from the forecast when absent.
+    var humidityPercent: Double? = nil
 
     /// WidgetKit reloads on its own about every 20 minutes. Refetch only after this.
     static let refetchAfter: TimeInterval = 40 * 60

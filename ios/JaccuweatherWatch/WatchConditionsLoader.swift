@@ -10,8 +10,8 @@ import Foundation
 /// from `api.open-meteo.com/v1/forecast`. Today's sunrise and sunset use a
 /// fresh snapshot's `sunriseISO` and `sunsetISO` when those stamps are
 /// present, and otherwise the Open-Meteo daily row for that same place.
-/// UV and wind come from that fresh phone snapshot when it includes them,
-/// and from Open-Meteo otherwise. US AQI uses a fresh snapshot's `usAqi`
+/// UV, wind, and relative humidity come from that fresh phone snapshot when
+/// it includes them, and from Open-Meteo otherwise. US AQI uses a fresh snapshot's `usAqi`
 /// when that field is present, and otherwise Open-Meteo air quality for the
 /// same coordinates. The complication passes an empty context and reads the
 /// place the glance published. It does not request air quality.
@@ -133,8 +133,8 @@ enum WatchConditionsLoader {
     }
 
     /// Hours, days, and sun come from the cache when they are already stored.
-    /// UV and wind stay on the phone or saved reading when those fields are
-    /// present, and Open-Meteo fills whichever of them is missing.
+    /// UV, wind, and humidity stay on the phone or saved reading when those
+    /// fields are present, and Open-Meteo fills whichever of them is missing.
     /// A cache from before the day sheet or the hour sheet is refreshed so
     /// those precip, condition, and UV fields are stored.
     private static func complete(_ snapshot: WidgetConditionsSnapshot, cached: WatchHourCache.Hit?) async -> Reading {

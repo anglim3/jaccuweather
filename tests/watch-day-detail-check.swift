@@ -74,5 +74,73 @@ func run() {
     check(quiet.probability == nil && quiet.rain == nil && quiet.snow == nil && quiet.uv == nil, "a day without those fields omits them")
     check(quiet.condition == "Partly cloudy", "the condition still comes from the weather code")
 
+    check(WatchDailyPlan.stripCue(for: days[0]) == .rain, "a rain code is a rain cue on the strip")
+    check(WatchDailyPlan.stripChance(probability: days[0].precipProbability, cue: .rain) == 72, "the strip shows 72 percent")
+    check(WatchDailyPlan.stripSpoken(for: days[0]) == "Fri, high 51°, low 40°, 72 percent, rain", "the column label includes the chance and rain")
+    check(WatchDailyPlan.stripCue(for: days[1]) == .snow, "a snow code is a snow cue on the strip")
+    check(WatchDailyPlan.stripChance(probability: days[1].precipProbability, cue: .snow) == 80, "the strip shows 80 percent")
+    check(WatchDailyPlan.stripSpoken(for: days[1]) == "Sat, high 34°, low 28°, 80 percent, snow", "the column label includes the chance and snow")
+    check(WatchDailyPlan.stripCue(for: days[2]) == .none, "a dry day has no precip cue")
+    check(WatchDailyPlan.showsStripPrecip(probability: days[2].precipProbability, cue: .none) == false, "a day without a chance draws no precip line")
+    check(WatchDailyPlan.stripSpoken(for: days[2]) == "Sun, high 40°, low 31°", "a dry column label stays weekday, high, and low")
+
+    check(WatchDailyPlan.stripChance(probability: 10, cue: .none) == 10, "a 10 percent chance is shown")
+    let quietChance = WatchDaySlot(
+        date: "2026-10-08",
+        label: "Thu",
+        highF: 61,
+        lowF: 49,
+        symbolName: "sun.max.fill",
+        precipProbability: 9,
+        rainInches: 0,
+        snowInches: 0
+    )
+    check(WatchDailyPlan.stripChance(probability: 9, cue: .none) == nil, "a chance under 10 stays off the column")
+    check(WatchDailyPlan.stripSpoken(for: quietChance) == "Thu, high 61°, low 49°, 9 percent", "voiceover still speaks a chance the column hides")
+    check(WatchDailyPlan.stripChance(probability: 4, cue: .rain) == 4, "a small chance is shown when rain is present")
+    check(WatchDailyPlan.stripChance(probability: nil, cue: .snow) == nil, "a snow cue without a chance has no percent")
+    check(WatchDailyPlan.showsStripPrecip(probability: nil, cue: .snow) == true, "a snow cue still occupies the precip line")
+    check(WatchDailyPlan.stripChance(probability: 0, cue: .snow) == 0, "a zero chance is shown beside snow")
+
+    let trace = WatchDaySlot(
+        date: "2026-10-05",
+        label: "Mon",
+        highF: 33,
+        lowF: 28,
+        symbolName: "sun.max.fill",
+        precipProbability: 8,
+        rainInches: 0,
+        snowInches: 0.004
+    )
+    check(WatchDailyPlan.stripCue(for: trace) == .snow, "any snowfall amount is a snow cue")
+    check(WatchDailyPlan.stripChance(probability: trace.precipProbability, cue: .snow) == 8, "the small chance is shown with that snow cue")
+
+    let storm = WatchDaySlot(
+        date: "2026-10-06",
+        label: "Tue",
+        highF: 62,
+        lowF: 55,
+        symbolName: "cloud.bolt.rain.fill",
+        precipProbability: 15,
+        rainInches: 0,
+        snowInches: 0
+    )
+    check(WatchDailyPlan.stripCue(for: storm) == .rain, "a thunderstorm symbol is a rain cue")
+    check(WatchDailyPlan.stripSpoken(for: storm) == "Tue, high 62°, low 55°, 15 percent, rain", "the column label includes the thunderstorm as rain")
+
+    let likely = WatchDaySlot(
+        date: "2026-10-07",
+        label: "Wed",
+        highF: 58,
+        lowF: 47,
+        symbolName: "cloud.fill",
+        precipProbability: 15,
+        rainInches: 0,
+        snowInches: 0
+    )
+    check(WatchDailyPlan.stripCue(for: likely) == .none, "a chance without rain or snow has no cue")
+    check(WatchDailyPlan.stripChance(probability: likely.precipProbability, cue: .none) == 15, "a chance of at least 10 percent is still shown")
+    check(WatchDailyPlan.stripSpoken(for: likely) == "Wed, high 58°, low 47°, 15 percent", "voiceover keeps a chance the column is allowed to show")
+
     print("ok")
 }
