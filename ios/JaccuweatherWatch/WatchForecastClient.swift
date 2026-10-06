@@ -29,7 +29,7 @@ enum WatchForecastClient {
         components?.queryItems = [
             URLQueryItem(name: "latitude", value: String(place.latitude)),
             URLQueryItem(name: "longitude", value: String(place.longitude)),
-            URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m,dew_point_2m"),
+            URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m,dew_point_2m"),
             URLQueryItem(name: "hourly", value: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code,precipitation,rain,snowfall,wind_speed_10m,uv_index,is_day"),
             URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,rain_sum,snowfall_sum,uv_index_max,sunrise,sunset"),
             URLQueryItem(name: "forecast_days", value: "8"),
@@ -56,15 +56,16 @@ enum WatchForecastClient {
         if let chance = current.precipitationProbability {
             snapshot.precipChance = Int(chance.rounded())
         }
+        let hours = slots(payload.hourly, offset: offset, now: now)
         let atmosphere = WatchAtmosphere.metrics(
             uvIndex: current.uvIndex,
             windSpeedMph: current.windSpeed10m,
             windDirectionDegrees: current.windDirection10m,
-            windGustMph: current.windGusts10m
+            windGustMph: current.windGusts10m,
+            humidityPercent: humidityPercent(current.relativeHumidity2m, hour: hours.first?.humidity)
         )
         snapshot = snapshot.applyingAtmosphere(atmosphere)
         snapshot.dewPointF = WatchDewPoint.usable(current.dewPoint2m)
-        let hours = slots(payload.hourly, offset: offset, now: now)
         let days = daySlots(payload.daily, offset: offset, now: now)
         let sun = sunMatch(payload.daily, offset: offset, now: now)
         snapshot.sunriseISO = sun.sunriseISO
@@ -157,6 +158,52 @@ enum WatchForecastClient {
         guard let series, series.indices.contains(index) else { return nil }
         let trimmed = series[index]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// Current `relative_humidity_2m` when it is present, otherwise the hour that contains now.
+    private static func humidityPercent(_ current: Double?, hour: Int?) -> Double? {
+        if let current, current.isFinite, current >= 0 { return current }
+        return hour.map(Double.init)
+    }
+}
+
+/// Current US AQI from the public Open-Meteo air-quality API.
+/// The same host the iPhone uses for `us_aqi`. A missing or failed response stays nil.
+enum WatchAirQualityClient {
+    static func current(latitude: Double, longitude: Double) async -> Double? {
+        guard let url = url(latitude: latitude, longitude: longitude) else { return nil }
+        var request = URLRequest(url: url, timeoutInterval: 12)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
+            let payload = try JSONDecoder().decode(Payload.self, from: data)
+            return payload.current?.usAqi
+        } catch {
+            return nil
+        }
+    }
+
+    private static func url(latitude: Double, longitude: Double) -> URL? {
+        var components = URLComponents(string: "https://air-quality-api.open-meteo.com/v1/air-quality")
+        components?.queryItems = [
+            URLQueryItem(name: "latitude", value: String(latitude)),
+            URLQueryItem(name: "longitude", value: String(longitude)),
+            URLQueryItem(name: "current", value: "us_aqi")
+        ]
+        return components?.url
+    }
+
+    private struct Payload: Decodable {
+        var current: Current?
+
+        struct Current: Decodable {
+            var usAqi: Double?
+
+            enum CodingKeys: String, CodingKey {
+                case usAqi = "us_aqi"
+            }
+        }
     }
 }
 
@@ -297,6 +344,7 @@ private struct Current: Decodable {
     let weatherCode: Int?
     let isDay: Int?
     let precipitationProbability: Double?
+    let relativeHumidity2m: Double?
     let uvIndex: Double?
     let windSpeed10m: Double?
     let windDirection10m: Double?
@@ -309,6 +357,7 @@ private struct Current: Decodable {
         case weatherCode = "weather_code"
         case isDay = "is_day"
         case precipitationProbability = "precipitation_probability"
+        case relativeHumidity2m = "relative_humidity_2m"
         case uvIndex = "uv_index"
         case windSpeed10m = "wind_speed_10m"
         case windDirection10m = "wind_direction_10m"
@@ -323,7 +372,8 @@ extension WidgetConditionsSnapshot {
             uvIndex: uvIndex,
             windSpeedMph: windSpeedMph,
             windDirectionDegrees: windDirectionDegrees,
-            windGustMph: windGustMph
+            windGustMph: windGustMph,
+            humidityPercent: humidityPercent
         )
     }
 
@@ -333,6 +383,7 @@ extension WidgetConditionsSnapshot {
         copy.windSpeedMph = metrics.windSpeedMph
         copy.windDirectionDegrees = metrics.windDirectionDegrees
         copy.windGustMph = metrics.windGustMph
+        copy.humidityPercent = metrics.humidityPercent
         return copy
     }
 }

@@ -156,6 +156,7 @@ const watchSupportFiles = [
   { name: 'WatchFavoritesPayload.swift', ref: sharedIds['WatchFavoritesPayload.swift'].ref },
   { name: 'WatchAtmosphere.swift', ref: sharedIds['WatchAtmosphere.swift'].ref },
   { name: 'WatchDewPoint.swift', ref: sharedIds['WatchDewPoint.swift'].ref },
+  { name: 'WatchAQI.swift', ref: sharedIds['WatchAQI.swift'].ref },
   { name: 'WidgetHorizon.swift', ref: widgetIds['WidgetHorizon.swift'].ref },
   { name: 'WidgetRefresh.swift', ref: widgetIds['WidgetRefresh.swift'].ref },
 ];

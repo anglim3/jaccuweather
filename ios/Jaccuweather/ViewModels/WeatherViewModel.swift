@@ -1053,8 +1053,10 @@ final class WeatherViewModel {
             uvIndex: current?.number("uv_index"),
             windSpeedMph: current?.number("wind_speed_10m"),
             windDirectionDegrees: current?.number("wind_direction_10m"),
-            windGustMph: current?.number("wind_gusts_10m")
+            windGustMph: current?.number("wind_gusts_10m"),
+            humidityPercent: current?.number("relative_humidity_2m") ?? hour?.humidity
         )
+        let air = USAQIDisplay.from(current: pollen?.map("current"))
         let snapshot = WidgetConditionsSnapshot(
             locationId: String(format: "%.4f,%.4f", coordinate.latitude, coordinate.longitude),
             locationName: name,
@@ -1077,6 +1079,9 @@ final class WeatherViewModel {
             windSpeedMph: atmosphere.windSpeedMph,
             windDirectionDegrees: atmosphere.windDirectionDegrees,
             windGustMph: atmosphere.windGustMph,
+            usAqi: air.map { Double($0.value) },
+            usAqiCategory: air?.category,
+            humidityPercent: atmosphere.humidityPercent,
             dewPointF: WatchDewPoint.usable(current?.number("dewpoint_2m") ?? current?.number("dew_point_2m"))
         )
         WidgetSnapshotStore.save(snapshot)
