@@ -115,20 +115,7 @@ struct WatchGlanceView: View {
                             WatchDewChip(chip: dew, compact: metrics.foldsMetric)
                         }
                     }
-                    if !model.detailText.isEmpty {
-                        Text(model.detailText)
-                            .font(.system(size: metrics.detailSize, weight: .semibold))
-                            .foregroundStyle(WidgetHorizon.accent)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                    if model.hours.isEmpty, !model.conditionText.isEmpty {
-                        Text(model.conditionText)
-                            .font(.system(size: metrics.detailSize, weight: .medium))
-                            .foregroundStyle(WidgetHorizon.text)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
+                    detailLine(metrics)
                 }
             }
             if !metrics.foldsMetric, let aqi = aqiChip {
@@ -192,6 +179,37 @@ struct WatchGlanceView: View {
                 detail = .hour(fresh)
             }
             openLaunchHour(hours)
+        }
+    }
+
+    /// Feels-like under the temperature when it differs by at least 2°F.
+    /// Otherwise the condition occupies that same line, so a short face
+    /// does not gain a row. The condition stays a second line only when
+    /// the feels-like chip is visible and the hour strip is still empty.
+    private func detailLine(_ metrics: WatchGlanceMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let chip = model.feelsChip {
+                Text(chip.text)
+                    .font(.system(size: metrics.detailSize, weight: .semibold))
+                    .foregroundStyle(WidgetHorizon.accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(metrics.foldsMetric ? 0.5 : 0.7)
+                    .accessibilityIdentifier("watch-feels")
+                    .accessibilityLabel(chip.spoken)
+            } else if !model.detailText.isEmpty {
+                Text(model.detailText)
+                    .font(.system(size: metrics.detailSize, weight: .semibold))
+                    .foregroundStyle(WidgetHorizon.accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(metrics.foldsMetric ? 0.5 : 0.7)
+            }
+            if model.hours.isEmpty, !model.conditionText.isEmpty {
+                Text(model.conditionText)
+                    .font(.system(size: metrics.detailSize, weight: .medium))
+                    .foregroundStyle(WidgetHorizon.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(metrics.foldsMetric ? 0.5 : 0.7)
+            }
         }
     }
 

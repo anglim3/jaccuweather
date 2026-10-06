@@ -48,7 +48,15 @@ enum WatchForecastClient {
         let code = current.weatherCode ?? place.weatherCode
         var snapshot = place
         snapshot.temperatureF = current.temperature2m
-        snapshot.feelsLikeF = current.apparentTemperature ?? place.feelsLikeF
+        let nearestFeels = nearestApparent(payload.hourly, offset: offset, now: now)
+        snapshot.feelsLikeF = WatchFeelsLike.filled(
+            existingFeelsLikeF: place.feelsLikeF,
+            preferExisting: false,
+            openMeteoFeelsLikeF: WatchFeelsLike.openMeteo(
+                currentApparentF: current.apparentTemperature,
+                nearestHourApparentF: nearestFeels
+            )
+        )
         snapshot.weatherCode = code
         snapshot.isDay = isDay
         snapshot.conditionText = WidgetWeatherCode.shortText(code)
@@ -81,6 +89,15 @@ enum WatchForecastClient {
         }
         snapshot.fetchedAt = Date()
         return Reading(snapshot: snapshot, hours: hours, days: days, sun: sun.times)
+    }
+
+    /// Hourly `apparent_temperature` closest to now. Used when current omits it.
+    private static func nearestApparent(_ hourly: Hourly?, offset: Int, now: Date) -> Double? {
+        guard let hourly else { return nil }
+        let stamps = hourly.time.map { stamp in
+            WatchHourlyPlan.absoluteSeconds(localISO: stamp, utcOffsetSeconds: offset) ?? .nan
+        }
+        return WatchFeelsLike.nearestApparent(stamps: stamps, values: hourly.apparentTemperature, now: now)
     }
 
     private static func slots(_ hourly: Hourly?, offset: Int, now: Date) -> [WatchHourSlot] {

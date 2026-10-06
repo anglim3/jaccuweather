@@ -1057,13 +1057,17 @@ final class WeatherViewModel {
             humidityPercent: current?.number("relative_humidity_2m") ?? hour?.humidity
         )
         let air = USAQIDisplay.from(current: pollen?.map("current"))
+        let usAqi = air.map { Double($0.value) }
+        let dewPointF = WatchDewPoint.usable(current?.number("dewpoint_2m") ?? current?.number("dew_point_2m"))
+        let temperatureF = current?.number("temperature_2m") ?? hour?.temp
+        let feelsLikeF = current?.number("apparent_temperature") ?? hour?.feels
         let snapshot = WidgetConditionsSnapshot(
             locationId: String(format: "%.4f,%.4f", coordinate.latitude, coordinate.longitude),
             locationName: name,
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
-            temperatureF: current?.number("temperature_2m") ?? hour?.temp,
-            feelsLikeF: current?.number("apparent_temperature") ?? hour?.feels,
+            temperatureF: temperatureF,
+            feelsLikeF: feelsLikeF,
             weatherCode: code,
             isDay: isDay,
             conditionText: WidgetWeatherCode.shortText(code),
@@ -1079,10 +1083,10 @@ final class WeatherViewModel {
             windSpeedMph: atmosphere.windSpeedMph,
             windDirectionDegrees: atmosphere.windDirectionDegrees,
             windGustMph: atmosphere.windGustMph,
-            usAqi: air.map { Double($0.value) },
+            dewPointF: dewPointF,
+            usAqi: usAqi,
             usAqiCategory: air?.category,
-            humidityPercent: atmosphere.humidityPercent,
-            dewPointF: WatchDewPoint.usable(current?.number("dewpoint_2m") ?? current?.number("dew_point_2m"))
+            humidityPercent: atmosphere.humidityPercent
         )
         WidgetSnapshotStore.save(snapshot)
         WatchSessionBridge.shared.push(snapshot, alerts: alerts)
