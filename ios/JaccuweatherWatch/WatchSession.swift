@@ -78,6 +78,9 @@ final class WatchWeatherModel {
         var parts = [placeName, temperatureText]
         if !detailText.isEmpty, detailText != "Updating" { parts.append(detailText) }
         if !conditionText.isEmpty { parts.append(conditionText) }
+        if let aqi = WatchAQI.chip(usAqi: snapshot.usAqi, category: snapshot.usAqiCategory) {
+            parts.append(aqi.spoken)
+        }
         let atmosphere = snapshot.atmosphereMetrics
         if let uv = WatchAtmosphere.uvChip(atmosphere) { parts.append(uv.spoken) }
         if let wind = WatchAtmosphere.windChip(atmosphere) { parts.append(wind.spoken) }

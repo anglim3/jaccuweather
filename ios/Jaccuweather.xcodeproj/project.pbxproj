@@ -110,6 +110,7 @@
 		1CB80E49C85CA6EC974F57D6 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */; };
 		7386196DB752D033B8164907 /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
 		32BF5D4254ED97A203DB6CC8 /* WatchAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */; };
+		A7C31E90B4D25F6180E4A002 /* WatchAQI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C31E90B4D25F6180E4A001 /* WatchAQI.swift */; };
 		790DBA3F1CE249AC8491CB81 /* WidgetHorizon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E0BBB289CE66AF4B5FFD0C /* WidgetHorizon.swift */; };
 		0BB88F716CF9F9257F2B25D1 /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */; };
 		CB0226651CA34FA75FEA786A /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C40546336AC0EBDA4987D0 /* WidgetSnapshot.swift */; };
@@ -117,6 +118,7 @@
 		4B14CF587CF23E46598D6275 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */; };
 		5939C30466379ED9440486FD /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
 		7A46823B2BE86D0FE3D2639B /* WatchAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */; };
+		A7C31E90B4D25F6180E4A003 /* WatchAQI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C31E90B4D25F6180E4A001 /* WatchAQI.swift */; };
 		F09DB38C45BD12EC0C4C10BE /* WidgetHorizon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E0BBB289CE66AF4B5FFD0C /* WidgetHorizon.swift */; };
 		396ECC2A8C8201642CF9481A /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */; };
 		CE384A472CA2A63A67229074 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28B01C556BF8BAF9FCD4AD00 /* Assets.xcassets */; };
@@ -272,6 +274,7 @@
 		1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNowIntent.swift; sourceTree = "<group>"; };
 		881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAlertPayload.swift; sourceTree = "<group>"; };
 		BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAtmosphere.swift; sourceTree = "<group>"; };
+		A7C31E90B4D25F6180E4A001 /* WatchAQI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAQI.swift; sourceTree = "<group>"; };
 		9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchFavoritesPayload.swift; sourceTree = "<group>"; };
 		D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMirror.swift; sourceTree = "<group>"; };
 		F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherActivityAttributes.swift; sourceTree = "<group>"; };
@@ -413,6 +416,7 @@
 				1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */,
 				881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */,
 				BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */,
+				A7C31E90B4D25F6180E4A001 /* WatchAQI.swift */,
 				9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */,
 				D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */,
 				F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */,
@@ -811,6 +815,7 @@
 				1CB80E49C85CA6EC974F57D6 /* WatchAlertPayload.swift in Sources */,
 				7386196DB752D033B8164907 /* WatchFavoritesPayload.swift in Sources */,
 				32BF5D4254ED97A203DB6CC8 /* WatchAtmosphere.swift in Sources */,
+				A7C31E90B4D25F6180E4A002 /* WatchAQI.swift in Sources */,
 				790DBA3F1CE249AC8491CB81 /* WidgetHorizon.swift in Sources */,
 				0BB88F716CF9F9257F2B25D1 /* WidgetRefresh.swift in Sources */,
 			);
@@ -835,6 +840,7 @@
 				4B14CF587CF23E46598D6275 /* WatchAlertPayload.swift in Sources */,
 				5939C30466379ED9440486FD /* WatchFavoritesPayload.swift in Sources */,
 				7A46823B2BE86D0FE3D2639B /* WatchAtmosphere.swift in Sources */,
+				A7C31E90B4D25F6180E4A003 /* WatchAQI.swift in Sources */,
 				F09DB38C45BD12EC0C4C10BE /* WidgetHorizon.swift in Sources */,
 				396ECC2A8C8201642CF9481A /* WidgetRefresh.swift in Sources */,
 			);

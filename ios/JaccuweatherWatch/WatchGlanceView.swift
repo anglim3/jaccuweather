@@ -87,6 +87,11 @@ struct WatchGlanceView: View {
         WatchAtmosphere.glanceChips(model.snapshot.atmosphereMetrics, roomy: true)
     }
 
+    /// US AQI for the place on screen. Hidden when the reading is missing.
+    private var aqiChip: WatchAQI.Chip? {
+        WatchAQI.chip(usAqi: model.snapshot.usAqi, category: model.snapshot.usAqiCategory)
+    }
+
     private func fittedStack(_ metrics: WatchGlanceMetrics) -> some View {
         glanceStack(metrics)
             .padding(.horizontal, metrics.horizontalPadding)
@@ -119,6 +124,9 @@ struct WatchGlanceView: View {
                             .minimumScaleFactor(0.7)
                     }
                 }
+            }
+            if !metrics.foldsMetric, let aqi = aqiChip {
+                WatchAQIChip(chip: aqi, compact: false)
             }
             if metrics.foldsMetric {
                 if let sun = model.sun, sun.line != nil {
@@ -197,30 +205,49 @@ struct WatchGlanceView: View {
         #endif
     }
 
+    @ViewBuilder
     private func placeTitle(_ metrics: WatchGlanceMetrics) -> some View {
-        ZStack {
-            Text(model.placeName)
-                .font(WidgetHorizon.placeFont(size: metrics.placeSize))
-                .foregroundStyle(WidgetHorizon.muted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .padding(.horizontal, 22)
-                .accessibilityIdentifier("watch-place")
-            HStack {
-                Spacer(minLength: 0)
-                Button {
-                    showPlaces = true
-                } label: {
-                    Image(systemName: "list.bullet")
-                        .font(.system(size: metrics.placesIcon, weight: .bold))
-                        .foregroundStyle(WidgetHorizon.accent)
-                        .frame(width: metrics.placesHit, height: metrics.placesHit)
+        if metrics.foldsMetric, let aqi = aqiChip {
+            HStack(spacing: 2) {
+                WatchAQIChip(chip: aqi, compact: true)
+                    .layoutPriority(1)
+                placeName(metrics)
+                placesButton(metrics)
+            }
+        } else {
+            ZStack {
+                placeName(metrics)
+                    .padding(.horizontal, 22)
+                HStack {
+                    Spacer(minLength: 0)
+                    placesButton(metrics)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("watch-places")
-                .accessibilityLabel("Places")
             }
         }
+    }
+
+    private func placeName(_ metrics: WatchGlanceMetrics) -> some View {
+        Text(model.placeName)
+            .font(WidgetHorizon.placeFont(size: metrics.placeSize))
+            .foregroundStyle(WidgetHorizon.muted)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .frame(maxWidth: .infinity)
+            .accessibilityIdentifier("watch-place")
+    }
+
+    private func placesButton(_ metrics: WatchGlanceMetrics) -> some View {
+        Button {
+            showPlaces = true
+        } label: {
+            Image(systemName: "list.bullet")
+                .font(.system(size: metrics.placesIcon, weight: .bold))
+                .foregroundStyle(WidgetHorizon.accent)
+                .frame(width: metrics.placesHit, height: metrics.placesHit)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("watch-places")
+        .accessibilityLabel("Places")
     }
 
     private func symbol(_ metrics: WatchGlanceMetrics) -> some View {
@@ -247,6 +274,62 @@ struct WatchGlanceView: View {
                     }
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// US AQI under the temperature on a roomy face, and beside the place name on a short one.
+/// The color matches the iPhone Now and Health air-quality cards.
+struct WatchAQIChip: View {
+    var chip: WatchAQI.Chip
+    var compact: Bool
+
+    private var tint: Color { WatchAQITint.color(for: chip.colorToken) }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Circle()
+                .fill(tint)
+                .frame(width: compact ? 5 : 6, height: compact ? 5 : 6)
+                .accessibilityHidden(true)
+            Text(chip.text)
+            Text(chip.shortWord)
+        }
+        .font(.system(size: compact ? 9 : 11, weight: .semibold))
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .padding(.horizontal, compact ? 4 : 6)
+        .padding(.vertical, compact ? 1 : 2)
+        .background {
+            Capsule(style: .continuous)
+                .fill(WidgetHorizon.glassStrong)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(tint.opacity(0.55), lineWidth: 1)
+                }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier("watch-aqi")
+        .accessibilityLabel(chip.spoken)
+    }
+}
+
+enum WatchAQITint {
+    static func color(for token: String) -> Color {
+        switch token {
+        case "green":
+            return Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)
+        case "yellow":
+            return Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)
+        case "orange":
+            return Color(red: 251 / 255, green: 146 / 255, blue: 60 / 255)
+        case "red":
+            return Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)
+        case "purple":
+            return Color(red: 192 / 255, green: 132 / 255, blue: 252 / 255)
+        default:
+            return Color(red: 220 / 255, green: 38 / 255, blue: 38 / 255)
+        }
     }
 }
 

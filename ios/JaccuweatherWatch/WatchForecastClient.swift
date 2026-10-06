@@ -166,6 +166,46 @@ enum WatchForecastClient {
     }
 }
 
+/// Current US AQI from the public Open-Meteo air-quality API.
+/// The same host the iPhone uses for `us_aqi`. A missing or failed response stays nil.
+enum WatchAirQualityClient {
+    static func current(latitude: Double, longitude: Double) async -> Double? {
+        guard let url = url(latitude: latitude, longitude: longitude) else { return nil }
+        var request = URLRequest(url: url, timeoutInterval: 12)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
+            let payload = try JSONDecoder().decode(Payload.self, from: data)
+            return payload.current?.usAqi
+        } catch {
+            return nil
+        }
+    }
+
+    private static func url(latitude: Double, longitude: Double) -> URL? {
+        var components = URLComponents(string: "https://air-quality-api.open-meteo.com/v1/air-quality")
+        components?.queryItems = [
+            URLQueryItem(name: "latitude", value: String(latitude)),
+            URLQueryItem(name: "longitude", value: String(longitude)),
+            URLQueryItem(name: "current", value: "us_aqi")
+        ]
+        return components?.url
+    }
+
+    private struct Payload: Decodable {
+        var current: Current?
+
+        struct Current: Decodable {
+            var usAqi: Double?
+
+            enum CodingKeys: String, CodingKey {
+                case usAqi = "us_aqi"
+            }
+        }
+    }
+}
+
 enum WatchHourCache {
     private static let key = "jaccuweather.watch.hours"
 
