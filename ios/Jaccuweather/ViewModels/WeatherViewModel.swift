@@ -1081,7 +1081,8 @@ final class WeatherViewModel {
             windGustMph: atmosphere.windGustMph,
             usAqi: air.map { Double($0.value) },
             usAqiCategory: air?.category,
-            humidityPercent: atmosphere.humidityPercent
+            humidityPercent: atmosphere.humidityPercent,
+            dewPointF: WatchDewPoint.usable(current?.number("dewpoint_2m") ?? current?.number("dew_point_2m"))
         )
         WidgetSnapshotStore.save(snapshot)
         WatchSessionBridge.shared.push(snapshot, alerts: alerts)

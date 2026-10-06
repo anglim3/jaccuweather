@@ -104,11 +104,17 @@ struct WatchGlanceView: View {
             HStack(alignment: .center, spacing: 6) {
                 symbol(metrics)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(model.temperatureText)
-                        .font(WidgetHorizon.tempFont(size: metrics.tempSize))
-                        .foregroundStyle(WidgetHorizon.text)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                    HStack(alignment: .center, spacing: 4) {
+                        Text(model.temperatureText)
+                            .font(WidgetHorizon.tempFont(size: metrics.tempSize))
+                            .foregroundStyle(WidgetHorizon.text)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                            .layoutPriority(1)
+                        if let dew = WatchDewPoint.chip(fahrenheit: model.snapshot.dewPointF) {
+                            WatchDewChip(chip: dew, compact: metrics.foldsMetric)
+                        }
+                    }
                     if !model.detailText.isEmpty {
                         Text(model.detailText)
                             .font(.system(size: metrics.detailSize, weight: .semibold))
@@ -311,6 +317,34 @@ struct WatchAQIChip: View {
         .accessibilityElement(children: .ignore)
         .accessibilityIdentifier("watch-aqi")
         .accessibilityLabel(chip.spoken)
+    }
+}
+
+/// Dew point beside the temperature. Hidden when the reading is missing.
+/// Stays off the sunrise line, which keeps wind and UV.
+struct WatchDewChip: View {
+    var chip: WatchDewPoint.Chip
+    var compact: Bool
+
+    var body: some View {
+        Text(chip.text)
+            .font(.system(size: compact ? 9 : 11, weight: .semibold))
+            .foregroundStyle(WidgetHorizon.text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.horizontal, compact ? 4 : 5)
+            .padding(.vertical, compact ? 1 : 2)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(WidgetHorizon.glassStrong)
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1)
+                    }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier("watch-dew")
+            .accessibilityLabel(chip.spoken)
     }
 }
 

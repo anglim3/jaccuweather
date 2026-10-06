@@ -76,6 +76,9 @@ final class WatchWeatherModel {
 
     var accessibilityLabel: String {
         var parts = [placeName, temperatureText]
+        if let dew = WatchDewPoint.chip(fahrenheit: snapshot.dewPointF) {
+            parts.append(dew.spoken)
+        }
         if !detailText.isEmpty, detailText != "Updating" { parts.append(detailText) }
         if !conditionText.isEmpty { parts.append(conditionText) }
         if let aqi = WatchAQI.chip(usAqi: snapshot.usAqi, category: snapshot.usAqiCategory) {

@@ -58,6 +58,7 @@
 		1DFF93E6978AAD68061E29CF /* OpenNowIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */; };
 		508EFD184C6E3DBB0DF462F4 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */; };
 		9FFCF51AF7AC7E918B513732 /* WatchAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */; };
+		E96C7F84F8C1208F5F3D277D /* WatchDewPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62705C75262C02245B9D8FEC /* WatchDewPoint.swift */; };
 		F6DF8DE6F0740036E5C49A9A /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
 		0CDDD9FA787F9B967DA896DF /* WatchMirror.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */; };
 		5EEFE05E21BF2DBE96D94601 /* WeatherActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */; };
@@ -67,6 +68,7 @@
 		E2769EA84DBE6A6A41E1E71F /* OpenNowIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */; };
 		9DA1EC2B7ABBF74DB131AEB5 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */; };
 		D60156FB0E970A6B582EC6A2 /* WatchAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */; };
+		2879262B55B1E667208E45A0 /* WatchDewPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62705C75262C02245B9D8FEC /* WatchDewPoint.swift */; };
 		813535D72134E86F851BC1DE /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
 		B1D8D8E50B2F952C948842BA /* WatchMirror.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */; };
 		0D521042819354B183008F5A /* WeatherActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9246E628F7696A967711FCC /* WeatherActivityAttributes.swift */; };
@@ -110,6 +112,7 @@
 		1CB80E49C85CA6EC974F57D6 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */; };
 		7386196DB752D033B8164907 /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
 		32BF5D4254ED97A203DB6CC8 /* WatchAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */; };
+		10D63C281FD0DB8C00FC8E6E /* WatchDewPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62705C75262C02245B9D8FEC /* WatchDewPoint.swift */; };
 		A7C31E90B4D25F6180E4A002 /* WatchAQI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C31E90B4D25F6180E4A001 /* WatchAQI.swift */; };
 		790DBA3F1CE249AC8491CB81 /* WidgetHorizon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E0BBB289CE66AF4B5FFD0C /* WidgetHorizon.swift */; };
 		0BB88F716CF9F9257F2B25D1 /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */; };
@@ -118,6 +121,7 @@
 		4B14CF587CF23E46598D6275 /* WatchAlertPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */; };
 		5939C30466379ED9440486FD /* WatchFavoritesPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */; };
 		7A46823B2BE86D0FE3D2639B /* WatchAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */; };
+		29445906BAE396F2BB7641F9 /* WatchDewPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62705C75262C02245B9D8FEC /* WatchDewPoint.swift */; };
 		A7C31E90B4D25F6180E4A003 /* WatchAQI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C31E90B4D25F6180E4A001 /* WatchAQI.swift */; };
 		F09DB38C45BD12EC0C4C10BE /* WidgetHorizon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E0BBB289CE66AF4B5FFD0C /* WidgetHorizon.swift */; };
 		396ECC2A8C8201642CF9481A /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EF3E369E749B76472A8AAC /* WidgetRefresh.swift */; };
@@ -274,6 +278,7 @@
 		1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNowIntent.swift; sourceTree = "<group>"; };
 		881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAlertPayload.swift; sourceTree = "<group>"; };
 		BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAtmosphere.swift; sourceTree = "<group>"; };
+		62705C75262C02245B9D8FEC /* WatchDewPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDewPoint.swift; sourceTree = "<group>"; };
 		A7C31E90B4D25F6180E4A001 /* WatchAQI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAQI.swift; sourceTree = "<group>"; };
 		9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchFavoritesPayload.swift; sourceTree = "<group>"; };
 		D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMirror.swift; sourceTree = "<group>"; };
@@ -416,6 +421,7 @@
 				1A2B1A1C2F1C3851654C8B88 /* OpenNowIntent.swift */,
 				881698EDDA738279E6E7FB90 /* WatchAlertPayload.swift */,
 				BE00FB9E37010A4651D8797C /* WatchAtmosphere.swift */,
+				62705C75262C02245B9D8FEC /* WatchDewPoint.swift */,
 				A7C31E90B4D25F6180E4A001 /* WatchAQI.swift */,
 				9EF4D29527EA04952F3DA084 /* WatchFavoritesPayload.swift */,
 				D86418B080BE5EF579DFA1D0 /* WatchMirror.swift */,
@@ -759,6 +765,7 @@
 				1DFF93E6978AAD68061E29CF /* OpenNowIntent.swift in Sources */,
 				508EFD184C6E3DBB0DF462F4 /* WatchAlertPayload.swift in Sources */,
 				9FFCF51AF7AC7E918B513732 /* WatchAtmosphere.swift in Sources */,
+				E96C7F84F8C1208F5F3D277D /* WatchDewPoint.swift in Sources */,
 				F6DF8DE6F0740036E5C49A9A /* WatchFavoritesPayload.swift in Sources */,
 				0CDDD9FA787F9B967DA896DF /* WatchMirror.swift in Sources */,
 				5EEFE05E21BF2DBE96D94601 /* WeatherActivityAttributes.swift in Sources */,
@@ -781,6 +788,7 @@
 				E2769EA84DBE6A6A41E1E71F /* OpenNowIntent.swift in Sources */,
 				9DA1EC2B7ABBF74DB131AEB5 /* WatchAlertPayload.swift in Sources */,
 				D60156FB0E970A6B582EC6A2 /* WatchAtmosphere.swift in Sources */,
+				2879262B55B1E667208E45A0 /* WatchDewPoint.swift in Sources */,
 				813535D72134E86F851BC1DE /* WatchFavoritesPayload.swift in Sources */,
 				B1D8D8E50B2F952C948842BA /* WatchMirror.swift in Sources */,
 				0D521042819354B183008F5A /* WeatherActivityAttributes.swift in Sources */,
@@ -815,6 +823,7 @@
 				1CB80E49C85CA6EC974F57D6 /* WatchAlertPayload.swift in Sources */,
 				7386196DB752D033B8164907 /* WatchFavoritesPayload.swift in Sources */,
 				32BF5D4254ED97A203DB6CC8 /* WatchAtmosphere.swift in Sources */,
+				10D63C281FD0DB8C00FC8E6E /* WatchDewPoint.swift in Sources */,
 				A7C31E90B4D25F6180E4A002 /* WatchAQI.swift in Sources */,
 				790DBA3F1CE249AC8491CB81 /* WidgetHorizon.swift in Sources */,
 				0BB88F716CF9F9257F2B25D1 /* WidgetRefresh.swift in Sources */,
@@ -840,6 +849,7 @@
 				4B14CF587CF23E46598D6275 /* WatchAlertPayload.swift in Sources */,
 				5939C30466379ED9440486FD /* WatchFavoritesPayload.swift in Sources */,
 				7A46823B2BE86D0FE3D2639B /* WatchAtmosphere.swift in Sources */,
+				29445906BAE396F2BB7641F9 /* WatchDewPoint.swift in Sources */,
 				A7C31E90B4D25F6180E4A003 /* WatchAQI.swift in Sources */,
 				F09DB38C45BD12EC0C4C10BE /* WidgetHorizon.swift in Sources */,
 				396ECC2A8C8201642CF9481A /* WidgetRefresh.swift in Sources */,

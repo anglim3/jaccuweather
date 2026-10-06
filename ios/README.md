@@ -86,6 +86,8 @@ Open the `JaccuweatherWatch` scheme and pick a watchOS Simulator to run the glan
 
 Signing stays Automatic. The committed project leaves `DEVELOPMENT_TEAM` empty — pick your Personal Team locally in Xcode. Do not commit a team id.
 
+The temperature row shows a dew point chip, such as Dew 52°, when that reading is usable. VoiceOver says “Dew point 52 degrees”. The chip stays beside the temperature, off the sunrise line, so wind and UV keep that line. A fresh phone snapshot may include `dewPointF` from the current `dewpoint_2m` in Fahrenheit. When that value is missing, or the phone reading is older than about 40 minutes, the watch fills it from Open-Meteo `dew_point_2m` on the same forecast `current` request. A missing or unusable value hides the chip. Complications stay temperature and condition.
+
 ### Optional pollen keys (never commit)
 
 Without keys, pollen uses **Open-Meteo** (same fallback as the Worker when secrets are missing). That path must keep working with blank `Secrets.xcconfig`.

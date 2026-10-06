@@ -31,6 +31,9 @@ struct WidgetConditionsSnapshot: Codable, Equatable {
     var windDirectionDegrees: Double? = nil
     /// Open-Meteo `wind_gusts_10m` in miles per hour, when the forecast has one.
     var windGustMph: Double? = nil
+    /// Dew point in Fahrenheit. The phone copies current `dewpoint_2m`.
+    /// Missing on older snapshots. The Watch fills it from the forecast when absent.
+    var dewPointF: Double? = nil
     /// US AQI for the place on screen. Nil when air quality was not loaded.
     /// The Watch fills it from Open-Meteo when a fresh phone snapshot omits it.
     var usAqi: Double? = nil
