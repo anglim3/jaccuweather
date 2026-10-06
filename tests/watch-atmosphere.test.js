@@ -9,7 +9,7 @@ const sources = [
   'tests/watch-atmosphere-check.swift',
 ];
 
-test('watch uv and wind follow the now-tab fields', () => {
+test('watch uv, wind, and humidity follow the now-tab fields', () => {
   const binary = path.join('/tmp', 'watch-atmosphere-check');
   const sdk = execFileSync('xcrun', ['--sdk', 'macosx', '--show-sdk-path'], { encoding: 'utf8' }).trim();
   execFileSync('xcrun', ['swiftc', '-sdk', sdk, '-o', binary, ...sources], { cwd: root, stdio: 'pipe' });

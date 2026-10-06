@@ -29,7 +29,7 @@ enum WatchForecastClient {
         components?.queryItems = [
             URLQueryItem(name: "latitude", value: String(place.latitude)),
             URLQueryItem(name: "longitude", value: String(place.longitude)),
-            URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m"),
+            URLQueryItem(name: "current", value: "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,precipitation_probability,uv_index,wind_speed_10m,wind_direction_10m,wind_gusts_10m"),
             URLQueryItem(name: "hourly", value: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code,precipitation,rain,snowfall,wind_speed_10m,uv_index,is_day"),
             URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,rain_sum,snowfall_sum,uv_index_max,sunrise,sunset"),
             URLQueryItem(name: "forecast_days", value: "8"),
@@ -56,14 +56,15 @@ enum WatchForecastClient {
         if let chance = current.precipitationProbability {
             snapshot.precipChance = Int(chance.rounded())
         }
+        let hours = slots(payload.hourly, offset: offset, now: now)
         let atmosphere = WatchAtmosphere.metrics(
             uvIndex: current.uvIndex,
             windSpeedMph: current.windSpeed10m,
             windDirectionDegrees: current.windDirection10m,
-            windGustMph: current.windGusts10m
+            windGustMph: current.windGusts10m,
+            humidityPercent: humidityPercent(current.relativeHumidity2m, hour: hours.first?.humidity)
         )
         snapshot = snapshot.applyingAtmosphere(atmosphere)
-        let hours = slots(payload.hourly, offset: offset, now: now)
         let days = daySlots(payload.daily, offset: offset, now: now)
         let sun = sunMatch(payload.daily, offset: offset, now: now)
         snapshot.sunriseISO = sun.sunriseISO
@@ -156,6 +157,12 @@ enum WatchForecastClient {
         guard let series, series.indices.contains(index) else { return nil }
         let trimmed = series[index]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// Current `relative_humidity_2m` when it is present, otherwise the hour that contains now.
+    private static func humidityPercent(_ current: Double?, hour: Int?) -> Double? {
+        if let current, current.isFinite, current >= 0 { return current }
+        return hour.map(Double.init)
     }
 }
 
@@ -296,6 +303,7 @@ private struct Current: Decodable {
     let weatherCode: Int?
     let isDay: Int?
     let precipitationProbability: Double?
+    let relativeHumidity2m: Double?
     let uvIndex: Double?
     let windSpeed10m: Double?
     let windDirection10m: Double?
@@ -307,6 +315,7 @@ private struct Current: Decodable {
         case weatherCode = "weather_code"
         case isDay = "is_day"
         case precipitationProbability = "precipitation_probability"
+        case relativeHumidity2m = "relative_humidity_2m"
         case uvIndex = "uv_index"
         case windSpeed10m = "wind_speed_10m"
         case windDirection10m = "wind_direction_10m"
@@ -320,7 +329,8 @@ extension WidgetConditionsSnapshot {
             uvIndex: uvIndex,
             windSpeedMph: windSpeedMph,
             windDirectionDegrees: windDirectionDegrees,
-            windGustMph: windGustMph
+            windGustMph: windGustMph,
+            humidityPercent: humidityPercent
         )
     }
 
@@ -330,6 +340,7 @@ extension WidgetConditionsSnapshot {
         copy.windSpeedMph = metrics.windSpeedMph
         copy.windDirectionDegrees = metrics.windDirectionDegrees
         copy.windGustMph = metrics.windGustMph
+        copy.humidityPercent = metrics.humidityPercent
         return copy
     }
 }
