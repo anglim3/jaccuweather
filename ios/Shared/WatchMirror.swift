@@ -39,7 +39,8 @@ enum WatchMirror {
         uvIndex: 3,
         windSpeedMph: 8,
         windDirectionDegrees: 220,
-        windGustMph: 14
+        windGustMph: 14,
+        humidityPercent: 64
     )
 
     static func samePlace(_ lhs: WidgetConditionsSnapshot, _ rhs: WidgetConditionsSnapshot) -> Bool {

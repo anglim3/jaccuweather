@@ -90,14 +90,17 @@ func run() {
 
     check(!WatchAtmosphere.isComplete(uvOnly), "uv without wind is incomplete")
     check(!WatchAtmosphere.isComplete(speedOnly), "wind without uv is incomplete")
-    check(WatchAtmosphere.isComplete(WatchAtmosphere.metrics(uvIndex: 0, windSpeedMph: 0, windDirectionDegrees: nil, windGustMph: nil)), "zero uv and calm wind count as a reading")
-    check(WatchAtmosphere.isComplete(WatchAtmosphere.metrics(uvIndex: 1, windSpeedMph: nil, windDirectionDegrees: 10, windGustMph: 5)), "a gust completes the wind side")
+    check(WatchAtmosphere.isComplete(WatchAtmosphere.metrics(uvIndex: 0, windSpeedMph: 0, windDirectionDegrees: nil, windGustMph: nil, humidityPercent: 0)), "zero uv, calm wind, and 0% humidity count as a reading")
+    check(WatchAtmosphere.isComplete(WatchAtmosphere.metrics(uvIndex: 1, windSpeedMph: nil, windDirectionDegrees: 10, windGustMph: 5, humidityPercent: 40)), "a gust completes the wind side")
+    check(!WatchAtmosphere.isComplete(WatchAtmosphere.metrics(uvIndex: 1, windSpeedMph: 5, windDirectionDegrees: nil, windGustMph: nil)), "humidity is required before the glance stops filling")
 
-    let phone = WatchAtmosphere.metrics(uvIndex: 4, windSpeedMph: 10, windDirectionDegrees: nil, windGustMph: nil)
-    let fetched = WatchAtmosphere.metrics(uvIndex: 5, windSpeedMph: 11, windDirectionDegrees: 200, windGustMph: 16)
+    let phone = WatchAtmosphere.metrics(uvIndex: 4, windSpeedMph: 10, windDirectionDegrees: nil, windGustMph: nil, humidityPercent: 61)
+    let fetched = WatchAtmosphere.metrics(uvIndex: 5, windSpeedMph: 11, windDirectionDegrees: 200, windGustMph: 16, humidityPercent: 70)
     let merged = WatchAtmosphere.preferringExisting(phone, fill: fetched)
-    check(merged.uvIndex == 4 && merged.windSpeedMph == 10, "a phone reading wins")
+    check(merged.uvIndex == 4 && merged.windSpeedMph == 10 && merged.humidityPercent == 61, "a phone reading wins")
     check(merged.windDirectionDegrees == 200 && merged.windGustMph == 16, "open-meteo fills the fields the phone left empty")
+    let phoneWithoutHumidity = WatchAtmosphere.metrics(uvIndex: 4, windSpeedMph: 10, windDirectionDegrees: nil, windGustMph: nil)
+    check(WatchAtmosphere.preferringExisting(phoneWithoutHumidity, fill: fetched).humidityPercent == 70, "open-meteo fills a missing humidity")
     check(WatchAtmosphere.preferringExisting(.empty, fill: fetched) == fetched, "an empty phone reading takes the forecast")
 
     let json = """
@@ -128,6 +131,58 @@ func run() {
     check(cleaned.windGustMph == 4, "a numeric gust remains")
     noisy["wind_speed_10m"] = 7
     check(WatchAtmosphere.metrics(fromCurrent: noisy).windSpeedMph == 7, "an int speed is accepted")
+
+    let damp = WatchAtmosphere.metrics(uvIndex: 4, windSpeedMph: 12.4, windDirectionDegrees: 315, windGustMph: 20.2, humidityPercent: 62.4)
+    let humidity = WatchAtmosphere.humidityLine(damp)
+    check(humidity?.text == "62%", "humidity displays as a rounded percent")
+    check(humidity?.spoken == "Humidity 62 percent", "voiceover names the humidity percent")
+    check(humidity?.identifier == "watch-humidity", "humidity identifier")
+    check(humidity?.symbolName == WatchAtmosphere.humiditySymbol, "humidity uses the drop symbol")
+    check(WatchAtmosphere.humiditySymbol == "drop.fill", "the drop is the humidity symbol")
+    check(WatchAtmosphere.glanceLine(damp)?.identifier == "watch-wind", "one metric prefers wind over humidity")
+    check(WatchAtmosphere.glanceLine(damp)?.spoken == "Wind 12 miles per hour, from NW, gust 20", "the single wind metric still speaks the gust")
+    let shortFace = WatchAtmosphere.glanceChips(damp, roomy: false)
+    check(shortFace.map(\.identifier) == ["watch-wind", "watch-humidity"], "a short face shows wind and humidity")
+    check(shortFace.first?.text == "12 mph", "a short face drops the compass when humidity shares the line")
+    check(shortFace.first?.spoken == "Wind 12 miles per hour, from NW, gust 20", "voiceover still speaks direction and gust")
+    check(shortFace.last?.text == "62%" && shortFace.last?.spoken == "Humidity 62 percent", "the short face speaks humidity")
+    let roomy = WatchAtmosphere.glanceChips(damp, roomy: true)
+    check(roomy.map(\.identifier) == ["watch-wind", "watch-humidity"], "a roomy face shows wind and humidity")
+    check(roomy.first?.text == "12 mph NW", "a roomy face keeps the compass")
+    check(roomy.last?.spoken == "Humidity 62 percent", "a roomy face speaks humidity")
+    check(WatchAtmosphere.detailLine(damp) == "UV 4 · 12 mph NW · G20", "complications stay off humidity")
+    check(WatchAtmosphere.circularToken(damp) == "12 mph", "the circular token stays the wind speed")
+
+    let humidCalm = WatchAtmosphere.metrics(uvIndex: 9.2, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil, humidityPercent: 48)
+    check(WatchAtmosphere.glanceLine(humidCalm)?.identifier == "watch-humidity", "one metric prefers humidity over uv")
+    check(WatchAtmosphere.glanceLine(humidCalm)?.text == "48%", "humidity is the single metric when wind is missing")
+    check(WatchAtmosphere.glanceChips(humidCalm, roomy: false).map(\.identifier) == ["watch-humidity"], "a short face yields uv to humidity")
+    check(WatchAtmosphere.glanceChips(humidCalm, roomy: true).map(\.identifier) == ["watch-uv", "watch-humidity"], "a roomy face keeps uv beside humidity")
+
+    let onlyHumidity = WatchAtmosphere.metrics(uvIndex: nil, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil, humidityPercent: 100)
+    check(WatchAtmosphere.humidityLine(onlyHumidity)?.text == "100%", "100 percent stays")
+    check(WatchAtmosphere.glanceLine(onlyHumidity)?.spoken == "Humidity 100 percent", "humidity alone is spoken")
+    check(WatchAtmosphere.glanceChips(WatchAtmosphere.metrics(uvIndex: nil, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil, humidityPercent: 0), roomy: false).first?.text == "0%", "0 percent still shows")
+    check(WatchAtmosphere.metrics(uvIndex: 2, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil, humidityPercent: -1).humidityPercent == nil, "negative humidity stays empty")
+    check(WatchAtmosphere.humidityLine(WatchAtmosphere.metrics(uvIndex: nil, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil, humidityPercent: .infinity)) == nil, "non-finite humidity stays hidden")
+    check(WatchAtmosphere.glanceLine(uvOnly)?.identifier == "watch-uv", "uv remains when humidity is missing")
+
+    let humidJSON = """
+    {"uv_index":1,"wind_speed_10m":3,"relative_humidity_2m":62.4}
+    """.data(using: .utf8)!
+    let humidObject = try! JSONSerialization.jsonObject(with: humidJSON) as! [String: Any]
+    check(WatchAtmosphere.metrics(fromCurrent: humidObject).humidityPercent == 62.4, "parses relative_humidity_2m")
+    let zeroJSON = """
+    {"relative_humidity_2m":0}
+    """.data(using: .utf8)!
+    let zeroObject = try! JSONSerialization.jsonObject(with: zeroJSON) as! [String: Any]
+    check(WatchAtmosphere.metrics(fromCurrent: zeroObject).humidityPercent == 0, "zero humidity is a reading")
+    let nullHumidity = """
+    {"relative_humidity_2m":null}
+    """.data(using: .utf8)!
+    let nullHumidityObject = try! JSONSerialization.jsonObject(with: nullHumidity) as! [String: Any]
+    check(WatchAtmosphere.metrics(fromCurrent: nullHumidityObject).humidityPercent == nil, "null humidity stays empty")
+    check(gust.humidityPercent == nil, "a payload without humidity stays empty")
 
     print("ok")
 }

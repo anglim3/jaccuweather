@@ -77,9 +77,19 @@ struct WatchGlanceView: View {
         WKInterfaceDevice.current().screenBounds.height >= 240 ? .regular : .compact
     }
 
-    /// Wind when the forecast has a speed or gust, otherwise UV. Gusts stay spoken.
-    private var glanceMetric: WatchAtmosphere.GlanceLine? {
-        WatchAtmosphere.glanceLine(model.snapshot.atmosphereMetrics)
+    /// Short face: wind and humidity on the sun line. UV only when both are missing.
+    private var compactChips: [WatchAtmosphere.GlanceLine] {
+        WatchAtmosphere.glanceChips(model.snapshot.atmosphereMetrics, roomy: false)
+    }
+
+    /// Roomy face: wind or UV, with humidity beside it when the forecast has it.
+    private var roomyChips: [WatchAtmosphere.GlanceLine] {
+        WatchAtmosphere.glanceChips(model.snapshot.atmosphereMetrics, roomy: true)
+    }
+
+    /// US AQI for the place on screen. Hidden when the reading is missing.
+    private var aqiChip: WatchAQI.Chip? {
+        WatchAQI.chip(usAqi: model.snapshot.usAqi, category: model.snapshot.usAqiCategory)
     }
 
     private func fittedStack(_ metrics: WatchGlanceMetrics) -> some View {
@@ -94,26 +104,35 @@ struct WatchGlanceView: View {
             HStack(alignment: .center, spacing: 6) {
                 symbol(metrics)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(model.temperatureText)
-                        .font(WidgetHorizon.tempFont(size: metrics.tempSize))
-                        .foregroundStyle(WidgetHorizon.text)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                    HStack(alignment: .center, spacing: 4) {
+                        Text(model.temperatureText)
+                            .font(WidgetHorizon.tempFont(size: metrics.tempSize))
+                            .foregroundStyle(WidgetHorizon.text)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                            .layoutPriority(1)
+                        if let dew = WatchDewPoint.chip(fahrenheit: model.snapshot.dewPointF) {
+                            WatchDewChip(chip: dew, compact: metrics.foldsMetric)
+                        }
+                    }
                     detailLine(metrics)
                 }
             }
+            if !metrics.foldsMetric, let aqi = aqiChip {
+                WatchAQIChip(chip: aqi, compact: false)
+            }
             if metrics.foldsMetric {
                 if let sun = model.sun, sun.line != nil {
-                    WatchSunRow(sun: sun, size: metrics.sunSize, metric: glanceMetric)
-                } else if let metric = glanceMetric {
-                    WatchMetricLine(metric: metric, size: metrics.sunSize)
+                    WatchSunRow(sun: sun, size: metrics.sunSize, chips: compactChips)
+                } else if !compactChips.isEmpty {
+                    WatchAtmosphereChips(chips: compactChips, size: metrics.sunSize)
                 }
             } else {
                 if let sun = model.sun, sun.line != nil {
                     WatchSunRow(sun: sun, size: metrics.sunSize)
                 }
-                if let metric = glanceMetric {
-                    WatchMetricLine(metric: metric, size: metrics.sunSize)
+                if !roomyChips.isEmpty {
+                    WatchAtmosphereChips(chips: roomyChips, size: metrics.sunSize)
                 }
             }
             if let alert = model.alert {
@@ -210,30 +229,49 @@ struct WatchGlanceView: View {
         #endif
     }
 
+    @ViewBuilder
     private func placeTitle(_ metrics: WatchGlanceMetrics) -> some View {
-        ZStack {
-            Text(model.placeName)
-                .font(WidgetHorizon.placeFont(size: metrics.placeSize))
-                .foregroundStyle(WidgetHorizon.muted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .padding(.horizontal, 22)
-                .accessibilityIdentifier("watch-place")
-            HStack {
-                Spacer(minLength: 0)
-                Button {
-                    showPlaces = true
-                } label: {
-                    Image(systemName: "list.bullet")
-                        .font(.system(size: metrics.placesIcon, weight: .bold))
-                        .foregroundStyle(WidgetHorizon.accent)
-                        .frame(width: metrics.placesHit, height: metrics.placesHit)
+        if metrics.foldsMetric, let aqi = aqiChip {
+            HStack(spacing: 2) {
+                WatchAQIChip(chip: aqi, compact: true)
+                    .layoutPriority(1)
+                placeName(metrics)
+                placesButton(metrics)
+            }
+        } else {
+            ZStack {
+                placeName(metrics)
+                    .padding(.horizontal, 22)
+                HStack {
+                    Spacer(minLength: 0)
+                    placesButton(metrics)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("watch-places")
-                .accessibilityLabel("Places")
             }
         }
+    }
+
+    private func placeName(_ metrics: WatchGlanceMetrics) -> some View {
+        Text(model.placeName)
+            .font(WidgetHorizon.placeFont(size: metrics.placeSize))
+            .foregroundStyle(WidgetHorizon.muted)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .frame(maxWidth: .infinity)
+            .accessibilityIdentifier("watch-place")
+    }
+
+    private func placesButton(_ metrics: WatchGlanceMetrics) -> some View {
+        Button {
+            showPlaces = true
+        } label: {
+            Image(systemName: "list.bullet")
+                .font(.system(size: metrics.placesIcon, weight: .bold))
+                .foregroundStyle(WidgetHorizon.accent)
+                .frame(width: metrics.placesHit, height: metrics.placesHit)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("watch-places")
+        .accessibilityLabel("Places")
     }
 
     private func symbol(_ metrics: WatchGlanceMetrics) -> some View {
@@ -263,77 +301,193 @@ struct WatchGlanceView: View {
     }
 }
 
-/// Today's sunrise and sunset under the temperature.
-/// On a short watch the wind or UV metric shares this line.
-struct WatchSunRow: View {
-    var sun: WatchSunTimes
-    var size: CGFloat = 12
-    var metric: WatchAtmosphere.GlanceLine? = nil
+/// US AQI under the temperature on a roomy face, and beside the place name on a short one.
+/// The color matches the iPhone Now and Health air-quality cards.
+struct WatchAQIChip: View {
+    var chip: WatchAQI.Chip
+    var compact: Bool
+
+    private var tint: Color { WatchAQITint.color(for: chip.colorToken) }
 
     var body: some View {
         HStack(spacing: 3) {
-            if let rise = sun.sunriseLabel {
-                Text("↑")
-                    .foregroundStyle(WidgetHorizon.gold)
-                Text(rise)
-                    .foregroundStyle(WidgetHorizon.text)
-            }
-            if sun.sunriseLabel != nil, sun.sunsetLabel != nil {
-                Text("·")
-                    .foregroundStyle(WidgetHorizon.faint)
-            }
-            if let set = sun.sunsetLabel {
-                Text("↓")
-                    .foregroundStyle(WidgetHorizon.gold)
-                Text(set)
-                    .foregroundStyle(WidgetHorizon.text)
-            }
-            if let metric {
-                if sun.line != nil {
-                    Text("·")
-                        .foregroundStyle(WidgetHorizon.faint)
-                }
-                Text(metric.text)
-                    .foregroundStyle(WidgetHorizon.muted)
-            }
+            Circle()
+                .fill(tint)
+                .frame(width: compact ? 5 : 6, height: compact ? 5 : 6)
+                .accessibilityHidden(true)
+            Text(chip.text)
+            Text(chip.shortWord)
         }
-        .font(.system(size: size, weight: .semibold))
-        .monospacedDigit()
+        .font(.system(size: compact ? 9 : 11, weight: .semibold))
+        .foregroundStyle(tint)
         .lineLimit(1)
-        .minimumScaleFactor(0.55)
-        .frame(maxWidth: .infinity)
+        .minimumScaleFactor(0.6)
+        .padding(.horizontal, compact ? 4 : 6)
+        .padding(.vertical, compact ? 1 : 2)
+        .background {
+            Capsule(style: .continuous)
+                .fill(WidgetHorizon.glassStrong)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(tint.opacity(0.55), lineWidth: 1)
+                }
+        }
         .accessibilityElement(children: .ignore)
-        .accessibilityIdentifier("watch-sun")
-        .accessibilityLabel(spoken)
-    }
-
-    private var spoken: String {
-        guard let metric else { return sun.spoken }
-        if sun.spoken.isEmpty { return metric.spoken }
-        return "\(sun.spoken), \(metric.spoken)"
+        .accessibilityIdentifier("watch-aqi")
+        .accessibilityLabel(chip.spoken)
     }
 }
 
-/// Wind or UV under the sun line. One string, no icon and no gust.
-struct WatchMetricLine: View {
-    var metric: WatchAtmosphere.GlanceLine
+/// Dew point beside the temperature. Hidden when the reading is missing.
+/// Stays off the sunrise line, which keeps wind and UV.
+struct WatchDewChip: View {
+    var chip: WatchDewPoint.Chip
+    var compact: Bool
+
+    var body: some View {
+        Text(chip.text)
+            .font(.system(size: compact ? 9 : 11, weight: .semibold))
+            .foregroundStyle(WidgetHorizon.text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.horizontal, compact ? 4 : 5)
+            .padding(.vertical, compact ? 1 : 2)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(WidgetHorizon.glassStrong)
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1)
+                    }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier("watch-dew")
+            .accessibilityLabel(chip.spoken)
+    }
+}
+
+enum WatchAQITint {
+    static func color(for token: String) -> Color {
+        switch token {
+        case "green":
+            return Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)
+        case "yellow":
+            return Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)
+        case "orange":
+            return Color(red: 251 / 255, green: 146 / 255, blue: 60 / 255)
+        case "red":
+            return Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)
+        case "purple":
+            return Color(red: 192 / 255, green: 132 / 255, blue: 252 / 255)
+        default:
+            return Color(red: 220 / 255, green: 38 / 255, blue: 38 / 255)
+        }
+    }
+}
+
+/// Today's sunrise and sunset under the temperature.
+/// On a short watch, wind and humidity share this line and scale together.
+struct WatchSunRow: View {
+    var sun: WatchSunTimes
+    var size: CGFloat = 12
+    var chips: [WatchAtmosphere.GlanceLine] = []
+
+    var body: some View {
+        line
+            .font(.system(size: size, weight: .semibold))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.45)
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier("watch-sun")
+            .accessibilityLabel(spoken)
+    }
+
+    /// One run so the clocks, wind, and humidity shrink together instead of truncating.
+    private var line: Text {
+        var parts: [Text] = []
+        if let rise = sun.sunriseLabel {
+            parts.append(Text("↑").foregroundStyle(WidgetHorizon.gold) + Text(" \(rise)").foregroundStyle(WidgetHorizon.text))
+        }
+        if let set = sun.sunsetLabel {
+            parts.append(Text("↓").foregroundStyle(WidgetHorizon.gold) + Text(" \(set)").foregroundStyle(WidgetHorizon.text))
+        }
+        for chip in chips {
+            var chipText = Text("")
+            if let symbol = chip.symbolName {
+                chipText = chipText + Text(Image(systemName: symbol)).foregroundStyle(WidgetHorizon.accent) + Text(" ")
+            }
+            let color = chip.symbolName == nil ? WidgetHorizon.muted : WidgetHorizon.text
+            chipText = chipText + Text(chip.text).foregroundStyle(color)
+            parts.append(chipText)
+        }
+        let dot = Text(" · ").foregroundStyle(WidgetHorizon.faint)
+        return parts.dropFirst().reduce(parts.first ?? Text(""), { $0 + dot + $1 })
+    }
+
+    private var spoken: String {
+        var parts: [String] = []
+        if !sun.spoken.isEmpty { parts.append(sun.spoken) }
+        parts.append(contentsOf: chips.map(\.spoken))
+        return parts.joined(separator: ", ")
+    }
+}
+
+/// Wind, humidity, or UV on one line. Humidity draws a drop before the percent.
+struct WatchAtmosphereChips: View {
+    var chips: [WatchAtmosphere.GlanceLine]
     var size: CGFloat
 
     var body: some View {
-        Text(metric.text)
+        WatchAtmosphereChipRow(chips: chips)
             .font(.system(size: size, weight: .semibold))
-            .foregroundStyle(WidgetHorizon.muted)
             .monospacedDigit()
             .lineLimit(1)
-            .minimumScaleFactor(0.6)
+            .minimumScaleFactor(0.5)
             .frame(maxWidth: .infinity)
-            .accessibilityIdentifier(metric.identifier)
-            .accessibilityLabel(metric.spoken)
+            .accessibilityElement(children: .contain)
+    }
+}
+
+struct WatchAtmosphereChipRow: View {
+    var chips: [WatchAtmosphere.GlanceLine]
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(Array(chips.enumerated()), id: \.element.identifier) { index, chip in
+                if index > 0 {
+                    Text("·")
+                        .foregroundStyle(WidgetHorizon.faint)
+                        .accessibilityHidden(true)
+                }
+                WatchGlanceChipLabel(chip: chip)
+            }
+        }
+    }
+}
+
+struct WatchGlanceChipLabel: View {
+    var chip: WatchAtmosphere.GlanceLine
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if let symbol = chip.symbolName {
+                Image(systemName: symbol)
+                    .foregroundStyle(WidgetHorizon.accent)
+                    .accessibilityHidden(true)
+            }
+            Text(chip.text)
+                .foregroundStyle(chip.symbolName == nil ? WidgetHorizon.muted : WidgetHorizon.text)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier(chip.identifier)
+        .accessibilityLabel(chip.spoken)
     }
 }
 
 /// Type and strip sizes for the glance. Shorter watches use the compact set
-/// so the header, sun line, one wind or UV metric, and both strips stay on screen.
+/// so the header, sun line, wind and humidity, and both strips stay on screen.
 struct WatchGlanceMetrics {
     var placeSize: CGFloat
     var tempSize: CGFloat
@@ -346,7 +500,7 @@ struct WatchGlanceMetrics {
     var spacing: CGFloat
     var horizontalPadding: CGFloat
     var bottomPadding: CGFloat
-    /// Short watches put wind or UV on the sun line instead of adding a row.
+    /// Short watches put wind and humidity on the sun line instead of adding a row.
     var foldsMetric: Bool
     var hourly: WatchStripStyle
     var daily: WatchStripStyle
@@ -408,12 +562,12 @@ struct WatchStripStyle {
         labelSize: 10, primarySize: 13, secondarySize: 9, symbolSize: 8, cueHeight: 12, bandHeight: 46
     )
     static let dailyRegular = WatchStripStyle(
-        columnWidth: 42, columnSpacing: 2, horizontalPadding: 6, verticalPadding: 4,
-        labelSize: 11, primarySize: 13, secondarySize: 11, symbolSize: 12, cueHeight: 14, bandHeight: 60
+        columnWidth: 42, columnSpacing: 2, horizontalPadding: 6, verticalPadding: 3,
+        labelSize: 10, primarySize: 12, secondarySize: 9, symbolSize: 11, cueHeight: 13, bandHeight: 70
     )
     static let dailyCompact = WatchStripStyle(
         columnWidth: 36, columnSpacing: 2, horizontalPadding: 4, verticalPadding: 2,
-        labelSize: 10, primarySize: 12, secondarySize: 10, symbolSize: 11, cueHeight: 12, bandHeight: 58
+        labelSize: 9, primarySize: 11, secondarySize: 9, symbolSize: 10, cueHeight: 12, bandHeight: 64
     )
 }
 

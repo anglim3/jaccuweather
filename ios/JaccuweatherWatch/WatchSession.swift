@@ -79,15 +79,22 @@ final class WatchWeatherModel {
 
     var accessibilityLabel: String {
         var parts = [placeName, temperatureText]
+        if let dew = WatchDewPoint.chip(fahrenheit: snapshot.dewPointF) {
+            parts.append(dew.spoken)
+        }
         if let chip = feelsChip {
             parts.append(chip.spoken)
         } else if !detailText.isEmpty, detailText != "Updating" {
             parts.append(detailText)
         }
         if !conditionText.isEmpty { parts.append(conditionText) }
+        if let aqi = WatchAQI.chip(usAqi: snapshot.usAqi, category: snapshot.usAqiCategory) {
+            parts.append(aqi.spoken)
+        }
         let atmosphere = snapshot.atmosphereMetrics
         if let uv = WatchAtmosphere.uvChip(atmosphere) { parts.append(uv.spoken) }
         if let wind = WatchAtmosphere.windChip(atmosphere) { parts.append(wind.spoken) }
+        if let humidity = WatchAtmosphere.humidityLine(atmosphere) { parts.append(humidity.spoken) }
         let upcoming = hours.prefix(4).map { slot in
             let degrees = slot.temperatureF.map { "\(Int($0.rounded()))°" } ?? "—"
             return "\(slot.label) \(degrees)"

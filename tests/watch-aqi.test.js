@@ -5,12 +5,12 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const sources = [
-  'ios/Shared/WatchAtmosphere.swift',
-  'tests/watch-atmosphere-check.swift',
+  'ios/Shared/WatchAQI.swift',
+  'tests/watch-aqi-check.swift',
 ];
 
-test('watch uv, wind, and humidity follow the now-tab fields', () => {
-  const binary = path.join('/tmp', 'watch-atmosphere-check');
+test('watch us aqi chip follows the iphone bands', () => {
+  const binary = path.join('/tmp', 'watch-aqi-check');
   const sdk = execFileSync('xcrun', ['--sdk', 'macosx', '--show-sdk-path'], { encoding: 'utf8' }).trim();
   execFileSync('xcrun', ['swiftc', '-sdk', sdk, '-o', binary, ...sources], { cwd: root, stdio: 'pipe' });
   const output = execFileSync(binary, { encoding: 'utf8' });
