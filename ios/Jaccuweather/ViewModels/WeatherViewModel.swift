@@ -672,7 +672,8 @@ final class WeatherViewModel {
             let resolvedName = await nameTask?.value ?? nil
             guard serial == refreshSerial else { return }
 
-            self.pollen = pollen
+            let shownPollen = LaunchArgs.omitAqi ? pollen.map(Self.strippingUsAqi) : pollen
+            self.pollen = shownPollen
             pollenPending = false
             switch alertsLoad {
             case .none:
@@ -710,7 +711,7 @@ final class WeatherViewModel {
             await notifyFreezeIfNeeded()
             guard serial == refreshSerial else { return }
             await notifyWindGustIfNeeded()
-            let scored = await Self.healthOffMain(weather: bundle, pollen: pollen)
+            let scored = await Self.healthOffMain(weather: bundle, pollen: shownPollen)
             guard serial == refreshSerial else { return }
             health = scored
             let tides = await tideService.load(latitude: lat, longitude: lon, elevation: bundle.elevation)
@@ -1178,6 +1179,14 @@ final class WeatherViewModel {
                 await MainActor.run { self?.tickLastUpdated() }
             }
         }
+    }
+
+    private static func strippingUsAqi(_ pollen: JSONMap) -> JSONMap {
+        var root = pollen.raw
+        var current = JSONMap(root["current"]).raw
+        current.removeValue(forKey: "us_aqi")
+        root["current"] = current
+        return JSONMap(root)
     }
 
     private static func healthOffMain(weather: WeatherBundle, pollen: JSONMap?) async -> CachedHealth {

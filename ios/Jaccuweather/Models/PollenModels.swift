@@ -51,6 +51,24 @@ struct USAQIDisplay: Equatable {
     }
 }
 
+/// Copies Open-Meteo `us_aqi` onto a Google or Tomorrow payload that omitted it.
+/// An existing finite reading stays put, and pollen fields plus the source label stay put.
+enum PollenUsAqi {
+    static func merge(primary: JSONMap, openMeteo: JSONMap) -> JSONMap {
+        if let existing = primary.map("current").number("us_aqi"), existing.isFinite {
+            return primary
+        }
+        guard let aqi = openMeteo.map("current").number("us_aqi"), aqi.isFinite else {
+            return primary
+        }
+        var root = primary.raw
+        var current = JSONMap(root["current"]).raw
+        current["us_aqi"] = aqi
+        root["current"] = current
+        return JSONMap(root)
+    }
+}
+
 /// Null pollen is not a measured zero. A provider that reported the plant with
 /// no index can still be shown as None.
 enum PollenReading {
