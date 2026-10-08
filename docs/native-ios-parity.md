@@ -22,7 +22,7 @@ Personal-use SwiftUI app on `ios/`. Same upstreams as the website after lockdown
 | Google `TREE` → `tree_pollen` only (no species invention) | **DONE** — `normalizeGooglePollen` |
 | Species rows (alder/birch/olive/mugwort/ragweed) | **DONE** — Now + Health |
 | 5-day pollen forecast (daily max of hourly) | **DONE** |
-| AQI (US AQI from Open-Meteo air-quality) | **DONE** — shown when Open-Meteo (or merged) current has `us_aqi` |
+| AQI (US AQI from Open-Meteo air-quality) | **DONE** — Health card above the scores when current `us_aqi` is a number: rounded integer, website bands (Good through Hazardous), and the same green-to-maroon colors. Hidden when the value is missing. Now shows a compact Air Quality row under sunrise and sunset with the same reading. Google and Tomorrow pollen keep Open-Meteo's `us_aqi` when those payloads omit it, and a payload that already has the number does not fetch air quality again |
 | NOAA tides (50 km / 20 m elevation, hilo + cosine interpolate) | **DONE** — Now list + Forecast tides chart |
 | MapKit default map | **DONE** — Radar tab |
 | RainViewer | **Removed.** No catalog, tiles, source control, or credit. The app does not call `api.rainviewer.com` or `tilecache.rainviewer.com` |

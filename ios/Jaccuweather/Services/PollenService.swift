@@ -17,19 +17,15 @@ struct PollenService {
 
     /// Google and Tomorrow leave `us_aqi` empty. Copy Open-Meteo's number onto
     /// `current` and leave the pollen fields and source label alone.
+    /// A payload that already has a finite `us_aqi` does not trigger another fetch.
     private func fillingUsAqi(_ primary: JSONMap, latitude: Double, longitude: Double) async -> JSONMap {
         if let existing = primary.map("current").number("us_aqi"), existing.isFinite {
             return primary
         }
-        guard let openMeteo = try? await fetchOpenMeteo(latitude: latitude, longitude: longitude),
-              let aqi = openMeteo.map("current").number("us_aqi"), aqi.isFinite else {
+        guard let openMeteo = try? await fetchOpenMeteo(latitude: latitude, longitude: longitude) else {
             return primary
         }
-        var raw = primary.raw
-        var current = JSONMap(raw["current"]).raw
-        current["us_aqi"] = aqi
-        raw["current"] = current
-        return JSONMap(raw)
+        return PollenUsAqi.merge(primary: primary, openMeteo: openMeteo)
     }
 
     private func fetchOpenMeteo(latitude: Double, longitude: Double) async throws -> JSONMap {
