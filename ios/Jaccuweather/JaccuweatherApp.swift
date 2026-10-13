@@ -15,11 +15,14 @@ enum LaunchArgs {
     static var precipSample: Bool { value("precipSample") == "1" }
     static var freezeSample: Bool { value("freezeSample") == "1" }
     static var windSample: Bool { value("windSample") == "1" }
+    /// Drop `us_aqi` after fetch so the Air Quality card stays hidden.
+    static var omitAqi: Bool { value("aqi") == "omit" }
     #else
     static var alertSample: Bool { false }
     static var precipSample: Bool { false }
     static var freezeSample: Bool { false }
     static var windSample: Bool { false }
+    static var omitAqi: Bool { false }
     #endif
 
     static func value(_ name: String) -> String? {
