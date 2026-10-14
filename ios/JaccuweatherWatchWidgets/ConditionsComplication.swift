@@ -12,7 +12,7 @@ struct WatchConditionsComplication: Widget {
             WatchComplicationView(entry: entry)
         }
         .configurationDisplayName("Conditions")
-        .description("Temperature and condition for the Watch's place.")
+        .description("Temperature and condition for the Watch's place, with UV and wind on the rectangular face.")
         .supportedFamilies([
             .accessoryCircular,
             .accessoryRectangular,
@@ -154,7 +154,7 @@ struct WatchComplicationView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .widgetAccentable()
-                Text(conditionText)
+                Text(rectangularDetail ?? conditionText)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(WidgetHorizon.muted)
                     .lineLimit(1)
@@ -216,9 +216,15 @@ struct WatchComplicationView: View {
         )
     }
 
+    /// UV and wind for the rectangular slot. Nil keeps the condition line.
+    private var rectangularDetail: String? {
+        WatchComplicationCopy.rectangularDetail(entry.snapshot.atmosphereMetrics)
+    }
+
     private var spoken: String {
         let place = entry.snapshot.locationName.isEmpty ? "Jaccuweather" : entry.snapshot.locationName
-        return "\(place), \(degreesText), \(conditionText)"
+        let trailing = family == .accessoryRectangular ? (rectangularDetail ?? conditionText) : conditionText
+        return "\(place), \(degreesText), \(trailing)"
     }
 }
 
