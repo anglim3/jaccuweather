@@ -113,6 +113,9 @@ final class WatchWeatherModel {
         if let sun, sun.hasAny, !sun.spoken.isEmpty {
             parts.append(sun.spoken)
         }
+        if let fresh = WatchFreshness.line(fetchedAt: snapshot.fetchedAt) {
+            parts.append(fresh.spoken)
+        }
         if let alert {
             if alert.count > 1 {
                 parts.append("\(alert.count) alerts, \(alert.title), \(alert.severity)")
@@ -181,7 +184,9 @@ final class WatchWeatherModel {
         favorites = WatchFavoritesSample.places(in: context)
         let reading = await WatchConditionsLoader.load(phoneContext: context, pinned: pinned, publishPlace: true)
         guard token == generation else { return }
-        snapshot = reading.snapshot
+        var shown = reading.snapshot
+        WatchFreshnessSample.apply(&shown)
+        snapshot = shown
         hours = reading.hours
         days = reading.days
         sun = reading.sun
@@ -206,6 +211,27 @@ final class WatchWeatherModel {
         guard let value, value.isFinite else { return "—" }
         return "\(Int(value.rounded()))°"
     }
+}
+
+enum WatchFreshnessSample {
+    /// Debug launches can age the shown reading with `-watchAgeMinutes 180`.
+    /// The forecast still loads. Only a real `fetchedAt` moves back, so the
+    /// distantPast placeholder stays blank.
+    static func apply(_ snapshot: inout WidgetConditionsSnapshot) {
+        #if DEBUG
+        guard snapshot.fetchedAt != .distantPast, let minutes = minutesArgument else { return }
+        snapshot.fetchedAt = Date().addingTimeInterval(-minutes * 60)
+        #endif
+    }
+
+    #if DEBUG
+    private static var minutesArgument: Double? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-watchAgeMinutes"), index + 1 < args.count else { return nil }
+        guard let minutes = Double(args[index + 1]), minutes.isFinite, minutes >= 0 else { return nil }
+        return minutes
+    }
+    #endif
 }
 
 enum WatchFavoritesSample {
