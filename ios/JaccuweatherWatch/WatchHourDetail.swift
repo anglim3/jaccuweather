@@ -5,6 +5,10 @@ import WatchKit
 struct WatchHourDetailView: View {
     var hour: WatchHourSlot
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var environmentTypeSize
+    private var dynamicTypeSize: DynamicTypeSize {
+        WatchTextSizeLaunch.forced ?? environmentTypeSize
+    }
 
     private var copy: WatchHourDetailCopy {
         WatchHourlyPlan.detail(for: hour)
@@ -12,32 +16,45 @@ struct WatchHourDetailView: View {
 
     /// 40mm is 197pt. 45mm (242pt) and larger keep the roomier type.
     private var metrics: WatchHourDetailMetrics {
-        WKInterfaceDevice.current().screenBounds.height >= 240 ? .regular : .compact
+        let base = WKInterfaceDevice.current().screenBounds.height >= 240 ? WatchHourDetailMetrics.regular : .compact
+        return base.scaled(by: WatchTextScale.factor(dynamicTypeSize))
     }
+
+    private var roomyText: Bool { WatchTextScale.needsRoom(dynamicTypeSize) }
 
     var body: some View {
         NavigationStack {
-            detail(metrics)
-                .padding(.horizontal, metrics.horizontalPadding)
-                .padding(.top, metrics.topPadding)
-                .padding(.bottom, metrics.bottomPadding)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background {
-                    WidgetHorizonBackground()
-                        .ignoresSafeArea()
-                }
-                .toolbarBackground(.hidden, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") { dismiss() }
-                            .accessibilityIdentifier("watch-hour-close")
+            Group {
+                if roomyText {
+                    ScrollView {
+                        detail(metrics)
+                            .padding(.horizontal, metrics.horizontalPadding)
+                            .padding(.top, metrics.topPadding)
+                            .padding(.bottom, metrics.bottomPadding)
                     }
+                } else {
+                    detail(metrics)
+                        .padding(.horizontal, metrics.horizontalPadding)
+                        .padding(.top, metrics.topPadding)
+                        .padding(.bottom, metrics.bottomPadding)
                 }
-                .navigationBarTitleDisplayMode(.inline)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background {
+                WidgetHorizonBackground()
+                    .ignoresSafeArea()
+            }
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                        .accessibilityIdentifier("watch-hour-close")
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
         }
         .accessibilityIdentifier("watch-hour-detail")
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(copy.spoken)
     }
 
     private func detail(_ metrics: WatchHourDetailMetrics) -> some View {
@@ -45,7 +62,7 @@ struct WatchHourDetailView: View {
             Text(copy.title)
                 .font(WidgetHorizon.placeFont(size: metrics.titleSize))
                 .foregroundStyle(WidgetHorizon.text)
-                .lineLimit(1)
+                .lineLimit(roomyText ? 2 : 1)
                 .minimumScaleFactor(0.6)
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("watch-hour-title")
@@ -55,7 +72,7 @@ struct WatchHourDetailView: View {
                 Text(copy.condition)
                     .font(.system(size: metrics.conditionSize, weight: .semibold))
                     .foregroundStyle(WidgetHorizon.text)
-                    .lineLimit(2)
+                    .lineLimit(roomyText ? 3 : 2)
                     .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("watch-hour-condition")
@@ -66,9 +83,10 @@ struct WatchHourDetailView: View {
                     .font(WidgetHorizon.tempFont(size: metrics.tempSize))
                     .foregroundStyle(WidgetHorizon.text)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .minimumScaleFactor(0.5)
                     .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("watch-hour-temp")
+                    .accessibilityLabel(WatchSpoken.degrees(fromDisplay: copy.temperature))
                 if copy.probability != nil || copy.rain != nil || copy.snow != nil {
                     precipRow(metrics)
                 }
@@ -111,23 +129,48 @@ struct WatchHourDetailView: View {
     }
 
     private func precipRow(_ metrics: WatchHourDetailMetrics) -> some View {
-        HStack(spacing: 4) {
-            if let probability = copy.probability {
-                Text(probability)
-                    .font(.system(size: metrics.conditionSize, weight: .semibold))
-                    .foregroundStyle(WidgetHorizon.text)
+        precipLayout(metrics)
+            .minimumScaleFactor(0.6)
+            .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier("watch-hour-precip")
+            .accessibilityLabel(WatchSpoken.hourPrecip(hour) ?? "")
+    }
+
+    @ViewBuilder
+    private func precipLayout(_ metrics: WatchHourDetailMetrics) -> some View {
+        if roomyText {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) {
+                    precipPieces(metrics)
+                    Spacer(minLength: 0)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    precipPieces(metrics)
+                }
             }
-            if let snow = copy.snow {
-                cue("snowflake", snow, tint: WidgetHorizon.text, size: metrics.captionSize)
+        } else {
+            HStack(spacing: 4) {
+                precipPieces(metrics)
+                Spacer(minLength: 0)
             }
-            if let rain = copy.rain {
-                cue("drop.fill", rain, tint: WidgetHorizon.accent, size: metrics.captionSize)
-            }
-            Spacer(minLength: 0)
         }
-        .lineLimit(1)
-        .minimumScaleFactor(0.6)
-        .accessibilityIdentifier("watch-hour-precip")
+    }
+
+    @ViewBuilder
+    private func precipPieces(_ metrics: WatchHourDetailMetrics) -> some View {
+        if let probability = copy.probability {
+            Text(probability)
+                .font(.system(size: metrics.conditionSize, weight: .semibold))
+                .foregroundStyle(WidgetHorizon.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        if let snow = copy.snow {
+            cue("snowflake", snow, tint: WidgetHorizon.text, size: metrics.captionSize)
+        }
+        if let rain = copy.rain {
+            cue("drop.fill", rain, tint: WidgetHorizon.accent, size: metrics.captionSize)
+        }
     }
 
     private func cue(_ symbol: String, _ amount: String, tint: Color, size: CGFloat) -> some View {
@@ -152,10 +195,11 @@ struct WatchHourDetailView: View {
                         Text(item.text)
                             .font(.system(size: metrics.captionSize, weight: .semibold))
                             .foregroundStyle(item.gold ? WidgetHorizon.gold : WidgetHorizon.muted)
-                            .lineLimit(1)
+                            .lineLimit(roomyText ? 2 : 1)
                             .minimumScaleFactor(0.6)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier(item.identifier)
+                            .accessibilityLabel(spokenExtra(item))
                     }
                 }
             }
@@ -177,13 +221,29 @@ struct WatchHourDetailView: View {
             items.append(WatchHourExtra(text: uv, identifier: "watch-hour-uv", gold: true))
         }
         var rows: [[WatchHourExtra]] = []
+        let width = roomyText ? 1 : 2
         var index = 0
         while index < items.count {
-            let end = min(index + 2, items.count)
+            let end = min(index + width, items.count)
             rows.append(Array(items[index..<end]))
             index = end
         }
         return rows
+    }
+
+    private func spokenExtra(_ item: WatchHourExtra) -> String {
+        switch item.identifier {
+        case "watch-hour-feels":
+            return WatchSpoken.feelsLike(hour.feelsLikeF) ?? item.text
+        case "watch-hour-wind":
+            return WatchSpoken.windMilesPerHour(hour.windMph) ?? item.text
+        case "watch-hour-humidity":
+            return WatchSpoken.humidityPercent(hour.humidity) ?? item.text
+        case "watch-hour-uv":
+            return WatchSpoken.ultraviolet(index: hour.uvIndex) ?? item.text
+        default:
+            return WatchSpoken.degrees(fromDisplay: item.text)
+        }
     }
 }
 
@@ -237,4 +297,22 @@ struct WatchHourDetailMetrics {
         topPadding: 6,
         bottomPadding: 2
     )
+
+    func scaled(by factor: CGFloat) -> WatchHourDetailMetrics {
+        guard factor > 1.001 else { return self }
+        return WatchHourDetailMetrics(
+            titleSize: titleSize * factor,
+            conditionSize: conditionSize * factor,
+            tempSize: tempSize * factor,
+            captionSize: captionSize * factor,
+            symbolIcon: symbolIcon * min(factor, 1.4),
+            symbolBox: symbolBox * min(factor, 1.4),
+            spacing: spacing,
+            cardSpacing: cardSpacing,
+            cardPadding: cardPadding,
+            horizontalPadding: horizontalPadding,
+            topPadding: topPadding,
+            bottomPadding: bottomPadding
+        )
+    }
 }

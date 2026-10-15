@@ -29,11 +29,11 @@ func run() {
     let lowEdge = WatchAtmosphere.metrics(uvIndex: 2.9, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil)
     let lowChip = WatchAtmosphere.uvChip(lowEdge)
     check(lowChip?.text == "UV 3", "displayed uv rounds like the now tab")
-    check(lowChip?.spoken == "UV index 3, Low", "category stays on the raw index")
+    check(lowChip?.spoken == "Ultraviolet index 3, Low", "category stays on the raw index")
 
     let high = WatchAtmosphere.metrics(uvIndex: 6.2, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil)
     check(WatchAtmosphere.uvChip(high)?.text == "UV 6", "uv 6.2 displays as 6")
-    check(WatchAtmosphere.uvChip(high)?.spoken == "UV index 6, High", "uv 6.2 is high")
+    check(WatchAtmosphere.uvChip(high)?.spoken == "Ultraviolet index 6, High", "uv 6.2 is high")
     check(WatchAtmosphere.uvChip(WatchAtmosphere.Metrics.empty) == nil, "missing uv stays hidden")
     check(WatchAtmosphere.uvChip(WatchAtmosphere.metrics(uvIndex: .infinity, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil)) == nil, "non-finite uv stays hidden")
     check(WatchAtmosphere.uvChip(WatchAtmosphere.metrics(uvIndex: 0, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil))?.text == "UV 0", "nighttime uv 0 still shows")
@@ -86,7 +86,7 @@ func run() {
     check(WatchAtmosphere.glanceLine(uvOnly)?.identifier == "watch-uv", "glance uv identifier")
     check(WatchAtmosphere.glanceLine(WatchAtmosphere.Metrics.empty) == nil, "glance hides an empty reading")
     check(WatchAtmosphere.circularToken(uvOnly) == "UV 9", "circular falls back to uv")
-    check(WatchAtmosphere.uvChip(uvOnly)?.spoken == "UV index 9, Very high", "uv 9.2 is very high")
+    check(WatchAtmosphere.uvChip(uvOnly)?.spoken == "Ultraviolet index 9, Very high", "uv 9.2 is very high")
 
     check(!WatchAtmosphere.isComplete(uvOnly), "uv without wind is incomplete")
     check(!WatchAtmosphere.isComplete(speedOnly), "wind without uv is incomplete")
