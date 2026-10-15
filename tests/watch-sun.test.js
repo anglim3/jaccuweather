@@ -5,8 +5,10 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const sources = [
+  'ios/Shared/WatchAtmosphere.swift',
   'ios/JaccuweatherWatch/WatchHourlyPlan.swift',
   'ios/JaccuweatherWatch/WatchDailyPlan.swift',
+  'ios/JaccuweatherWatch/WatchSpoken.swift',
   'tests/watch-sun-check.swift',
 ];
 
