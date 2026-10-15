@@ -36,4 +36,59 @@ enum WatchComplicationCopy {
         let condition = condition(conditionText: conditionText, feelsLikeF: feelsLikeF)
         return "\(degrees) \(condition)"
     }
+
+    /// Longer inline line. Temperature and condition, plus the chance when it is useful.
+    /// Example: `52° Rain 40%`. Faces that cannot fit this use `inlineCompact`, then the temperature.
+    static func inlinePrimary(
+        temperatureF: Double?,
+        conditionText: String,
+        feelsLikeF: Double?,
+        precipChance: Int?,
+        weatherCode: Int?
+    ) -> String {
+        let base = inlineLine(temperatureF: temperatureF, conditionText: conditionText, feelsLikeF: feelsLikeF)
+        guard let percent = inlinePrecipPercent(chance: precipChance, weatherCode: weatherCode) else {
+            return base
+        }
+        return "\(base) \(percent)%"
+    }
+
+    /// Compact inline line for a common face that cannot fit the condition and the chance.
+    /// Example: `52° · 40%`. Temperature only when the chance stays off.
+    static func inlineCompact(temperatureF: Double?, precipChance: Int?, weatherCode: Int?) -> String {
+        let degrees = degrees(temperatureF: temperatureF)
+        guard let percent = inlinePrecipPercent(chance: precipChance, weatherCode: weatherCode) else {
+            return degrees
+        }
+        return "\(degrees) · \(percent)%"
+    }
+
+    /// Chance to show on the inline slot. Nil when it is missing or under the glance-strip cutoff.
+    /// A rain or snow condition still shows a smaller chance, matching those strips.
+    static func inlinePrecipPercent(chance: Int?, weatherCode: Int?) -> Int? {
+        guard let chance else { return nil }
+        let percent = min(100, max(0, chance))
+        let cue = WatchHourlyPlan.cue(code: weatherCode, precipitation: nil, snowfall: nil)
+        guard WatchDailyPlan.showsStripPrecip(probability: percent, cue: cue) else { return nil }
+        return percent
+    }
+
+    /// VoiceOver for the inline slot. The percent is spoken only when that cue is shown.
+    static func inlineSpoken(
+        place: String,
+        temperatureF: Double?,
+        conditionText: String,
+        feelsLikeF: Double?,
+        precipChance: Int?,
+        weatherCode: Int?
+    ) -> String {
+        let placeName = place.isEmpty ? "Jaccuweather" : place
+        let degrees = degrees(temperatureF: temperatureF)
+        let condition = condition(conditionText: conditionText, feelsLikeF: feelsLikeF)
+        let base = "\(placeName), \(degrees), \(condition)"
+        guard let percent = inlinePrecipPercent(chance: precipChance, weatherCode: weatherCode) else {
+            return base
+        }
+        return "\(base), \(percent) percent chance of precipitation"
+    }
 }
