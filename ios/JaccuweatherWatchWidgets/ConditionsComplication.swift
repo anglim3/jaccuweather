@@ -12,7 +12,7 @@ struct WatchConditionsComplication: Widget {
             WatchComplicationView(entry: entry)
         }
         .configurationDisplayName("Conditions")
-        .description("Temperature and condition for the Watch's place.")
+        .description("Temperature and condition for the Watch's place. The line above the clock includes the chance of precipitation.")
         .supportedFamilies([
             .accessoryCircular,
             .accessoryRectangular,
@@ -165,17 +165,19 @@ struct WatchComplicationView: View {
         .accessibilityLabel(spoken)
     }
 
-    /// One line above the clock: symbol, temperature, then the condition.
-    /// The temperature-only forms are for faces that clip the longer line.
+    /// One line above the clock. The longer lines add the chance of precipitation
+    /// when it is useful. Tight faces keep the temperature.
     private var inline: some View {
         ViewThatFits(in: .horizontal) {
-            Label(inlineLine, systemImage: symbol)
+            Label(inlinePrimary, systemImage: symbol)
+            Label(inlineCompact, systemImage: symbol)
             Label(degreesText, systemImage: symbol)
             Text(degreesText)
         }
         .lineLimit(1)
         .widgetAccentable()
-        .accessibilityLabel(spoken)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(inlineSpoken)
     }
 
     /// Corner disk is the temperature. The curved label is the condition,
@@ -208,11 +210,32 @@ struct WatchComplicationView: View {
         )
     }
 
-    private var inlineLine: String {
-        WatchComplicationCopy.inlineLine(
+    private var inlinePrimary: String {
+        WatchComplicationCopy.inlinePrimary(
             temperatureF: entry.snapshot.temperatureF,
             conditionText: entry.snapshot.conditionText,
-            feelsLikeF: entry.snapshot.feelsLikeF
+            feelsLikeF: entry.snapshot.feelsLikeF,
+            precipChance: entry.snapshot.precipChance,
+            weatherCode: entry.snapshot.weatherCode
+        )
+    }
+
+    private var inlineCompact: String {
+        WatchComplicationCopy.inlineCompact(
+            temperatureF: entry.snapshot.temperatureF,
+            precipChance: entry.snapshot.precipChance,
+            weatherCode: entry.snapshot.weatherCode
+        )
+    }
+
+    private var inlineSpoken: String {
+        WatchComplicationCopy.inlineSpoken(
+            place: entry.snapshot.locationName,
+            temperatureF: entry.snapshot.temperatureF,
+            conditionText: entry.snapshot.conditionText,
+            feelsLikeF: entry.snapshot.feelsLikeF,
+            precipChance: entry.snapshot.precipChance,
+            weatherCode: entry.snapshot.weatherCode
         )
     }
 
