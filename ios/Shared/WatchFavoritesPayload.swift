@@ -100,7 +100,10 @@ enum WatchFavoritesPlan {
     }
 
     private static func jsonString(_ places: [WatchFavoritePlace]) -> String? {
-        guard let data = try? JSONEncoder().encode(places) else { return nil }
+        let encoder = JSONEncoder()
+        // Same name, latitude, and longitude fields. Sorted so the text is stable.
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(places) else { return nil }
         return String(data: data, encoding: .utf8)
     }
 }

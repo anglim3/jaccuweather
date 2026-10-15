@@ -53,6 +53,8 @@ struct JaccuweatherApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         Task { await model.handleBecameActive() }
+                    } else if phase == .background {
+                        WatchSessionBridge.shared.prepareForBackground()
                     }
                 }
         }
