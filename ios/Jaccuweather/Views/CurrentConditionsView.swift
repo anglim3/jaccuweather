@@ -93,21 +93,13 @@ struct CurrentConditionsView: View {
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
                 if model.weather != nil {
-                    Text(locationDateLine)
-                        .font(.subheadline)
-                        .foregroundStyle(theme.muted)
-                }
-                if !model.lastUpdatedLabel.isEmpty {
-                    Text("Updated \(model.lastUpdatedLabel)")
-                        .font(.caption)
-                        .foregroundStyle(theme.faint)
-                        .padding(.top, 2)
+                    dateLine
                 }
             }
 
             HStack(alignment: .center, spacing: 10) {
-                SVGIconView(fileName: model.conditionIcon, folder: "weather", pointSize: 56)
-                    .frame(width: 56, height: 56)
+                SVGIconView(fileName: model.conditionIcon, folder: "weather", pointSize: 52)
+                    .frame(width: 52, height: 52)
                     .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
                 Text(temp(current?.number("temperature_2m")))
                     .font(JWFont.heroTemp)
@@ -118,19 +110,21 @@ struct CurrentConditionsView: View {
                     .layoutPriority(1)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(model.conditionDescription)
-                        .font(.system(size: 17))
+                        .font(.body)
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
                     if let sun {
                         Text("\(int(sun.high))°/\(int(sun.low))°")
                             .font(.subheadline)
                             .foregroundStyle(theme.muted)
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.top, 14)
 
             if let sun {
                 VStack(spacing: 0) {
@@ -138,30 +132,25 @@ struct CurrentConditionsView: View {
                         .fill(theme.divider)
                         .frame(height: 1)
                     SunArcView(sun: sun)
-                        .frame(height: 48)
-                        .padding(.top, 14)
-                }
-                .padding(.top, 16)
-            }
-
-            SectionEyebrow(title: "Conditions")
-                .padding(.top, 14)
-            VStack(spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    statTile(title: "Feels Like", value: temp(current?.number("apparent_temperature")), icon: "thermometer")
-                    statTile(title: "Humidity", value: humidity, detail: "Dew: \(dew)", icon: "humidity")
-                }
-                HStack(alignment: .top, spacing: 12) {
-                    windTile(current)
-                    statTile(title: "UV Index", value: uvText, detail: uvDetail, icon: "uv-index")
+                        .padding(.top, 8)
+                        .padding(.bottom, 10)
                 }
             }
 
-            SectionEyebrow(title: "Atmosphere")
-                .padding(.top, 6)
-            HStack(alignment: .top, spacing: 12) {
-                sunTile(sun)
-                pressureTile(value: pressure.value, trend: pressure.trend)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 16) {
+                    metricCell(title: "Feels Like", value: temp(current?.number("apparent_temperature")), icon: "thermometer")
+                    metricCell(title: "Humidity", value: humidity, detail: "Dew: \(dew)", icon: "humidity")
+                }
+                HStack(alignment: .top, spacing: 16) {
+                    windCell(current)
+                    metricCell(title: "UV Index", value: uvText, detail: uvDetail, icon: "uv-index")
+                }
+                Rectangle()
+                    .fill(theme.divider)
+                    .frame(height: 1)
+                    .padding(.vertical, 2)
+                pressureRow(value: pressure.value, trend: pressure.trend)
             }
         }
     }
@@ -184,6 +173,24 @@ struct CurrentConditionsView: View {
         formatter.dateFormat = "EEEE, MMMM d"
         formatter.timeZone = TimeZone(secondsFromGMT: model.weather?.utcOffset ?? 0)
         return formatter.string(from: Date())
+    }
+
+    /// Date and freshness share one line so the hero does not stack two captions.
+    private var dateLine: some View {
+        let updated = model.lastUpdatedLabel
+        return Group {
+            if updated.isEmpty {
+                Text(locationDateLine)
+                    .foregroundStyle(theme.muted)
+            } else {
+                (Text(locationDateLine).foregroundStyle(theme.muted)
+                    + Text("  ·  Updated \(updated)").foregroundStyle(theme.faint))
+            }
+        }
+        .font(.subheadline)
+        .lineLimit(2)
+        .minimumScaleFactor(0.85)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var precipCard: some View {
@@ -243,21 +250,35 @@ struct CurrentConditionsView: View {
         let moon = model.moon
         return WeatherCard(title: "Moon") {
             Button { showMoon = true } label: {
-                HStack(alignment: .center, spacing: 14) {
+                HStack(alignment: .center, spacing: 12) {
                     Text(moon.emoji)
-                        .font(.system(size: 52))
-                        .frame(width: 64, height: 64)
+                        .font(.title)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .frame(minWidth: 36, minHeight: 36)
                         .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(moon.name).font(.title3.weight(.semibold))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(moon.name)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text("\(moon.illumination) illuminated")
                             .font(.subheadline)
                             .foregroundStyle(theme.muted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                         Text("Rise \(moon.rise)  ·  Set \(moon.set)")
                             .font(.subheadline)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text("Full \(moon.nextFull)  ·  New \(moon.nextNew)")
                             .font(.caption)
                             .foregroundStyle(theme.muted)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
@@ -318,27 +339,41 @@ struct CurrentConditionsView: View {
         .tint(theme.accent)
     }
 
-    private func statTile(title: String, value: String, detail: String? = nil, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            StatLabel(title: title, icon: icon)
+    private func metricCell(title: String, value: String, detail: String? = nil, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            metricLabel(title, icon: icon)
             Text(value)
-                .font(JWFont.statValue)
+                .font(.title3.weight(.semibold))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            Text(detail ?? " ")
-                .font(.system(size: 12))
-                .foregroundStyle(detail == nil ? Color.clear : theme.faint)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                .accessibilityHidden(detail == nil)
+            if let detail, !detail.isEmpty {
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(theme.faint)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
-        .jwGlass(.stat)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
-    private func windTile(_ current: JSONMap?) -> some View {
+    private func metricLabel(_ title: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 16)
+                .frame(width: 16, height: 16)
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(theme.faint)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func windCell(_ current: JSONMap?) -> some View {
         let speed = current?.number("wind_speed_10m")
         let gust = current?.number("wind_gusts_10m")
         let dir = current?.number("wind_direction_10m")
@@ -349,71 +384,38 @@ struct CurrentConditionsView: View {
             if let gust { parts.append(String(format: "Gust %.0f", gust)) }
             return parts.joined(separator: " · ")
         }()
-        return HStack(alignment: .center, spacing: 6) {
-            VStack(alignment: .leading, spacing: 6) {
-                StatLabel(title: "Wind", icon: "wind")
-                Text(speedText)
-                    .font(JWFont.statValue)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(detail.isEmpty ? " " : detail)
-                    .font(.system(size: 12))
-                    .foregroundStyle(detail.isEmpty ? Color.clear : theme.faint)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-            }
-            Spacer(minLength: 0)
+        let spoken = [speedText, detail].filter { !$0.isEmpty }.joined(separator: ", ")
+        return HStack(alignment: .center, spacing: 4) {
+            metricCell(title: "Wind", value: speedText, detail: detail.isEmpty ? nil : detail, icon: "wind")
             if let dir {
                 Image(systemName: "location.north.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(theme.accent)
                     .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
-                    .accessibilityLabel("Wind from \(WindCompass.label(dir))")
+                    .accessibilityHidden(true)
             }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
-        .jwGlass(.stat)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Wind, \(spoken)")
     }
 
-    private func sunTile(_ sun: SunSnapshot?) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            StatLabel(title: "Sun", icon: "sunrise")
-            HStack(spacing: 6) {
-                Text("↑").font(.caption).foregroundStyle(theme.gold)
-                Text(sun?.sunriseLabel ?? "—")
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-            }
-            HStack(spacing: 6) {
-                Text("↓").font(.caption).foregroundStyle(.orange)
-                Text(sun?.sunsetLabel ?? "—")
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
-        .jwGlass(.stat)
-    }
-
-    private func pressureTile(value: String, trend: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            StatLabel(title: "Pressure", icon: "barometer")
+    private func pressureRow(value: String, trend: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            metricLabel("Pressure", icon: "barometer")
+                .layoutPriority(1)
+            Spacer(minLength: 8)
             Text(value)
-                .font(JWFont.statValue)
+                .font(.title3.weight(.semibold))
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.65)
+                .minimumScaleFactor(0.7)
             Text(trend)
-                .font(.system(size: 12, weight: .medium))
+                .font(.caption.weight(.medium))
                 .foregroundStyle(trend == "Falling" ? theme.gold : theme.accent)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
-        .jwGlass(.stat)
+        .accessibilityElement(children: .combine)
     }
 
     private func severityColor(_ severity: String) -> Color {
@@ -446,11 +448,15 @@ struct SunArcView: View {
                         .font(.caption2.weight(.medium))
                         .tracking(0.7)
                         .foregroundStyle(theme.faint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Text(sun.sunriseLabel)
                         .font(.caption.weight(.semibold))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-                .frame(width: 72, alignment: .leading)
+                .frame(maxWidth: 88, alignment: .leading)
                 GeometryReader { geo in
                     let w = geo.size.width
                     let h = geo.size.height
@@ -476,12 +482,17 @@ struct SunArcView: View {
                         .font(.caption2.weight(.medium))
                         .tracking(0.7)
                         .foregroundStyle(theme.faint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Text(sun.sunsetLabel)
                         .font(.caption.weight(.semibold))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-                .frame(width: 72, alignment: .trailing)
+                .frame(maxWidth: 88, alignment: .trailing)
             }
+            .accessibilityElement(children: .combine)
         }
     }
 
