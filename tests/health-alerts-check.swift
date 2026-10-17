@@ -103,6 +103,12 @@ func run() {
     check(PollenReading.levelText(21, nullAsNone: false) == "Moderate", "21 is Moderate")
     check(PollenReading.levelText(200, nullAsNone: false) == "High", "200 is High")
     check(PollenReading.levelText(201, nullAsNone: false) == "Very High", "201 is Very High")
+    check(PollenReading.worstLabel(["n/a", "n/a", "n/a"]) == nil, "unreported categories have no worst label")
+    check(PollenReading.worstLabel([]) == nil, "an empty label list has no worst label")
+    check(PollenReading.worstLabel(["n/a", " None ", "Low"]) == "Low", "Low beats a measured None and ignores n/a")
+    check(PollenReading.worstLabel(["Moderate", "Very High", "Low"]) == "Very High", "Very High is the strongest label")
+    check(PollenReading.worstLabel(["None"]) == "None", "a measured zero is still a result")
+    check(PollenReading.worstLabel(["High", "High"]) == "High", "a tie keeps High")
 
     let ends = AlertClock.string(from: "2026-10-02T19:00:00-05:00")
     check(ends == "Oct 2, 7:00 PM", "ends uses the alert offset, got \(ends ?? "nil")")

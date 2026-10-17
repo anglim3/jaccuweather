@@ -85,6 +85,21 @@ enum PollenReading {
         if value <= 200 { return "High" }
         return "Very High"
     }
+
+    /// Strongest measured label. Unreported text ("n/a", blanks) does not compete.
+    /// "None" is a measured zero and can be the result.
+    static func worstLabel(_ labels: [String]) -> String? {
+        let rank = ["none": 0, "low": 1, "moderate": 2, "high": 3, "very high": 4]
+        var bestRank = -1
+        var best: String?
+        for label in labels {
+            let shown = label.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let value = rank[shown.lowercased()], value > bestRank else { continue }
+            bestRank = value
+            best = shown
+        }
+        return best
+    }
 }
 
 struct PollenDay: Identifiable, Equatable {
