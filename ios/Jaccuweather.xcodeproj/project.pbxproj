@@ -47,6 +47,7 @@
 		BBA49305EC09D446F7E510ED /* ConditionsShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C6E1552B92ECA1502D9526 /* ConditionsShareSheet.swift */; };
 		028352BDB244EDD04FEA3D74 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC397C662DCC8FB11473E778 /* ContentView.swift */; };
 		F650C38F7A65EEE6FDACCEC3 /* CurrentConditionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5FD068F45816853034ABDA /* CurrentConditionsView.swift */; };
+		B259D800F862FF53F2E31313 /* ForecastDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C1249F9193C80DA167EE059 /* ForecastDisplay.swift */; };
 		167D96914BD27D828CFE3AF4 /* ForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02EB06AA4133A6CAF6C13A44 /* ForecastView.swift */; };
 		949C9CA89DA6EF035F5932F6 /* HealthPollenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122854862A46A9067277ED07 /* HealthPollenView.swift */; };
 		B0112D40F9CC57B12DC443D6 /* MethodologySheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8423B5368E5AD812990FC9 /* MethodologySheets.swift */; };
@@ -271,6 +272,7 @@
 		10C6E1552B92ECA1502D9526 /* ConditionsShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsShareSheet.swift; sourceTree = "<group>"; };
 		DC397C662DCC8FB11473E778 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		3D5FD068F45816853034ABDA /* CurrentConditionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentConditionsView.swift; sourceTree = "<group>"; };
+		4C1249F9193C80DA167EE059 /* ForecastDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastDisplay.swift; sourceTree = "<group>"; };
 		02EB06AA4133A6CAF6C13A44 /* ForecastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastView.swift; sourceTree = "<group>"; };
 		122854862A46A9067277ED07 /* HealthPollenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthPollenView.swift; sourceTree = "<group>"; };
 		2B8423B5368E5AD812990FC9 /* MethodologySheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MethodologySheets.swift; sourceTree = "<group>"; };
@@ -546,6 +548,7 @@
 				10C6E1552B92ECA1502D9526 /* ConditionsShareSheet.swift */,
 				DC397C662DCC8FB11473E778 /* ContentView.swift */,
 				3D5FD068F45816853034ABDA /* CurrentConditionsView.swift */,
+				4C1249F9193C80DA167EE059 /* ForecastDisplay.swift */,
 				02EB06AA4133A6CAF6C13A44 /* ForecastView.swift */,
 				122854862A46A9067277ED07 /* HealthPollenView.swift */,
 				2B8423B5368E5AD812990FC9 /* MethodologySheets.swift */,
@@ -760,6 +763,7 @@
 				BBA49305EC09D446F7E510ED /* ConditionsShareSheet.swift in Sources */,
 				028352BDB244EDD04FEA3D74 /* ContentView.swift in Sources */,
 				F650C38F7A65EEE6FDACCEC3 /* CurrentConditionsView.swift in Sources */,
+				B259D800F862FF53F2E31313 /* ForecastDisplay.swift in Sources */,
 				167D96914BD27D828CFE3AF4 /* ForecastView.swift in Sources */,
 				949C9CA89DA6EF035F5932F6 /* HealthPollenView.swift in Sources */,
 				B0112D40F9CC57B12DC443D6 /* MethodologySheets.swift in Sources */,

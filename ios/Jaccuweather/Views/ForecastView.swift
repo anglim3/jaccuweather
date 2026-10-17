@@ -58,18 +58,30 @@ struct ForecastView: View {
             ForecastPanel(title: "48-Hour Forecast") {
                 seriesMenu(selection: $hourlyMode, label: "48-hour chart")
             } content: {
-                chart48
-                HourlyStrip(rows: model.hourlyRows, mode: hourlyMode, theme: theme)
-                    .equatable()
+                if model.hourlyRows.isEmpty {
+                    if let status = forecastStatus {
+                        emptyLine(status)
+                    }
+                } else {
+                    chart48
+                    HourlyStrip(rows: model.hourlyRows, mode: hourlyMode, theme: theme)
+                        .equatable()
+                }
             }
             .id("hourly")
 
             ForecastPanel(title: "14-Day Forecast") {
                 seriesMenu(selection: $dailySeries, label: "14-day chart")
             } content: {
-                dailyChart
-                DailyDetailList(days: model.dailyRows, theme: theme)
-                    .equatable()
+                if model.dailyRows.isEmpty {
+                    if model.hourlyRows.isEmpty == false {
+                        emptyLine("Daily forecast will appear here.")
+                    }
+                } else {
+                    dailyChart
+                    DailyDetailList(days: model.dailyRows, theme: theme)
+                        .equatable()
+                }
             }
             .id("daily")
         }
@@ -102,10 +114,11 @@ struct ForecastView: View {
         } label: {
             HStack(spacing: 6) {
                 Text(current.title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.caption2.weight(.bold))
                     .foregroundStyle(theme.muted)
             }
             .foregroundStyle(theme.text)
@@ -235,21 +248,7 @@ struct ForecastView: View {
         }
         .chartYScale(domain: span)
         .chartYAxisLabel("ft")
-        .chartXAxis {
-            AxisMarks(values: .stride(by: hourly ? .hour : .day, count: hourly ? 6 : 2)) { _ in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6, dash: [3, 3])).foregroundStyle(theme.grid)
-                AxisValueLabel(format: hourly ? .dateTime.hour() : .dateTime.weekday(.abbreviated).day(), centered: true)
-                    .foregroundStyle(theme.muted)
-                    .font(.system(size: 11, weight: .medium))
-            }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading) { _ in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6, dash: [3, 3])).foregroundStyle(theme.grid)
-                AxisValueLabel().foregroundStyle(theme.muted).font(.system(size: 11, weight: .medium))
-            }
-        }
-        .chartPlotStyle { $0.background(.clear) }
+        .modifier(ForecastAxisStyle(theme: theme, hourly: hourly))
         .modifier(DateScrubber(selection: selection))
         .frame(height: 236)
     }
@@ -421,42 +420,54 @@ struct ForecastView: View {
         return (lo - pad)...(hi + pad)
     }
 
+    private var forecastStatus: String? {
+        if model.isLoading { return nil }
+        if let message = model.errorMessage, !message.isEmpty { return message }
+        if model.showsPlacePrompt { return nil }
+        return "Forecast will appear here."
+    }
+
+    private func emptyLine(_ text: String) -> some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundStyle(theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 4)
+            .accessibilityIdentifier("forecast-empty")
+    }
+
     private var hourlyScrubText: String? {
         guard let axis = hourlySelection, let row = model.hourlyRows.first(where: { ForecastDates.sameHour($0.time, axis) }) else { return nil }
-        let when = row.clock
+        let when = ForecastDisplay.compactClock(row.clock)
         switch hourlyMode {
         case "feelslike":
-            return "\(when)  \(row.feels.map { "\(Int($0.rounded()))°" } ?? "—")"
+            return "\(when)  \(ForecastDisplay.temperature(row.feels))"
         case "precip":
-            let amount = row.precip.map { String(format: "%.2f in", $0) } ?? "0 in"
-            let chance = row.precipChance.map { " · \($0)%" } ?? ""
-            return "\(when)  \(amount)\(chance)"
+            return "\(when)  \(ForecastDisplay.rainDetail(chance: row.precipChance, amount: row.precip))"
         case "wind":
-            let speed = row.wind.map { String(format: "%.0f mph", $0) } ?? "—"
+            let speed = ForecastDisplay.milesPerHour(row.wind)
             let dir = row.windDir.map { " \(WindCompass.label($0))" } ?? ""
-            let gust = row.windGust.map { String(format: " · gust %.0f", $0) } ?? ""
+            let gust = row.windGust.flatMap { $0 >= 1 ? " · gust \(Int($0.rounded()))" : nil } ?? ""
             return "\(when)  \(speed)\(dir)\(gust)"
         case "uv":
-            return "\(when)  \(row.uv.map { String(format: "UV %.0f", $0) } ?? "—")"
+            return "\(when)  \(row.uv.map { "UV \(Int($0.rounded()))" } ?? "—")"
         case "humidity":
-            return "\(when)  \(row.humidity.map { "\(Int($0.rounded()))%" } ?? "—")"
+            return "\(when)  \(ForecastDisplay.percent(row.humidity))"
         case "pressure":
-            return "\(when)  \(row.pressure.map { String(format: "%.2f inHg", $0 * 0.02953) } ?? "—")"
+            return "\(when)  \(ForecastDisplay.pressure(hPa: row.pressure))"
         case "snow":
-            return "\(when)  \(row.snow.map { String(format: "%.2f in", $0) } ?? "0 in")"
+            return "\(when)  \(ForecastDisplay.inches(row.snow ?? 0))"
         case "cloud":
-            let low = row.cloudLow.map { "L \(Int($0.rounded()))%" } ?? "L —"
-            let mid = row.cloudMid.map { "M \(Int($0.rounded()))%" } ?? "M —"
-            let high = row.cloudHigh.map { "H \(Int($0.rounded()))%" } ?? "H —"
-            return "\(when)  \(low)  \(mid)  \(high)"
+            return "\(when)  \(ForecastDisplay.cloudDetail(low: row.cloudLow ?? 0, mid: row.cloudMid ?? 0, high: row.cloudHigh ?? 0))"
         case "brightness":
-            return "\(when)  \(Int(row.brightness.rounded()))%"
+            return "\(when)  \(ForecastDisplay.percent(row.brightness))"
         case "niceweather":
-            return "\(when)  \(String(format: "%.0f / 10", row.niceScore))"
+            return "\(when)  \(ForecastDisplay.niceScore(row.niceScore))"
         case "moon":
-            return "\(when)  \(String(format: "%.0f%%", row.moonPhase * 100))"
+            return "\(when)  \(ForecastDisplay.moonPercent(row.moonPhase))"
         default:
-            return "\(when)  \(row.temp.map { "\(Int($0.rounded()))°" } ?? "—")"
+            return "\(when)  \(ForecastDisplay.temperature(row.temp))"
         }
     }
 
@@ -464,47 +475,37 @@ struct ForecastView: View {
         guard let axis = dailySelection, let day = model.dailyRows.first(where: { ForecastDates.sameDay($0.date, axis) }) else { return nil }
         switch dailySeries {
         case "temp":
-            return "\(day.label)  H \(int(day.high))  L \(int(day.low))"
+            return "\(day.label)  H \(ForecastDisplay.temperature(day.high))  L \(ForecastDisplay.temperature(day.low))"
         case "feelslike":
-            return "\(day.label)  H \(int(day.feelsHigh))  L \(int(day.feelsLow))"
+            return "\(day.label)  H \(ForecastDisplay.temperature(day.feelsHigh))  L \(ForecastDisplay.temperature(day.feelsLow))"
         case "precip":
-            let amount = day.precip.map { String(format: "%.2f in", $0) } ?? "0 in"
-            let chance = day.precipChance.map { " · \($0)%" } ?? ""
-            return "\(day.label)  \(amount)\(chance)"
+            return "\(day.label)  \(ForecastDisplay.rainDetail(chance: day.precipChance, amount: day.precip))"
         case "wind":
-            let speed = day.wind.map { String(format: "%.0f mph", $0) } ?? "—"
-            let gust = String(format: " · gust %.0f", day.gust)
-            return "\(day.label)  \(speed)\(gust)"
+            return "\(day.label)  \(ForecastDisplay.windDetail(speed: day.wind, gust: day.gust))"
         case "uv":
-            return "\(day.label)  \(day.uv.map { String(format: "UV %.0f", $0) } ?? "—")"
+            return "\(day.label)  \(day.uv.map { "UV \(Int($0.rounded()))" } ?? "—")"
         case "humidity":
-            return "\(day.label)  \(Int(day.humidityAvg.rounded()))%"
+            return "\(day.label)  \(ForecastDisplay.percent(day.humidityAvg))"
         case "pressure":
-            return "\(day.label)  \(String(format: "%.2f inHg", day.pressureInHg))"
+            return "\(day.label)  \(ForecastDisplay.pressure(inHg: day.pressureInHg))"
         case "snow":
-            return "\(day.label)  \(String(format: "%.2f in", day.snowSum))"
+            return "\(day.label)  \(ForecastDisplay.inches(day.snowSum))"
         case "cloud":
-            let low = Int(day.cloudLowAvg.rounded())
-            let mid = Int(day.cloudMidAvg.rounded())
-            let high = Int(day.cloudHighAvg.rounded())
-            return "\(day.label)  L \(low)%  M \(mid)%  H \(high)%"
+            return "\(day.label)  \(ForecastDisplay.cloudDetail(low: day.cloudLowAvg, mid: day.cloudMidAvg, high: day.cloudHighAvg))"
         case "brightness":
-            return "\(day.label)  \(Int(day.brightness.rounded()))%"
+            return "\(day.label)  \(ForecastDisplay.percent(day.brightness))"
         case "niceweather":
-            return "\(day.label)  \(String(format: "%.0f / 10", day.niceScore))"
+            return "\(day.label)  \(ForecastDisplay.niceScore(day.niceScore))"
         case "moon":
-            return "\(day.label)  \(String(format: "%.0f%%", day.moonPhase * 100))"
+            return "\(day.label)  \(ForecastDisplay.moonPercent(day.moonPhase))"
         default:
-            return "\(day.label)  \(int(day.high))"
+            return "\(day.label)  \(ForecastDisplay.temperature(day.high))"
         }
     }
 
     private func tideReadout(_ date: Date?, curve: [TideExtreme]) -> String? {
         guard let date, let point = nearestTide(date, in: curve) else { return nil }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.dateFormat = "EEE h:mm a"
-        return "\(formatter.string(from: point.time))  \(String(format: "%.1f ft", point.value))"
+        return ForecastDisplay.tideReadout(date: point.time, feet: point.value)
     }
 
     private func nearestTide(_ date: Date, in curve: [TideExtreme]) -> TideExtreme? {
@@ -520,7 +521,7 @@ struct ForecastView: View {
         case "pressure": return "inHg"
         case "niceweather": return "/10"
         case "tides": return "ft"
-        case "moon": return "phase"
+        case "moon": return "%"
         default: return "°F"
         }
     }
@@ -559,7 +560,7 @@ struct ForecastView: View {
         case "pressure": return (row.pressure ?? 0) * 0.02953
         case "niceweather": return row.niceScore
         case "brightness": return row.brightness
-        case "moon": return row.moonPhase
+        case "moon": return row.moonPhase * 100
         default: return row.temp ?? 0
         }
     }
@@ -573,16 +574,15 @@ struct ForecastView: View {
         case "pressure": return day.pressureInHg
         case "niceweather": return day.niceScore
         case "brightness": return day.brightness
-        case "moon": return day.moonPhase
+        case "moon": return day.moonPhase * 100
         default: return day.high ?? 0
         }
     }
 
     private var hourlyYDomain: ClosedRange<Double>? {
         switch hourlyMode {
-        case "humidity", "brightness": return 0...100
+        case "humidity", "brightness", "moon": return 0...100
         case "niceweather": return 0...10
-        case "moon": return 0...1
         case "uv": return 0...max(1, model.hourlyRows.map { $0.uv ?? 0 }.max() ?? 1)
         default: return nil
         }
@@ -590,9 +590,8 @@ struct ForecastView: View {
 
     private var dailyYDomain: ClosedRange<Double>? {
         switch dailySeries {
-        case "humidity", "brightness": return 0...100
+        case "humidity", "brightness", "moon": return 0...100
         case "niceweather": return 0...10
-        case "moon": return 0...1
         case "uv": return 0...max(1, model.dailyRows.map { $0.uv ?? 0 }.max() ?? 1)
         default: return nil
         }
@@ -653,10 +652,6 @@ struct ForecastView: View {
         .frame(height: 248)
     }
 
-    private func int(_ value: Double?) -> String {
-        guard let value else { return "—" }
-        return "\(Int(value.rounded()))°"
-    }
 }
 
 /// Hour and day lists ignore chart scrubbing so icon rows are not rebuilt on each drag point.
@@ -671,84 +666,123 @@ private struct HourlyStrip: View, Equatable {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 12) {
+            LazyHStack(alignment: .top, spacing: 10) {
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                    chip(row, emphasized: index == 0)
+                    let previous = index > 0 ? rows[index - 1] : nil
+                    chip(row, previous: previous, emphasized: index == 0)
                 }
             }
             .padding(.vertical, 2)
         }
     }
 
-    private func chip(_ row: HourRow, emphasized: Bool) -> some View {
-        VStack(spacing: 6) {
-            Text(row.clock)
-                .font(JWFont.chipTime)
+    private var showsConditionIcon: Bool {
+        mode == "temp" || mode == "feelslike" || mode == "tides"
+    }
+
+    private func chip(_ row: HourRow, previous: HourRow?, emphasized: Bool) -> some View {
+        let markDay = ForecastDisplay.marksNewDay(stamp: row.time, previous: previous?.time)
+        let clock = ForecastDisplay.chipClock(clock: row.clock, stamp: row.time, markDay: markDay)
+        let reading = chipReading(row)
+        return VStack(spacing: 6) {
+            Text(clock)
+                .font(.footnote.weight(.medium))
                 .foregroundStyle(emphasized ? theme.text : theme.muted)
-            if mode != "wind" {
-                SVGIconView(fileName: row.iconFile, folder: "weather", pointSize: 32).frame(width: 32, height: 32)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            if mode == "wind", let dir = row.windDir {
+                Image(systemName: "location.north.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(theme.accent)
+                    .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
+                    .accessibilityHidden(true)
+            } else if showsConditionIcon {
+                SVGIconView(fileName: row.iconFile, folder: "weather", pointSize: 32)
+                    .frame(width: 32, height: 32)
+                    .accessibilityHidden(true)
             }
-            switch mode {
-            case "precip":
-                Text(row.precip.map { String(format: "%.2f\"", $0) } ?? "0\"").font(JWFont.chipValue)
-                Text(row.precipChance.map { "\($0)%" } ?? "").font(.caption2).foregroundStyle(theme.muted)
-            case "wind":
-                if let dir = row.windDir {
-                    Image(systemName: "location.north.fill")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(theme.accent)
-                        .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
-                        .accessibilityLabel("From \(WindCompass.label(dir))")
-                }
-                Text(row.wind.map { String(format: "%.0f", $0) } ?? "—").font(JWFont.chipValue)
-                Text(row.windGust.map { String(format: "mph G%.0f", $0) } ?? "mph")
-                    .font(.caption2)
+            Text(reading.primary)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(theme.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            if let secondary = reading.secondary {
+                Text(secondary)
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(theme.muted)
-            case "uv":
-                Text(row.uv.map { String(format: "%.0f", $0) } ?? "—").font(JWFont.chipValue)
-                Text(row.uvLabel).font(.caption2).foregroundStyle(theme.muted)
-            case "humidity":
-                Text(row.humidity.map { "\(Int($0.rounded()))%" } ?? "—").font(JWFont.chipValue)
-            case "pressure":
-                Text(row.pressure.map { String(format: "%.2f\"", $0 * 0.02953) } ?? "—").font(JWFont.chipValue)
-            case "cloud":
-                Text(row.cloudLow.map { "L\(Int($0.rounded()))" } ?? "L—").font(.caption2)
-                Text(row.cloudMid.map { "M\(Int($0.rounded()))" } ?? "M—").font(.caption2).foregroundStyle(theme.muted)
-                Text(row.cloudHigh.map { "H\(Int($0.rounded()))" } ?? "H—").font(.caption2).foregroundStyle(theme.muted)
-            case "feelslike":
-                Text(row.feels.map { "\(Int($0.rounded()))°" } ?? "—").font(JWFont.chipValue)
-            case "snow":
-                Text(row.snow.map { String(format: "%.2f\"", $0) } ?? "0\"").font(JWFont.chipValue)
-            case "brightness":
-                Text("\(Int(row.brightness.rounded()))%").font(JWFont.chipValue)
-            case "niceweather":
-                Text(String(format: "%.0f", row.niceScore)).font(JWFont.chipValue)
-            case "moon":
-                Text(String(format: "%.0f%%", row.moonPhase * 100)).font(JWFont.chipValue)
-            default:
-                Text(row.temp.map { "\(Int($0.rounded()))°" } ?? "—")
-                    .font(JWFont.chipValue)
-                if let wind = row.wind {
-                    Text(String(format: "%.0f mph", wind))
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.faint)
-                }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 10)
-        .frame(minWidth: 80, minHeight: 138)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 8)
+        .frame(minWidth: 76)
         .background(emphasized ? theme.tile : theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous)
                 .stroke(emphasized ? theme.cardStroke : theme.chipStroke, lineWidth: 1)
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(reading.spoken)
+    }
+
+    private func chipReading(_ row: HourRow) -> (primary: String, secondary: String?, spoken: String) {
+        let when = ForecastDisplay.chipClock(
+            clock: row.clock,
+            stamp: row.time,
+            markDay: true
+        )
+        switch mode {
+        case "precip":
+            let amount = ForecastDisplay.inches(row.precip ?? 0)
+            let chance = row.precipChance.map { "\($0)%" }
+            return (amount, chance, [when, amount, chance].compactMap { $0 }.joined(separator: ", "))
+        case "wind":
+            let speed = ForecastDisplay.milesPerHour(row.wind)
+            let gust = row.windGust.flatMap { $0 >= 1 ? "Gust \(Int($0.rounded()))" : nil }
+            let from = row.windDir.map { "from \(WindCompass.label($0))" }
+            return (speed, gust, [when, speed, gust, from].compactMap { $0 }.joined(separator: ", "))
+        case "uv":
+            let value = row.uv.map { "\(Int($0.rounded()))" } ?? "—"
+            let band = row.uvLabel.isEmpty ? nil : row.uvLabel
+            return (value, band, [when, "UV \(value)", band].compactMap { $0 }.joined(separator: ", "))
+        case "humidity":
+            let value = ForecastDisplay.percent(row.humidity)
+            return (value, nil, "\(when), humidity \(value)")
+        case "pressure":
+            let value = ForecastDisplay.pressure(hPa: row.pressure)
+            return (value, nil, "\(when), \(value)")
+        case "cloud":
+            let value = ForecastDisplay.cloudPercent(total: row.cloud, low: row.cloudLow, mid: row.cloudMid, high: row.cloudHigh)
+            return (value, nil, "\(when), cloud cover \(value)")
+        case "feelslike":
+            let value = ForecastDisplay.temperature(row.feels)
+            return (value, nil, "\(when), feels like \(value)")
+        case "snow":
+            let value = ForecastDisplay.inches(row.snow ?? 0)
+            return (value, nil, "\(when), snow \(value)")
+        case "brightness":
+            let value = ForecastDisplay.percent(row.brightness)
+            return (value, nil, "\(when), brightness \(value)")
+        case "niceweather":
+            let value = ForecastDisplay.niceScore(row.niceScore)
+            return (value, nil, "\(when), nice weather \(value)")
+        case "moon":
+            let value = ForecastDisplay.moonPercent(row.moonPhase)
+            return (value, nil, "\(when), moon \(value)")
+        default:
+            let value = ForecastDisplay.temperature(row.temp)
+            return (value, nil, "\(when), \(value)")
+        }
     }
 }
 
 private struct DailyDetailList: View, Equatable {
     let days: [DayRow]
     let theme: JWPalette
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var expandedID: Int?
+    @State private var didApplyLaunchDetail = false
 
     static func == (lhs: DailyDetailList, rhs: DailyDetailList) -> Bool {
         lhs.days == rhs.days
@@ -760,78 +794,54 @@ private struct DailyDetailList: View, Equatable {
                 if index > 0, index.isMultiple(of: 7) {
                     weekSeparator(index / 7 + 1)
                 }
-                dayChip(day)
+                dayCard(day)
             }
+        }
+        .onChange(of: days.map(\.id), initial: true) { _, ids in
+            guard LaunchArgs.expandsForecastDetail, !didApplyLaunchDetail, let first = ids.first else { return }
+            expandedID = first
+            didApplyLaunchDetail = true
         }
     }
 
     private func weekSeparator(_ week: Int) -> some View {
         HStack(spacing: 12) {
             Rectangle().fill(theme.divider).frame(height: 1)
-            Text("WEEK \(week)")
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(1.2)
-                .foregroundStyle(theme.faint)
+            Text("Week \(week)")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(theme.muted)
             Rectangle().fill(theme.divider).frame(height: 1)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
         .padding(.horizontal, 4)
+        .accessibilityElement(children: .combine)
     }
 
-    private func dayChip(_ day: DayRow) -> some View {
-        let parts = day.label.split(separator: " ", maxSplits: 1).map(String.init)
-        let weekday = parts.first ?? day.label
-        let dateLabel = parts.count > 1 ? parts[1] : day.date
-        return HStack(alignment: .center, spacing: 12) {
-            SVGIconView(fileName: day.iconFile, folder: "weather", pointSize: 28)
-                .frame(width: 28, height: 28)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(weekday)
-                    .font(JWFont.dayName)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .accessibilityIdentifier("forecast-day-header")
-                Text(dateLabel)
-                    .font(.system(size: 13))
-                    .foregroundStyle(theme.muted)
-                    .lineLimit(1)
-            }
-            .layoutPriority(1)
-            Spacer(minLength: 4)
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(temp(day.high))
-                    .font(JWFont.dayHigh)
-                    .monospacedDigit()
-                Text(temp(day.low))
-                    .font(.system(size: 13))
-                    .foregroundStyle(theme.muted)
-                    .monospacedDigit()
-                if let feelsHigh = day.feelsHigh, let feelsLow = day.feelsLow {
-                    Text("Feels \(Int(feelsHigh.rounded()))° / \(Int(feelsLow.rounded()))°")
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.faint)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+    private func dayCard(_ day: DayRow) -> some View {
+        let expanded = expandedID == day.id
+        return VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    expandedID = expanded ? nil : day.id
+                }
+            } label: {
+                ViewThatFits(in: .horizontal) {
+                    summary(day, stacked: false)
+                    summary(day, stacked: true)
                 }
             }
-            VStack(alignment: .trailing, spacing: 2) {
-                if day.snowSum > 0 {
-                    Text(String(format: "%.1f in", day.snowSum))
-                } else {
-                    Text(day.precip.map { String(format: "%.2f in", $0) } ?? "0 in")
-                }
-                if let chance = day.precipChance {
-                    Text("\(chance)%")
-                }
-                Text(day.wind.map { String(format: "%.0f mph", $0) } ?? "—")
+            .buttonStyle(.plain)
+            .accessibilityLabel(summarySpoken(day, expanded: expanded))
+            .accessibilityHint(expanded ? "Hides the rest of this day" : "Shows the rest of this day")
+            .accessibilityIdentifier("forecast-day-header")
+
+            if expanded {
+                dayDetail(day)
+                    .accessibilityIdentifier("forecast-day-detail")
             }
-            .font(.system(size: 12))
-            .foregroundStyle(theme.muted)
-            .monospacedDigit()
-            .frame(minWidth: 58, alignment: .trailing)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
         .overlay(
@@ -840,9 +850,166 @@ private struct DailyDetailList: View, Equatable {
         )
     }
 
-    private func temp(_ value: Double?) -> String {
-        guard let value else { return "—" }
-        return "\(Int(value.rounded()))°"
+    private func summary(_ day: DayRow, stacked: Bool) -> some View {
+        let parts = day.label.split(separator: " ", maxSplits: 1).map(String.init)
+        let weekday = parts.first ?? day.label
+        let dateLabel = parts.count > 1 ? parts[1] : day.date
+        let cue = ForecastDisplay.precipCue(chance: day.precipChance, amount: day.precip, snow: day.snowSum)
+        return Group {
+            if stacked {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        dayIcon(day)
+                        dateBlock(weekday: weekday, dateLabel: dateLabel)
+                        Spacer(minLength: 8)
+                        chevron(expanded: expandedID == day.id)
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        temps(day)
+                        if let cue {
+                            Text(cue)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(theme.muted)
+                        }
+                    }
+                }
+            } else {
+                HStack(alignment: .center, spacing: 12) {
+                    dayIcon(day)
+                    dateBlock(weekday: weekday, dateLabel: dateLabel)
+                    Spacer(minLength: 8)
+                    temps(day)
+                    if let cue {
+                        Text(cue)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(theme.muted)
+                            .lineLimit(1)
+                    }
+                    chevron(expanded: expandedID == day.id)
+                }
+            }
+        }
+    }
+
+    private func dayIcon(_ day: DayRow) -> some View {
+        SVGIconView(fileName: day.iconFile, folder: "weather", pointSize: 28)
+            .frame(width: 28, height: 28)
+            .accessibilityHidden(true)
+    }
+
+    private func dateBlock(weekday: String, dateLabel: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(weekday)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(theme.text)
+                .lineLimit(1)
+            Text(dateLabel)
+                .font(.subheadline)
+                .foregroundStyle(theme.muted)
+                .lineLimit(1)
+        }
+        .layoutPriority(1)
+    }
+
+    private func temps(_ day: DayRow) -> some View {
+        VStack(alignment: .trailing, spacing: 0) {
+            Text(ForecastDisplay.temperature(day.high))
+                .font(.headline.weight(.bold))
+                .foregroundStyle(theme.text)
+                .monospacedDigit()
+            Text(ForecastDisplay.temperature(day.low))
+                .font(.subheadline)
+                .foregroundStyle(theme.muted)
+                .monospacedDigit()
+        }
+    }
+
+    private func chevron(expanded: Bool) -> some View {
+        Image(systemName: "chevron.down")
+            .font(.caption.weight(.bold))
+            .foregroundStyle(theme.muted)
+            .rotationEffect(.degrees(expanded ? 180 : 0))
+            .accessibilityHidden(true)
+    }
+
+    private func summarySpoken(_ day: DayRow, expanded: Bool) -> String {
+        let high = ForecastDisplay.temperature(day.high)
+        let low = ForecastDisplay.temperature(day.low)
+        let cue = ForecastDisplay.precipCue(chance: day.precipChance, amount: day.precip, snow: day.snowSum)
+        let state = expanded ? "expanded" : "collapsed"
+        return [day.fullLabel, day.summary, "high \(high)", "low \(low)", cue, state]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+    }
+
+    private func dayDetail(_ day: DayRow) -> some View {
+        let rows = detailRows(day)
+        return VStack(alignment: .leading, spacing: 8) {
+            Rectangle()
+                .fill(theme.divider)
+                .frame(height: 1)
+            if !day.summary.isEmpty {
+                Text(day.summary)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(theme.text)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ForEach(rows, id: \.label) { row in
+                detailLine(row.label, row.value)
+            }
+        }
+    }
+
+    private func detailLine(_ label: String, _ value: String) -> some View {
+        let stacks = typeSize >= .accessibility1
+        return Group {
+            if stacks {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label).foregroundStyle(theme.muted)
+                    Text(value).foregroundStyle(theme.text)
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(label)
+                        .foregroundStyle(theme.muted)
+                    Spacer(minLength: 8)
+                    Text(value)
+                        .foregroundStyle(theme.text)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+        }
+        .font(.subheadline)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func detailRows(_ day: DayRow) -> [(label: String, value: String)] {
+        var rows: [(label: String, value: String)] = []
+        if day.feelsHigh != nil || day.feelsLow != nil {
+            rows.append(("Feels like", ForecastDisplay.temperaturePair(day.feelsHigh, day.feelsLow)))
+        }
+        if day.snowSum > 0 {
+            rows.append(("Snow", ForecastDisplay.inches(day.snowSum, places: day.snowSum >= 0.1 ? 1 : 2)))
+        }
+        rows.append(("Rain", ForecastDisplay.rainDetail(chance: day.precipChance, amount: day.precip)))
+        rows.append(("Wind", ForecastDisplay.windDetail(speed: day.wind, gust: day.gust)))
+        if let uv = day.uv {
+            let band = LogicEngine.shared.uvLabel(uv)
+            let number = "\(Int(uv.rounded()))"
+            rows.append(("UV", band.isEmpty ? number : "\(number) \(band)"))
+        }
+        rows.append(("Humidity", ForecastDisplay.percent(day.humidityAvg)))
+        let sun = [day.sunriseClock, day.sunsetClock].filter { !$0.isEmpty }
+        if sun.count == 2 {
+            rows.append(("Sun", "\(sun[0]) – \(sun[1])"))
+        }
+        rows.append(("Pressure", ForecastDisplay.pressure(inHg: day.pressureInHg)))
+        rows.append(("Clouds", ForecastDisplay.cloudDetail(low: day.cloudLowAvg, mid: day.cloudMidAvg, high: day.cloudHighAvg)))
+        rows.append(("Brightness", ForecastDisplay.percent(day.brightness)))
+        rows.append(("Nice weather", ForecastDisplay.niceScore(day.niceScore)))
+        rows.append(("Moon", ForecastDisplay.moonPercent(day.moonPhase)))
+        return rows
     }
 }
 
@@ -920,27 +1087,8 @@ private enum ForecastDates {
     }
 
     static func axisLabel(_ date: Date, hourly: Bool) -> String {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = utc
-        if hourly {
-            let hour = calendar.component(.hour, from: date)
-            let h12 = hour % 12 == 0 ? 12 : hour % 12
-            let clock = "\(h12) \(hour >= 12 ? "PM" : "AM")"
-            if hour == 0 {
-                return "\(clock)\n\(weekday.string(from: date))"
-            }
-            return clock
-        }
-        return "\(weekday.string(from: date))\n\(calendar.component(.day, from: date))"
+        ForecastDisplay.axisLabel(date: date, hourly: hourly)
     }
-
-    private static let weekday: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.timeZone = utc
-        formatter.dateFormat = "EEE"
-        return formatter
-    }()
 }
 
 private struct ForecastAxisStyle: ViewModifier {
@@ -956,7 +1104,8 @@ private struct ForecastAxisStyle: ViewModifier {
                     AxisValueLabel(centered: true) {
                         if let date = value.as(Date.self) {
                             Text(ForecastDates.axisLabel(date, hourly: hourly))
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.caption2.weight(.semibold))
+                                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(theme.text.opacity(0.92))
                         }
@@ -967,8 +1116,8 @@ private struct ForecastAxisStyle: ViewModifier {
                 AxisMarks(position: .leading) { _ in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6, dash: [3, 3])).foregroundStyle(theme.grid)
                     AxisValueLabel()
-                        .foregroundStyle(theme.muted)
-                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(theme.text.opacity(0.82))
+                        .font(.caption2.weight(.medium))
                 }
             }
     }
