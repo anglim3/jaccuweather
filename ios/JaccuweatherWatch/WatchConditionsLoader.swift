@@ -176,6 +176,9 @@ enum WatchConditionsLoader {
             openMeteoFeelsLikeF: fetched.snapshot.feelsLikeF
         )
         merged.dewPointF = WatchDewPoint.preferringExisting(snapshot.dewPointF, fill: fetched.snapshot.dewPointF)
+        if merged.precipChance == nil {
+            merged.precipChance = fetched.snapshot.precipChance
+        }
         WatchHourCache.save(hours: fetched.hours, days: fetched.days, sun: fetched.sun, snapshot: merged)
         return Reading(
             snapshot: merged,

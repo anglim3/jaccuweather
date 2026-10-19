@@ -61,10 +61,12 @@ enum WatchForecastClient {
         snapshot.isDay = isDay
         snapshot.conditionText = WidgetWeatherCode.shortText(code)
         snapshot.symbolName = WidgetWeatherCode.symbol(code: code, isDay: isDay)
+        let hours = slots(payload.hourly, offset: offset, now: now)
         if let chance = current.precipitationProbability {
             snapshot.precipChance = Int(chance.rounded())
+        } else if let chance = hours.first?.precipProbability {
+            snapshot.precipChance = chance
         }
-        let hours = slots(payload.hourly, offset: offset, now: now)
         let atmosphere = WatchAtmosphere.metrics(
             uvIndex: current.uvIndex,
             windSpeedMph: current.windSpeed10m,
