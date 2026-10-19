@@ -55,5 +55,31 @@ func run() {
     let quiet = WatchComplicationCopy.condition(conditionText: "", feelsLikeF: nil)
     check(quiet == "Conditions", "missing condition has a short fallback")
 
+    let metrics = WatchAtmosphere.metrics(
+        uvIndex: 4,
+        windSpeedMph: 12.4,
+        windDirectionDegrees: 315,
+        windGustMph: 20.2,
+        humidityPercent: 62.4
+    )
+    let detail = WatchComplicationCopy.rectangularDetail(metrics)
+    check(detail == WatchAtmosphere.detailLine(metrics), "rectangular reuses the atmosphere line")
+    check(detail == "UV 4 · 12 mph NW · G20", "rectangular joins uv and wind")
+    check(detail?.contains("%") == false, "rectangular skips the humidity percent")
+    check(detail?.localizedCaseInsensitiveContains("humidity") != true, "rectangular skips the word humidity")
+
+    let humidOnly = WatchAtmosphere.metrics(
+        uvIndex: nil,
+        windSpeedMph: nil,
+        windDirectionDegrees: nil,
+        windGustMph: nil,
+        humidityPercent: 80
+    )
+    check(WatchComplicationCopy.rectangularDetail(humidOnly) == nil, "humidity alone stays off the complication")
+    check(WatchComplicationCopy.rectangularDetail(.empty) == nil, "missing uv and wind keeps the condition line")
+
+    let uvOnly = WatchAtmosphere.metrics(uvIndex: 9.2, windSpeedMph: nil, windDirectionDegrees: nil, windGustMph: nil)
+    check(WatchComplicationCopy.rectangularDetail(uvOnly) == "UV 9", "uv alone is the rectangular line")
+
     print("ok")
 }
