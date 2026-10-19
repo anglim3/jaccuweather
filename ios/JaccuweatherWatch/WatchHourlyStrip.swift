@@ -30,7 +30,8 @@ struct WatchHourlyStrip: View {
                             .onTapGesture { onSelect(hour) }
                             .accessibilityElement(children: .combine)
                             .accessibilityAddTraits(.isButton)
-                            .accessibilityLabel(spoken(hour))
+                            .accessibilityLabel(WatchSpoken.hourlyCell(hour))
+                            .accessibilityHint("Shows this hour")
                             .accessibilityIdentifier("watch-hour-\(index)")
                     }
                 }
@@ -47,7 +48,7 @@ struct WatchHourlyStrip: View {
             .clipShape(cardShape)
             .overlay { cardShape.strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1) }
         }
-        .frame(height: style.bandHeight)
+        .frame(height: fittedBandHeight)
         .accessibilityIdentifier("watch-hourly-strip")
     }
 
@@ -64,14 +65,31 @@ struct WatchHourlyStrip: View {
                 .lineLimit(1)
             cueLine(hour)
         }
-        .frame(width: width, height: style.bandHeight - style.verticalPadding * 2)
+        .frame(width: width, height: contentHeight, alignment: .top)
+    }
+
+    /// Default cards keep their band. Grown type lengthens the card so the percent is not clipped.
+    private var contentHeight: CGFloat {
+        guard style.textScale >= 1.4 else { return style.bandHeight - style.verticalPadding * 2 }
+        return style.textBox(style.labelSize, slack: 2)
+            + style.textBox(style.primarySize, slack: 3)
+            + cueBox
+    }
+
+    private var fittedBandHeight: CGFloat {
+        max(style.bandHeight, contentHeight + style.verticalPadding * 2)
+    }
+
+    private var cueBox: CGFloat {
+        guard style.textScale >= 1.4 else { return style.cueHeight }
+        return max(style.cueHeight, style.textBox(style.secondarySize, slack: 2))
     }
 
     @ViewBuilder
     private func cueLine(_ hour: WatchHourSlot) -> some View {
         let showChance = hour.precipProbability.map { $0 >= 10 || hour.cue != .none } ?? (hour.cue != .none)
         if hour.cue == .none, !showChance {
-            Color.clear.frame(height: style.cueHeight)
+            Color.clear.frame(height: cueBox)
         } else {
             HStack(spacing: 1) {
                 cueSymbol(hour.cue)
@@ -83,7 +101,7 @@ struct WatchHourlyStrip: View {
                         .minimumScaleFactor(0.6)
                 }
             }
-            .frame(height: style.cueHeight)
+            .frame(height: cueBox)
         }
     }
 
@@ -94,10 +112,12 @@ struct WatchHourlyStrip: View {
             Image(systemName: "snowflake")
                 .font(.system(size: style.symbolSize, weight: .semibold))
                 .foregroundStyle(WidgetHorizon.text)
+                .accessibilityHidden(true)
         case .rain:
             Image(systemName: "drop.fill")
                 .font(.system(size: style.symbolSize, weight: .semibold))
                 .foregroundStyle(WidgetHorizon.accent)
+                .accessibilityHidden(true)
         case .none:
             EmptyView()
         }
@@ -106,18 +126,5 @@ struct WatchHourlyStrip: View {
     private func degrees(_ value: Double?) -> String {
         guard let value, value.isFinite else { return "—" }
         return "\(Int(value.rounded()))°"
-    }
-
-    private func spoken(_ hour: WatchHourSlot) -> String {
-        var parts = [hour.label, degrees(hour.temperatureF)]
-        if let chance = hour.precipProbability {
-            parts.append("\(chance) percent")
-        }
-        switch hour.cue {
-        case .rain: parts.append("rain")
-        case .snow: parts.append("snow")
-        case .none: break
-        }
-        return parts.joined(separator: ", ")
     }
 }

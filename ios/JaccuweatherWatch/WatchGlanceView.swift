@@ -18,6 +18,11 @@ private enum WatchGlanceDetail: Identifiable {
 
 struct WatchGlanceView: View {
     var model: WatchWeatherModel
+    @Environment(\.dynamicTypeSize) private var environmentTypeSize
+    /// Launch override wins so a debug `-watchTextSize` preview matches Settings.
+    private var dynamicTypeSize: DynamicTypeSize {
+        WatchTextSizeLaunch.forced ?? environmentTypeSize
+    }
     @State private var showPlaces = false
     @State private var closedLaunchList = false
     @State private var detail: WatchGlanceDetail?
@@ -44,6 +49,7 @@ struct WatchGlanceView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .modifier(WatchTextSizeLaunchModifier())
         .task { await model.start() }
         .onOpenURL { model.open($0) }
         .onAppear { presentSampleDetailIfNeeded() }
@@ -92,10 +98,20 @@ struct WatchGlanceView: View {
         WatchAQI.chip(usAqi: model.snapshot.usAqi, category: model.snapshot.usAqiCategory)
     }
 
+    @ViewBuilder
     private func fittedStack(_ metrics: WatchGlanceMetrics) -> some View {
-        glanceStack(metrics)
+        let scaled = metrics.scaled(by: WatchTextScale.factor(dynamicTypeSize))
+        let stack = glanceStack(scaled)
             .padding(.horizontal, metrics.horizontalPadding)
             .padding(.bottom, metrics.bottomPadding)
+            .padding(.top, WatchTextScale.needsRoom(dynamicTypeSize) ? 10 : 0)
+        if WatchTextScale.needsRoom(dynamicTypeSize) {
+            ScrollView(.vertical, showsIndicators: false) {
+                stack
+            }
+        } else {
+            stack
+        }
     }
 
     private func glanceStack(_ metrics: WatchGlanceMetrics) -> some View {
@@ -104,17 +120,7 @@ struct WatchGlanceView: View {
             HStack(alignment: .center, spacing: 6) {
                 symbol(metrics)
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .center, spacing: 4) {
-                        Text(model.temperatureText)
-                            .font(WidgetHorizon.tempFont(size: metrics.tempSize))
-                            .foregroundStyle(WidgetHorizon.text)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                            .layoutPriority(1)
-                        if let dew = WatchDewPoint.chip(fahrenheit: model.snapshot.dewPointF) {
-                            WatchDewChip(chip: dew, compact: metrics.foldsMetric)
-                        }
-                    }
+                    readingCluster(metrics)
                     detailLine(metrics)
                 }
             }
@@ -182,6 +188,46 @@ struct WatchGlanceView: View {
         }
     }
 
+    /// Temperature beside the dew point. Large text stacks them when the row would collide.
+    @ViewBuilder
+    private func readingCluster(_ metrics: WatchGlanceMetrics) -> some View {
+        if WatchTextScale.needsRoom(dynamicTypeSize) {
+            ViewThatFits(in: .horizontal) {
+                temperatureRow(metrics)
+                VStack(alignment: .leading, spacing: 1) {
+                    temperatureLabel(metrics)
+                    dewChip(metrics)
+                }
+            }
+        } else {
+            temperatureRow(metrics)
+        }
+    }
+
+    private func temperatureRow(_ metrics: WatchGlanceMetrics) -> some View {
+        HStack(alignment: .center, spacing: 4) {
+            temperatureLabel(metrics)
+            dewChip(metrics)
+        }
+    }
+
+    private func temperatureLabel(_ metrics: WatchGlanceMetrics) -> some View {
+        Text(model.temperatureText)
+            .font(WidgetHorizon.tempFont(size: metrics.tempSize))
+            .foregroundStyle(WidgetHorizon.text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .layoutPriority(1)
+            .accessibilityLabel(WatchSpoken.degrees(fromDisplay: model.temperatureText))
+    }
+
+    @ViewBuilder
+    private func dewChip(_ metrics: WatchGlanceMetrics) -> some View {
+        if let dew = WatchDewPoint.chip(fahrenheit: model.snapshot.dewPointF) {
+            WatchDewChip(chip: dew, compact: metrics.foldsMetric)
+        }
+    }
+
     /// Feels-like under the temperature when it differs by at least 2°F.
     /// Otherwise the condition occupies that same line, so a short face
     /// does not gain a row. The condition stays a second line only when
@@ -192,7 +238,7 @@ struct WatchGlanceView: View {
                 Text(chip.text)
                     .font(.system(size: metrics.detailSize, weight: .semibold))
                     .foregroundStyle(WidgetHorizon.accent)
-                    .lineLimit(1)
+                    .lineLimit(detailLineLimit)
                     .minimumScaleFactor(metrics.foldsMetric ? 0.5 : 0.7)
                     .accessibilityIdentifier("watch-feels")
                     .accessibilityLabel(chip.spoken)
@@ -200,14 +246,14 @@ struct WatchGlanceView: View {
                 Text(model.detailText)
                     .font(.system(size: metrics.detailSize, weight: .semibold))
                     .foregroundStyle(WidgetHorizon.accent)
-                    .lineLimit(1)
+                    .lineLimit(detailLineLimit)
                     .minimumScaleFactor(metrics.foldsMetric ? 0.5 : 0.7)
             }
             if model.hours.isEmpty, !model.conditionText.isEmpty {
                 Text(model.conditionText)
                     .font(.system(size: metrics.detailSize, weight: .medium))
                     .foregroundStyle(WidgetHorizon.text)
-                    .lineLimit(1)
+                    .lineLimit(detailLineLimit)
                     .minimumScaleFactor(metrics.foldsMetric ? 0.5 : 0.7)
             }
         }
@@ -231,7 +277,9 @@ struct WatchGlanceView: View {
 
     @ViewBuilder
     private func placeTitle(_ metrics: WatchGlanceMetrics) -> some View {
-        if metrics.foldsMetric, let aqi = aqiChip {
+        if WatchTextScale.needsRoom(dynamicTypeSize) {
+            roomyPlaceTitle(metrics)
+        } else if metrics.foldsMetric, let aqi = aqiChip {
             HStack(spacing: 2) {
                 WatchAQIChip(chip: aqi, compact: true)
                     .layoutPriority(1)
@@ -250,13 +298,35 @@ struct WatchGlanceView: View {
         }
     }
 
+    /// Accessibility sizes keep the place name on the leading side. The system
+    /// clock sits in the trailing corner, so that corner stays empty.
+    private func roomyPlaceTitle(_ metrics: WatchGlanceMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .center, spacing: 4) {
+                placesButton(metrics)
+                placeName(metrics)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if metrics.foldsMetric, let aqi = aqiChip {
+                WatchAQIChip(chip: aqi, compact: true)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.trailing, 40)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func placeName(_ metrics: WatchGlanceMetrics) -> some View {
         Text(model.placeName)
             .font(WidgetHorizon.placeFont(size: metrics.placeSize))
             .foregroundStyle(WidgetHorizon.muted)
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-            .frame(maxWidth: .infinity)
+            .lineLimit(WatchTextScale.needsRoom(dynamicTypeSize) ? 2 : 1)
+            .minimumScaleFactor(WatchTextScale.needsRoom(dynamicTypeSize) ? 0.7 : 0.6)
+            .frame(
+                maxWidth: .infinity,
+                alignment: WatchTextScale.needsRoom(dynamicTypeSize) ? .leading : .center
+            )
             .accessibilityIdentifier("watch-place")
     }
 
@@ -272,6 +342,20 @@ struct WatchGlanceView: View {
         .buttonStyle(.plain)
         .accessibilityIdentifier("watch-places")
         .accessibilityLabel("Places")
+        .accessibilityHint("Shows saved places")
+    }
+
+    /// The condition is already written out when the feels-like line is absent,
+    /// and when that line is showing but the hour strip has not arrived yet.
+    private var speaksConditionInText: Bool {
+        if model.feelsChip != nil {
+            return model.hours.isEmpty && !model.conditionText.isEmpty
+        }
+        return !model.detailText.isEmpty && model.detailText != "Updating"
+    }
+
+    private var detailLineLimit: Int {
+        WatchTextScale.needsRoom(dynamicTypeSize) ? 2 : 1
     }
 
     private func symbol(_ metrics: WatchGlanceMetrics) -> some View {
@@ -297,7 +381,8 @@ struct WatchGlanceView: View {
                         )
                     }
             }
-            .accessibilityHidden(true)
+            .accessibilityLabel(model.snapshot.conditionText)
+            .accessibilityHidden(speaksConditionInText || model.snapshot.conditionText.isEmpty)
     }
 }
 
@@ -306,8 +391,10 @@ struct WatchGlanceView: View {
 struct WatchAQIChip: View {
     var chip: WatchAQI.Chip
     var compact: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var tint: Color { WatchAQITint.color(for: chip.colorToken) }
+    private var fontSize: CGFloat { (compact ? 9 : 11) * WatchTextScale.factor(dynamicTypeSize) }
 
     var body: some View {
         HStack(spacing: 3) {
@@ -318,9 +405,9 @@ struct WatchAQIChip: View {
             Text(chip.text)
             Text(chip.shortWord)
         }
-        .font(.system(size: compact ? 9 : 11, weight: .semibold))
+        .font(.system(size: fontSize, weight: .semibold))
         .foregroundStyle(tint)
-        .lineLimit(1)
+        .lineLimit(WatchTextScale.needsRoom(dynamicTypeSize) ? 2 : 1)
         .minimumScaleFactor(0.6)
         .padding(.horizontal, compact ? 4 : 6)
         .padding(.vertical, compact ? 1 : 2)
@@ -343,12 +430,15 @@ struct WatchAQIChip: View {
 struct WatchDewChip: View {
     var chip: WatchDewPoint.Chip
     var compact: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var fontSize: CGFloat { (compact ? 9 : 11) * WatchTextScale.factor(dynamicTypeSize) }
 
     var body: some View {
         Text(chip.text)
-            .font(.system(size: compact ? 9 : 11, weight: .semibold))
+            .font(.system(size: fontSize, weight: .semibold))
             .foregroundStyle(WidgetHorizon.text)
-            .lineLimit(1)
+            .lineLimit(WatchTextScale.needsRoom(dynamicTypeSize) ? 2 : 1)
             .minimumScaleFactor(0.7)
             .padding(.horizontal, compact ? 4 : 5)
             .padding(.vertical, compact ? 1 : 2)
@@ -391,17 +481,40 @@ struct WatchSunRow: View {
     var sun: WatchSunTimes
     var size: CGFloat = 12
     var chips: [WatchAtmosphere.GlanceLine] = []
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        line
-            .font(.system(size: size, weight: .semibold))
-            .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(0.45)
-            .frame(maxWidth: .infinity)
-            .accessibilityElement(children: .ignore)
-            .accessibilityIdentifier("watch-sun")
-            .accessibilityLabel(spoken)
+        Group {
+            if WatchTextScale.needsRoom(dynamicTypeSize), !chips.isEmpty {
+                VStack(spacing: 1) {
+                    clocks
+                    WatchAtmosphereChipRow(chips: chips)
+                }
+            } else {
+                line
+            }
+        }
+        .font(.system(size: size, weight: .semibold))
+        .monospacedDigit()
+        .lineLimit(WatchTextScale.needsRoom(dynamicTypeSize) ? 2 : 1)
+        .minimumScaleFactor(WatchTextScale.needsRoom(dynamicTypeSize) ? 0.65 : 0.45)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier("watch-sun")
+        .accessibilityLabel(spoken)
+    }
+
+    /// Clocks only, used when wind and humidity need their own line.
+    private var clocks: Text {
+        var parts: [Text] = []
+        if let rise = sun.sunriseLabel {
+            parts.append(Text("↑").foregroundStyle(WidgetHorizon.gold) + Text(" \(rise)").foregroundStyle(WidgetHorizon.text))
+        }
+        if let set = sun.sunsetLabel {
+            parts.append(Text("↓").foregroundStyle(WidgetHorizon.gold) + Text(" \(set)").foregroundStyle(WidgetHorizon.text))
+        }
+        let dot = Text(" · ").foregroundStyle(WidgetHorizon.faint)
+        return parts.dropFirst().reduce(parts.first ?? Text(""), { $0 + dot + $1 })
     }
 
     /// One run so the clocks, wind, and humidity shrink together instead of truncating.
@@ -438,15 +551,26 @@ struct WatchSunRow: View {
 struct WatchAtmosphereChips: View {
     var chips: [WatchAtmosphere.GlanceLine]
     var size: CGFloat
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        WatchAtmosphereChipRow(chips: chips)
-            .font(.system(size: size, weight: .semibold))
-            .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .frame(maxWidth: .infinity)
-            .accessibilityElement(children: .contain)
+        Group {
+            if WatchTextScale.needsRoom(dynamicTypeSize) {
+                VStack(spacing: 1) {
+                    ForEach(Array(chips.enumerated()), id: \.element.identifier) { _, chip in
+                        WatchGlanceChipLabel(chip: chip)
+                    }
+                }
+            } else {
+                WatchAtmosphereChipRow(chips: chips)
+            }
+        }
+        .font(.system(size: size, weight: .semibold))
+        .monospacedDigit()
+        .lineLimit(WatchTextScale.needsRoom(dynamicTypeSize) ? 2 : 1)
+        .minimumScaleFactor(WatchTextScale.needsRoom(dynamicTypeSize) ? 0.65 : 0.5)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -552,6 +676,8 @@ struct WatchStripStyle {
     var symbolSize: CGFloat
     var cueHeight: CGFloat
     var bandHeight: CGFloat
+    /// 1 at the default Dynamic Type size. Larger values opt into line boxes.
+    var textScale: CGFloat = 1
 
     static let hourlyRegular = WatchStripStyle(
         columnWidth: 40, columnSpacing: 2, horizontalPadding: 6, verticalPadding: 4,
@@ -611,6 +737,7 @@ enum WatchStripLayout {
 struct WatchPlacesSheet: View {
     var model: WatchWeatherModel
     var onClose: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         List {
@@ -622,8 +749,8 @@ struct WatchPlacesSheet: View {
                     } label: {
                         HStack(spacing: 6) {
                             Text(place.name)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
+                                .lineLimit(WatchTextScale.needsRoom(dynamicTypeSize) ? 3 : 1)
+                                .minimumScaleFactor(WatchTextScale.needsRoom(dynamicTypeSize) ? 0.8 : 0.7)
                             Spacer(minLength: 4)
                             if model.isSelected(place) {
                                 Image(systemName: "checkmark")
@@ -634,7 +761,9 @@ struct WatchPlacesSheet: View {
                         }
                     }
                     .accessibilityIdentifier(model.isSelected(place) ? "watch-place-selected" : "watch-place-option")
-                    .accessibilityLabel(place.name)
+                    .accessibilityLabel(model.isSelected(place) ? "\(place.name), selected" : place.name)
+                    .accessibilityAddTraits(model.isSelected(place) ? .isSelected : [])
+                    .accessibilityHint("Shows weather for \(place.name)")
                 }
             } header: {
                 Text("Places")
@@ -653,15 +782,19 @@ struct WatchPlacesSheet: View {
 /// Compact NWS line. Shown only when the phone payload included a summary.
 struct WatchAlertBadge: View {
     var alert: WatchAlertSummary
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var typeScale: CGFloat { WatchTextScale.factor(dynamicTypeSize) }
 
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 9 * typeScale, weight: .bold))
+                .accessibilityHidden(true)
             Text(line)
-                .font(.system(size: 10, weight: .semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .font(.system(size: 10 * typeScale, weight: .semibold))
+                .lineLimit(WatchTextScale.needsRoom(dynamicTypeSize) ? 3 : 1)
+                .minimumScaleFactor(0.65)
         }
         .foregroundStyle(WatchAlertTint.color(for: alert.severity))
         .padding(.horizontal, 6)
@@ -704,9 +837,13 @@ enum WatchAlertTint {
 struct WatchAlertDetailSheet: View {
     var alert: WatchAlertSummary
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var lines: WatchAlertDetailLines { alert.detailLines }
     private var compact: Bool { WKInterfaceDevice.current().screenBounds.height < 240 }
+    private var typeScale: CGFloat { WatchTextScale.factor(dynamicTypeSize) }
+
+    private func size(_ base: CGFloat) -> CGFloat { base * typeScale }
 
     var body: some View {
         ScrollView {
@@ -714,9 +851,10 @@ struct WatchAlertDetailSheet: View {
                 Button(action: { dismiss() }) {
                     HStack(spacing: 3) {
                         Image(systemName: "chevron.backward")
-                            .font(.system(size: compact ? 11 : 12, weight: .bold))
+                            .font(.system(size: size(compact ? 11 : 12), weight: .bold))
+                            .accessibilityHidden(true)
                         Text("Close")
-                            .font(.system(size: compact ? 12 : 13, weight: .semibold))
+                            .font(.system(size: size(compact ? 12 : 13), weight: .semibold))
                     }
                     .foregroundStyle(WidgetHorizon.accent)
                 }
@@ -725,33 +863,34 @@ struct WatchAlertDetailSheet: View {
                 .accessibilityLabel("Close")
 
                 Text(lines.severity)
-                    .font(.system(size: compact ? 11 : 12, weight: .bold))
+                    .font(.system(size: size(compact ? 11 : 12), weight: .bold))
                     .foregroundStyle(WatchAlertTint.color(for: lines.severity))
                     .textCase(.uppercase)
                     .accessibilityIdentifier("watch-alert-severity")
+                    .accessibilityLabel(lines.severity)
 
                 Text(lines.title)
-                    .font(.system(size: compact ? 15 : 17, weight: .semibold))
+                    .font(.system(size: size(compact ? 15 : 17), weight: .semibold))
                     .foregroundStyle(WidgetHorizon.text)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("watch-alert-title")
 
                 if let headline = lines.headline {
                     Text(headline)
-                        .font(.system(size: compact ? 12 : 13, weight: .medium))
+                        .font(.system(size: size(compact ? 12 : 13), weight: .medium))
                         .foregroundStyle(WidgetHorizon.muted)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("watch-alert-headline")
                 }
 
                 Text(lines.countLine)
-                    .font(.system(size: compact ? 12 : 13, weight: .semibold))
+                    .font(.system(size: size(compact ? 12 : 13), weight: .semibold))
                     .foregroundStyle(WidgetHorizon.accent)
                     .accessibilityIdentifier("watch-alert-count")
 
                 if let event = lines.event {
                     Text(event)
-                        .font(.system(size: compact ? 12 : 13, weight: .medium))
+                        .font(.system(size: size(compact ? 12 : 13), weight: .medium))
                         .foregroundStyle(WidgetHorizon.text)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("watch-alert-event")
@@ -759,7 +898,7 @@ struct WatchAlertDetailSheet: View {
 
                 if let ends = lines.ends {
                     Text(ends)
-                        .font(.system(size: compact ? 12 : 13, weight: .medium))
+                        .font(.system(size: size(compact ? 12 : 13), weight: .medium))
                         .foregroundStyle(WidgetHorizon.muted)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("watch-alert-ends")
@@ -767,7 +906,7 @@ struct WatchAlertDetailSheet: View {
 
                 if let instruction = lines.instruction {
                     Text(instruction)
-                        .font(.system(size: compact ? 12 : 13))
+                        .font(.system(size: size(compact ? 12 : 13)))
                         .foregroundStyle(WidgetHorizon.text)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(8)
@@ -790,5 +929,121 @@ struct WatchAlertDetailSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background { WidgetHorizonBackground().ignoresSafeArea() }
         .accessibilityIdentifier("watch-alert-detail")
+    }
+}
+
+/// Growth above the default Dynamic Type size. Large and smaller stay at 1
+/// so the navy glass layout does not move. Accessibility sizes grow and scroll.
+enum WatchTextScale {
+    static func factor(_ size: DynamicTypeSize) -> CGFloat {
+        switch size {
+        case .xSmall, .small, .medium, .large:
+            return 1
+        case .xLarge:
+            return 1.12
+        case .xxLarge:
+            return 1.24
+        case .xxxLarge:
+            return 1.36
+        case .accessibility1:
+            return 1.48
+        case .accessibility2:
+            return 1.58
+        case .accessibility3:
+            return 1.68
+        case .accessibility4:
+            return 1.78
+        case .accessibility5:
+            return 1.9
+        @unknown default:
+            return size.isAccessibilitySize ? 1.7 : 1
+        }
+    }
+
+    /// Accessibility sizes need a scroll and stacked rows. The default size does not.
+    static func needsRoom(_ size: DynamicTypeSize) -> Bool {
+        size.isAccessibilitySize
+    }
+}
+
+/// Debug launches can preview the largest accessibility size with
+/// `-watchTextSize accessibility5`. A normal launch uses the system size.
+enum WatchTextSizeLaunch {
+    static var forced: DynamicTypeSize? {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-watchTextSize"), index + 1 < args.count else { return nil }
+        switch args[index + 1].lowercased() {
+        case "large", "default":
+            return .large
+        case "accessibility", "accessibility5", "ax5":
+            return .accessibility5
+        case "accessibility1", "ax1":
+            return .accessibility1
+        default:
+            return nil
+        }
+        #else
+        return nil
+        #endif
+    }
+}
+
+private struct WatchTextSizeLaunchModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if let forced = WatchTextSizeLaunch.forced {
+            content.dynamicTypeSize(forced)
+        } else {
+            content
+        }
+    }
+}
+
+extension WatchGlanceMetrics {
+    func scaled(by factor: CGFloat) -> WatchGlanceMetrics {
+        guard factor > 1.001 else { return self }
+        return WatchGlanceMetrics(
+            placeSize: placeSize * factor,
+            tempSize: tempSize * factor,
+            detailSize: detailSize * factor,
+            sunSize: sunSize * factor,
+            symbolIcon: symbolIcon * min(factor, 1.45),
+            symbolBox: symbolBox * min(factor, 1.45),
+            placesIcon: placesIcon * min(factor, 1.5),
+            placesHit: max(placesHit, placesHit * min(factor, 1.5)),
+            spacing: spacing,
+            horizontalPadding: horizontalPadding,
+            bottomPadding: bottomPadding,
+            foldsMetric: foldsMetric,
+            hourly: hourly.scaled(by: factor),
+            daily: daily.scaled(by: factor)
+        )
+    }
+}
+
+extension WatchStripStyle {
+    func scaled(by factor: CGFloat) -> WatchStripStyle {
+        guard factor > 1.001 else { return self }
+        return WatchStripStyle(
+            columnWidth: columnWidth * min(factor, 1.35),
+            columnSpacing: columnSpacing,
+            horizontalPadding: horizontalPadding,
+            verticalPadding: verticalPadding,
+            labelSize: labelSize * factor,
+            primarySize: primarySize * factor,
+            secondarySize: secondarySize * factor,
+            symbolSize: symbolSize * min(factor, 1.5),
+            cueHeight: cueHeight * min(factor, 1.6),
+            bandHeight: bandHeight * factor,
+            textScale: factor
+        )
+    }
+
+    /// Default sizes keep the hand-tuned slack. Grown type uses a line box so
+    /// the glyphs are not clipped inside the strip.
+    func textBox(_ size: CGFloat, slack: CGFloat) -> CGFloat {
+        let classic = size + slack
+        guard textScale >= 1.4 else { return classic }
+        return max(classic, ceil(size * 1.35))
     }
 }

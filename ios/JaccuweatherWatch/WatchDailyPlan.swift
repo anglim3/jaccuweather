@@ -160,16 +160,7 @@ enum WatchDailyPlan {
 
     /// VoiceOver for one daily column. A stored chance is spoken even when the column hides it.
     static func stripSpoken(for day: WatchDaySlot) -> String {
-        var parts = [day.label, "high \(degrees(day.highF))", "low \(degrees(day.lowF))"]
-        if let chance = day.precipProbability {
-            parts.append("\(chance) percent")
-        }
-        switch stripCue(for: day) {
-        case .rain: parts.append("rain")
-        case .snow: parts.append("snow")
-        case .none: break
-        }
-        return parts.joined(separator: ", ")
+        WatchSpoken.dailyCell(day)
     }
 
     /// Representative code so `WatchHourlyPlan.cue` can read the symbol already stored on the slot.
@@ -230,22 +221,6 @@ enum WatchDailyPlan {
         let snow = amountText(day.snowInches)
         let uv = uvText(day.uvMax)
         let condition = day.conditionText ?? ""
-        var spoken = [title(for: day.date)]
-        if !condition.isEmpty { spoken.append(condition) }
-        spoken.append("high \(degrees(day.highF))")
-        spoken.append("low \(degrees(day.lowF))")
-        if let chance = day.precipProbability {
-            spoken.append("\(chance) percent chance of precipitation")
-        }
-        if snow != nil {
-            spoken.append("\(spokenAmount(day.snowInches)) of snow")
-        }
-        if rain != nil {
-            spoken.append("\(spokenAmount(day.rainInches)) of rain")
-        }
-        if let uv {
-            spoken.append(uv)
-        }
         return WatchDayDetailCopy(
             title: title(for: day.date),
             condition: condition,
@@ -255,7 +230,7 @@ enum WatchDailyPlan {
             rain: rain,
             snow: snow,
             uv: uv,
-            spoken: spoken.joined(separator: ", ")
+            spoken: WatchSpoken.daySheet(day)
         )
     }
 
@@ -336,11 +311,6 @@ enum WatchDailyPlan {
     private static func uvValue(_ value: Double?) -> Double? {
         guard let value = finite(value), value >= 0 else { return nil }
         return value
-    }
-
-    private static func spokenAmount(_ inches: Double?) -> String {
-        guard let inches = finite(inches) else { return "" }
-        return String(format: "%.2f inches", inches)
     }
 }
 
