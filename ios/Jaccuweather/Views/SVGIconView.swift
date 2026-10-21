@@ -135,7 +135,7 @@ private enum SVGIconDocument {
         <!DOCTYPE html><html><head>
         <meta name="viewport" content="width=\(px), initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
         <style>
-          html,body{margin:0;padding:0;background:transparent;overflow:hidden;width:\(px)px;height:\(px)px;}
+          html,body{margin:0;padding:0;background:transparent;overflow:hidden;width:\(px)px;height:\(px)px;color:#e5e7eb;}
           svg{width:\(px)px;height:\(px)px;display:block;}
         </style>
         </head><body>\(svg)</body></html>
