@@ -1,15 +1,38 @@
 import SwiftUI
+import UIKit
+
+private struct NowMetricTile: Identifiable {
+    let id: String
+    let title: String
+    let value: String
+    var detail: String? = nil
+    var detailTint: Color? = nil
+    /// Static Meteocons card asset, without the `.svg` suffix.
+    let icon: String
+    var arrowDegrees: Double? = nil
+
+    var spoken: String {
+        [title, value, detail]
+            .compactMap { $0 }
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+    }
+}
 
 struct CurrentConditionsView: View {
     @Environment(WeatherViewModel.self) private var model
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Meteocons card glyphs. 40pt at the default size, and scaled with the value text.
+    @ScaledMetric(relativeTo: .title3) private var metricIconSize: CGFloat = 40
     @State private var showMoon = false
     @State private var selectedAlert: NWSAlertFeature?
 
     private var theme: JWPalette { JWPalette.forScheme(colorScheme) }
 
     var body: some View {
-        TabScreenScroll {
+        TabScreenScroll(scrollTo: LaunchArgs.anchor) {
             // Pollen (and its AQI) arrives after the forecast. Keep the Now
             // column in one stack so the air-quality row is not a lazy insert.
             VStack(alignment: .leading, spacing: JWMetrics.sectionGap) {
@@ -137,21 +160,15 @@ struct CurrentConditionsView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 16) {
-                    metricCell(title: "Feels Like", value: temp(current?.number("apparent_temperature")), icon: "thermometer")
-                    metricCell(title: "Humidity", value: humidity, detail: "Dew: \(dew)", icon: "humidity")
-                }
-                HStack(alignment: .top, spacing: 16) {
-                    windCell(current)
-                    metricCell(title: "UV Index", value: uvText, detail: uvDetail, icon: "uv-index")
-                }
-                Rectangle()
-                    .fill(theme.divider)
-                    .frame(height: 1)
-                    .padding(.vertical, 2)
-                pressureRow(value: pressure.value, trend: pressure.trend)
-            }
+            nowMetricGrid(
+                current: current,
+                feelsLike: temp(current?.number("apparent_temperature")),
+                humidity: humidity,
+                dew: dew,
+                uvText: uvText,
+                uvDetail: uvDetail,
+                pressure: pressure
+            )
         }
     }
 
@@ -339,83 +356,161 @@ struct CurrentConditionsView: View {
         .tint(theme.accent)
     }
 
-    private func metricCell(title: String, value: String, detail: String? = nil, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            metricLabel(title, icon: icon)
-            Text(value)
-                .font(.title3.weight(.semibold))
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            if let detail, !detail.isEmpty {
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(theme.faint)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-                    .fixedSize(horizontal: false, vertical: true)
+    /// Six peer cells. Dew point is its own tile so pressure sits in the grid
+    /// instead of a leftover full-width row, and every row has two cells.
+    private func nowMetricGrid(
+        current: JSONMap?,
+        feelsLike: String,
+        humidity: String,
+        dew: String,
+        uvText: String,
+        uvDetail: String?,
+        pressure: (value: String, trend: String)
+    ) -> some View {
+        let wind = windReading(current)
+        let tiles = [
+            NowMetricTile(id: "feels-like", title: "Feels Like", value: feelsLike, icon: "thermometer"),
+            NowMetricTile(id: "humidity", title: "Humidity", value: humidity, icon: "humidity"),
+            NowMetricTile(id: "dew-point", title: "Dew Point", value: dew, icon: "thermometer-colder"),
+            NowMetricTile(id: "wind", title: "Wind", value: wind.speed, detail: wind.detail, icon: "wind", arrowDegrees: wind.arrow),
+            NowMetricTile(id: "uv", title: "UV Index", value: uvText, detail: uvDetail, icon: "uv-index"),
+            NowMetricTile(
+                id: "pressure",
+                title: "Pressure",
+                value: pressure.value,
+                detail: pressure.trend,
+                detailTint: pressure.trend == "Falling" ? theme.gold : theme.accent,
+                icon: "barometer"
+            )
+        ]
+        return Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+            GridRow(alignment: .top) {
+                metricTile(tiles[0])
+                metricTile(tiles[1])
             }
+            .id("now-metric-row-1")
+            GridRow(alignment: .top) {
+                metricTile(tiles[2])
+                metricTile(tiles[3])
+            }
+            .id("now-metric-row-2")
+            GridRow(alignment: .top) {
+                metricTile(tiles[4])
+                metricTile(tiles[5])
+            }
+            .id("now-metric-row-3")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        .id("now-metrics")
     }
 
-    private func metricLabel(_ title: String, icon: String) -> some View {
-        HStack(spacing: 6) {
-            SVGIconView(fileName: icon + ".svg", folder: "cards", pointSize: 16)
-                .frame(width: 16, height: 16)
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(theme.faint)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+    /// One label line. Long names scale down instead of growing a single tile.
+    private var labelBlockHeight: CGFloat {
+        textBlock(.footnote, lines: 1)
     }
 
-    private func windCell(_ current: JSONMap?) -> some View {
+    private var valueBlockHeight: CGFloat {
+        textBlock(.title3, lines: 1)
+    }
+
+    /// Two lines of the detail style, including tiles that have no detail.
+    private var detailBlockHeight: CGFloat {
+        textBlock(.caption1, lines: 2)
+    }
+
+    private func textBlock(_ style: UIFont.TextStyle, lines: CGFloat) -> CGFloat {
+        _ = dynamicTypeSize
+        return ceil(UIFont.preferredFont(forTextStyle: style).lineHeight * lines) + 2
+    }
+
+    private func windReading(_ current: JSONMap?) -> (speed: String, detail: String?, arrow: Double?) {
         let speed = current?.number("wind_speed_10m")
         let gust = current?.number("wind_gusts_10m")
         let dir = current?.number("wind_direction_10m")
         let speedText = speed.map { String(format: "%.0f mph", $0) } ?? "—"
-        let detail: String = {
-            var parts: [String] = []
-            if let dir { parts.append("From \(WindCompass.label(dir))") }
-            if let gust { parts.append(String(format: "Gust %.0f", gust)) }
-            return parts.joined(separator: " · ")
-        }()
-        let spoken = [speedText, detail].filter { !$0.isEmpty }.joined(separator: ", ")
-        return HStack(alignment: .center, spacing: 4) {
-            metricCell(title: "Wind", value: speedText, detail: detail.isEmpty ? nil : detail, icon: "wind")
-            if let dir {
-                Image(systemName: "location.north.fill")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(theme.accent)
-                    .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
-                    .accessibilityHidden(true)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Wind, \(spoken)")
+        var parts: [String] = []
+        if let dir { parts.append("From \(WindCompass.label(dir))") }
+        if let gust { parts.append(String(format: "Gust %.0f", gust)) }
+        let detail = parts.isEmpty ? nil : parts.joined(separator: " · ")
+        return (speedText, detail, dir.map(WindCompass.arrowDegrees))
     }
 
-    private func pressureRow(value: String, trend: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            metricLabel("Pressure", icon: "barometer")
-                .layoutPriority(1)
-            Spacer(minLength: 8)
-            Text(value)
+    /// Every tile uses the same bands — icon, label, value, detail — so the
+    /// six cells stay the same width and height. Accessibility sizes stack
+    /// the icon above the words; smaller sizes keep it beside them.
+    private func metricTile(_ tile: NowMetricTile) -> some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) {
+                    metricIcon(tile)
+                    metricWords(tile)
+                }
+            } else {
+                HStack(alignment: .top, spacing: 8) {
+                    metricIcon(tile)
+                    metricWords(tile)
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .jwGlass(.stat)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(tile.spoken)
+        .accessibilityIdentifier("now-metric-\(tile.id)")
+    }
+
+    private func metricIcon(_ tile: NowMetricTile) -> some View {
+        SVGIconView(fileName: tile.icon + ".svg", folder: "cards", pointSize: metricIconSize)
+            .frame(width: metricIconSize, height: metricIconSize, alignment: .topLeading)
+    }
+
+    private func metricWords(_ tile: NowMetricTile) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(tile.title)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(theme.muted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .frame(maxWidth: .infinity, minHeight: labelBlockHeight, maxHeight: labelBlockHeight, alignment: .leading)
+            Text(tile.value)
                 .font(.title3.weight(.semibold))
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(trend)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(trend == "Falling" ? theme.gold : theme.accent)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.5)
+                .frame(maxWidth: .infinity, minHeight: valueBlockHeight, maxHeight: valueBlockHeight, alignment: .leading)
+                .clipped()
+            metricDetail(tile)
+                .frame(maxWidth: .infinity, minHeight: detailBlockHeight, maxHeight: detailBlockHeight, alignment: .topLeading)
+                .clipped()
         }
-        .accessibilityElement(children: .combine)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    /// One caption line, matching the detail text so the wind arrow cannot grow a tile.
+    private var detailLineHeight: CGFloat {
+        textBlock(.caption1, lines: 1) - 2
+    }
+
+    private func metricDetail(_ tile: NowMetricTile) -> some View {
+        let detail = tile.detail ?? ""
+        let tint = tile.detailTint ?? theme.muted
+        return HStack(alignment: .top, spacing: 4) {
+            if let arrow = tile.arrowDegrees, !dynamicTypeSize.isAccessibilitySize {
+                Image(systemName: "location.north.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(theme.accent)
+                    .rotationEffect(.degrees(arrow))
+                    .frame(width: detailLineHeight, height: detailLineHeight)
+                    .accessibilityHidden(true)
+            }
+            Text(detail.isEmpty ? " " : detail)
+                .font(.caption)
+                .foregroundStyle(detail.isEmpty ? Color.clear : tint)
+                .lineLimit(2)
+                .minimumScaleFactor(0.65)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
     }
 
     private func severityColor(_ severity: String) -> Color {
