@@ -33,7 +33,8 @@ autocomplete, geolocation, and local favorites.
 
 Edit `public/index.html` and `public/app.js` (plus `public/favicon.svg` and
 other `public/` assets). **`src/index.js` is generated — never hand-edit it.**
-The build overwrites it. `README.md` + code are truth; this file replaces the
+The build overwrites it. Hand-written Worker logic that is not generated lives
+in `src/visits.js`. `README.md` + code are truth; this file replaces the
 removed `CLAUDE.md`, which was stale.
 
 ## Build
@@ -150,7 +151,7 @@ Node tests exist under `tests/` (built on `node:test` + `vm`, no extra
 dependencies). Run:
 
 ```bash
-node --test tests/*.test.js
+node --test tests/*.test.js tests/*.test.mjs
 ```
 
 | File | Covers |

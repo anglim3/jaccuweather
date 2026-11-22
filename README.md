@@ -103,10 +103,13 @@ Pollen works without secrets via Open-Meteo. For better coverage, add Worker sec
 | `GOOGLE_POLLEN_API_KEY` (secret) | No | Primary pollen source (Google Pollen API) |
 | `TOMORROW_API_KEY` (secret) | No | Secondary pollen fallback |
 | `POLLEN_RATE_LIMIT` (binding, not a secret) | No | Rate-limit binding on `/api/pollen`. Simple limit of **20 requests / 60 seconds**, configured in `wrangler.toml` (set up automatically on deploy; no action needed). |
+| `VISITS` (D1 binding) | No | City-level HTML page-view log used by the private visit map. |
+| `VISITS_KEY` (secret) | No | Shared secret that unlocks `GET /_visits/<key>` (or `?key=`). Wrong or missing keys return 404. |
 
 ```bash
 npx wrangler secret put GOOGLE_POLLEN_API_KEY
 npx wrangler secret put TOMORROW_API_KEY
+npx wrangler secret put VISITS_KEY
 ```
 
 For local development, put local-only copies of the secrets in a `.dev.vars` file at the project root. `wrangler dev` loads them automatically (no `--remote` needed):
@@ -114,6 +117,7 @@ For local development, put local-only copies of the secrets in a `.dev.vars` fil
 ```ini
 GOOGLE_POLLEN_API_KEY=your_google_pollen_key
 TOMORROW_API_KEY=your_tomorrow_key
+VISITS_KEY=your_visits_key
 ```
 
 Do not commit `.dev.vars` — keep it local only.
@@ -137,7 +141,9 @@ jaccuweather/
 │       ├── cards/          # Meteocons static fill, card headers
 │       └── alerts/         # Meteocons fill, NWS alert alarms
 ├── src/
-│   └── index.js            # Generated Worker. Do not edit.
+│   ├── index.js            # Generated Worker. Do not edit.
+│   └── visits.js           # City-level visit logging and private map (hand-written)
+├── migrations/             # D1 schema for the VISITS binding
 ├── patches/                # Applied by lockdown-worker.js at build
 ├── tests/
 ├── build.js                # Embeds public/* and defines API proxy routes
@@ -166,7 +172,7 @@ node --check public/app.js && node --check build.js && npm run build && node --c
 Tests:
 
 ```bash
-node --test tests/*.test.js
+node --test tests/*.test.js tests/*.test.mjs
 ```
 
 ## How it works
@@ -182,7 +188,8 @@ Defined in `wrangler.toml`:
 
 - Worker name: `weather-app`, with `compatibility_date` `2024-01-01`
 - `POLLEN_RATE_LIMIT` — rate-limit binding on `/api/pollen` (simple limit of 20 requests / 60 seconds)
-- Optional secrets: `GOOGLE_POLLEN_API_KEY` and `TOMORROW_API_KEY` (see [Optional secrets and bindings](#optional-secrets-and-bindings))
+- `VISITS` — optional D1 binding for city-level HTML page-view logging
+- Optional secrets: `GOOGLE_POLLEN_API_KEY`, `TOMORROW_API_KEY`, and `VISITS_KEY` (see [Optional secrets and bindings](#optional-secrets-and-bindings))
 
 ### Worker routes
 
@@ -191,6 +198,8 @@ These are the routes the built Worker actually serves. `/ventusky-proxy/*` is de
 | Route | Upstream |
 |-------|----------|
 | `/`, `/app.js`, favicons | Embedded static assets |
+| `/_visits/<key>` or `/_visits?key=` | Private visit map (404 unless `VISITS_KEY` matches) |
+| `/_visits/<key>/data` or `/_visits/data?key=` | JSON for the visit map, with `range=24h|7d|30d|all` |
 | `/icons/weather/*` | Vendored weather-code icons |
 | `/icons/cards/*` | Vendored card header icons |
 | `/icons/alerts/*` | Vendored NWS alert icons |

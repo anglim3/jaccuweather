@@ -29,3 +29,23 @@ namespace_id = "27082701"
   [previews.ratelimits.simple]
   limit = 20
   period = 60
+
+
+# City-level visit log (HTML page views only; no IP addresses).
+# The account was at the D1 database limit when this binding was added,
+# so the UUIDs below are placeholders. After creating the remote databases
+# `jaccuweather-visits` and `jaccuweather-visits-preview`, replace both
+# IDs, then apply migrations and deploy.
+[[d1_databases]]
+binding = "VISITS"
+database_name = "jaccuweather-visits"
+database_id = "00000000-0000-0000-0000-000000000000"
+preview_database_id = "00000000-0000-0000-0000-000000000001"
+migrations_dir = "migrations"
+
+# Isolated Preview database so Previews do not write to production visits.
+[[previews.d1_databases]]
+binding = "VISITS"
+database_name = "jaccuweather-visits-preview"
+database_id = "00000000-0000-0000-0000-000000000001"
+migrations_dir = "migrations"
