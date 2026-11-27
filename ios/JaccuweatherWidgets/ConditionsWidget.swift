@@ -616,7 +616,6 @@ private extension WidgetConditionsSnapshot {
 struct JaccuweatherWidgets: WidgetBundle {
     var body: some Widget {
         ConditionsWidget()
-        CurrentConditionsLiveActivity()
         if #available(iOS 18.0, *) {
             OpenNowControl()
         }
