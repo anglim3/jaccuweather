@@ -53,6 +53,9 @@ enum WatchMirrorPayload {
     static func dictionary(from snapshot: WidgetConditionsSnapshot) -> [String: Any] {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
+        // Same keys the Watch already decodes. Sorted so an unchanged reading
+        // produces the same text and is not sent again.
+        encoder.outputFormatting = [.sortedKeys]
         guard let data = try? encoder.encode(snapshot),
               let json = String(data: data, encoding: .utf8) else { return [:] }
         return ["snapshot": json]
