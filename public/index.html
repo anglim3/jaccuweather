@@ -622,56 +622,159 @@
             line-height: 1;
         }
 
+        /* Phone-width list so daily rows match the iOS Forecast tab
+           instead of stretching across a desktop card. Dropped at 760px
+           once the two week columns can sit side by side. */
+        #dailyForecast {
+            max-width: 24.5rem;
+        }
+
+        .daily-forecast-week {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .daily-forecast-week-snow {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .daily-forecast-week-snow:empty,
+        .daily-forecast-card-placeholder {
+            display: none;
+        }
+
         .daily-forecast-card {
             width: 100%;
-            min-height: 88px;
+            padding: 10px 12px;
         }
 
+        /* Single line: day+date | icon | rain % | low | bar | high | chevron.
+           Column widths follow the iOS ForecastLayout constants. */
         .daily-forecast-main {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: 50px 28px 44px 40px minmax(24px, 1fr) 40px 14px;
             align-items: center;
-            gap: 1rem;
+            column-gap: 6px;
             width: 100%;
         }
 
-        .daily-forecast-date,
-        .daily-forecast-details {
-            display: flex;
-            align-items: center;
+        /* Desktop-only flex space between rain % and the low/bar/high cluster. */
+        .daily-forecast-spacer {
+            display: none;
             min-width: 0;
         }
 
         .daily-forecast-date {
-            gap: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            min-width: 0;
+        }
+
+        .daily-forecast-day {
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.2;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        .daily-forecast-date-label {
+            font-size: 15px;
+            font-weight: 400;
+            line-height: 1.2;
+            color: rgba(255, 255, 255, 0.7);
+            white-space: nowrap;
         }
 
         .daily-forecast-icon {
             flex: 0 0 1.6875em;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
         }
 
-        .daily-forecast-details {
-            justify-content: flex-end;
-            gap: 1.5rem;
+        .daily-forecast-precip {
+            width: 44px;
+            min-height: 1rem;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.2;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            color: rgba(255, 255, 255, 0.7);
         }
 
-        .daily-forecast-day,
-        .daily-forecast-date-label,
-        .daily-forecast-high,
+        /* Dry days keep the slot (same width and height) but show nothing. */
+        .daily-forecast-precip.is-empty {
+            visibility: hidden;
+        }
+
         .daily-forecast-low,
-        .daily-forecast-feels,
-        .daily-forecast-metrics div {
+        .daily-forecast-high {
+            width: 40px;
+            font-size: 17px;
+            line-height: 1.2;
+            font-variant-numeric: tabular-nums;
+            text-align: right;
             white-space: nowrap;
         }
 
-        .daily-forecast-temps,
-        .daily-forecast-metrics {
-            flex: 0 0 auto;
+        .daily-forecast-low {
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
         }
 
-        .daily-forecast-metrics {
-            min-width: 100px;
+        .daily-forecast-high {
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Low-to-high range bar. Every day uses the same 14-day scale.
+           The track flexes only inside the phone-width list, like iOS. */
+        .temp-range-track {
+            position: relative;
+            height: 6px;
+            min-width: 24px;
+            width: 100%;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .temp-range-fill {
+            --range-min-bar: 6px;
+            --range-bar-w: min(100%, max(calc((var(--range-end) - var(--range-start)) * 100%), var(--range-min-bar)));
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: var(--range-bar-w);
+            left: min(calc(var(--range-start) * 100%), calc(100% - var(--range-bar-w)));
+            border-radius: 999px;
+        }
+
+        .daily-forecast-chevron {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.48);
+        }
+
+        .daily-forecast-chevron svg {
+            width: 10px;
+            height: 10px;
+            display: block;
         }
 
         .daily-forecast-tide {
@@ -687,22 +790,15 @@
             overflow: hidden;
         }
 
-        @media (max-width: 640px) {
+        /* Narrow phones: keep one line by tightening columns; the bar still flexes. */
+        @media (max-width: 400px) {
             .daily-forecast-card {
-                padding: 0.875rem;
+                padding: 10px 12px;
             }
 
             .daily-forecast-main {
-                grid-template-columns: minmax(6rem, 1fr) auto;
-                gap: 0.75rem;
-            }
-
-            .daily-forecast-date {
-                gap: 0.75rem;
-            }
-
-            .daily-forecast-details {
-                gap: 0.75rem;
+                grid-template-columns: 44px 28px 36px 34px minmax(24px, 1fr) 34px 14px;
+                column-gap: 4px;
             }
 
             .daily-forecast-icon {
@@ -711,40 +807,70 @@
             }
 
             .daily-forecast-day {
-                font-size: 1rem;
-                line-height: 1.25rem;
+                font-size: 16px;
+                line-height: 1.2;
             }
 
+            .daily-forecast-low,
             .daily-forecast-high {
-                font-size: 1.125rem;
-                line-height: 1.5rem;
+                width: 34px;
+                font-size: 16px;
             }
 
-            .daily-forecast-feels {
-                font-size: 0.6875rem;
-                line-height: 1rem;
-            }
-
-            .daily-forecast-metrics {
-                min-width: 4.6rem;
-                font-size: 0.75rem;
-                line-height: 1.05rem;
+            .daily-forecast-precip {
+                width: 36px;
             }
         }
 
-        @media (max-width: 380px) {
+        /* Two side-by-side week columns once each can fit an app-style row.
+           The 24.5rem cap comes off; each column is half the forecast card
+           minus the gap. The range bar stays a short fixed width, right-aligned. */
+        @media (min-width: 760px) {
+            #dailyForecast {
+                max-width: none;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                column-gap: 1.25rem;
+                row-gap: 0.5rem;
+            }
+
+            .daily-forecast-week {
+                display: grid;
+                grid-template-rows: subgrid;
+                grid-row: span 9;
+                min-width: 0;
+            }
+
+            .daily-forecast-week-snow:empty,
+            .daily-forecast-card-placeholder {
+                display: block;
+                min-height: 0;
+            }
+
+            .daily-forecast-spacer {
+                display: block;
+            }
+
+            /* Spacer (1fr) pushes the short bar cluster to the right.
+               The bar can shrink to 64px so two columns still fit around 800px. */
             .daily-forecast-main {
-                grid-template-columns: 1fr;
-                align-items: stretch;
+                grid-template-columns: 50px 28px 40px minmax(0, 1fr) 36px minmax(64px, 100px) 36px 14px;
+                column-gap: 4px;
             }
 
-            .daily-forecast-details {
-                justify-content: space-between;
-                padding-left: 3.91rem;
+            .daily-forecast-precip {
+                width: 40px;
             }
 
-            .daily-forecast-metrics {
-                min-width: auto;
+            .daily-forecast-low,
+            .daily-forecast-high {
+                width: 36px;
+            }
+
+            .temp-range-track {
+                width: 100%;
+                min-width: 64px;
+                max-width: 100px;
             }
         }
 
@@ -1364,9 +1490,10 @@
                 <h3 class="section-title cursor-pointer flex items-center gap-2 mb-4" id="dailyHeader" style="font-size: 1rem; text-transform: none; letter-spacing: -0.02em; color: var(--text); font-weight: 600;">
                     14-Day Forecast <i class="fas fa-external-link-alt ml-2 text-sm" style="color: var(--text-faint);"></i>
                 </h3>
-                <div id="dailyForecast" class="space-y-2">
+                <div id="dailyForecast">
                     <!-- Daily items will be inserted here -->
                 </div>
+                <div id="dailyForecastNote" class="hidden text-gray-400 text-sm mt-3"></div>
             </section>
 
             <!-- Weather Radar -->
