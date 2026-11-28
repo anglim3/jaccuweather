@@ -133,3 +133,23 @@ test('daily list is phone-width and the row is a single iOS-like line', () => {
   assert.doesNotMatch(row, /daily-forecast-metrics/);
   assert.doesNotMatch(row, /Feels like|fas fa-wind|fas fa-tint/);
 });
+
+test('desktop forecast uses two week columns and keeps a short right-aligned bar', () => {
+  const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+  const js = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
+  const desktop = html.match(/@media \(min-width:\s*760px\) \{([\s\S]*?)\n        \}/);
+  assert.ok(desktop, 'missing 760px week-column breakpoint');
+  const block = desktop[1];
+  assert.match(block, /#dailyForecast\s*\{[^}]*max-width:\s*none/);
+  assert.match(block, /grid-template-columns:\s*1fr 1fr/);
+  assert.match(block, /grid-template-rows:\s*subgrid/);
+  assert.match(block, /grid-row:\s*span 9/);
+  assert.match(block, /grid-template-columns:\s*50px 28px 40px minmax\(0, 1fr\) 36px minmax\(64px, 100px\) 36px 14px/);
+  assert.match(block, /\.temp-range-track\s*\{[^}]*max-width:\s*100px/);
+  assert.match(js, /daily-forecast-spacer/);
+  assert.match(js, /className = 'daily-forecast-week'/);
+  assert.match(js, /Week \$\{week \+ 1\}/);
+  assert.match(js, /daily-forecast-week-snow/);
+  assert.match(js, /groupConsecutiveSnowDays/);
+  assert.doesNotMatch(js, /snowSection\.classList\.remove\('hidden'\)/);
+});

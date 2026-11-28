@@ -623,9 +623,29 @@
         }
 
         /* Phone-width list so daily rows match the iOS Forecast tab
-           instead of stretching across a desktop card. */
+           instead of stretching across a desktop card. Dropped at 760px
+           once the two week columns can sit side by side. */
         #dailyForecast {
             max-width: 24.5rem;
+        }
+
+        .daily-forecast-week {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .daily-forecast-week-snow {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .daily-forecast-week-snow:empty,
+        .daily-forecast-card-placeholder {
+            display: none;
         }
 
         .daily-forecast-card {
@@ -641,6 +661,12 @@
             align-items: center;
             column-gap: 6px;
             width: 100%;
+        }
+
+        /* Desktop-only flex space between rain % and the low/bar/high cluster. */
+        .daily-forecast-spacer {
+            display: none;
+            min-width: 0;
         }
 
         .daily-forecast-date {
@@ -793,6 +819,58 @@
 
             .daily-forecast-precip {
                 width: 36px;
+            }
+        }
+
+        /* Two side-by-side week columns once each can fit an app-style row.
+           The 24.5rem cap comes off; each column is half the forecast card
+           minus the gap. The range bar stays a short fixed width, right-aligned. */
+        @media (min-width: 760px) {
+            #dailyForecast {
+                max-width: none;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                column-gap: 1.25rem;
+                row-gap: 0.5rem;
+            }
+
+            .daily-forecast-week {
+                display: grid;
+                grid-template-rows: subgrid;
+                grid-row: span 9;
+                min-width: 0;
+            }
+
+            .daily-forecast-week-snow:empty,
+            .daily-forecast-card-placeholder {
+                display: block;
+                min-height: 0;
+            }
+
+            .daily-forecast-spacer {
+                display: block;
+            }
+
+            /* Spacer (1fr) pushes the short bar cluster to the right.
+               The bar can shrink to 64px so two columns still fit around 800px. */
+            .daily-forecast-main {
+                grid-template-columns: 50px 28px 40px minmax(0, 1fr) 36px minmax(64px, 100px) 36px 14px;
+                column-gap: 4px;
+            }
+
+            .daily-forecast-precip {
+                width: 40px;
+            }
+
+            .daily-forecast-low,
+            .daily-forecast-high {
+                width: 36px;
+            }
+
+            .temp-range-track {
+                width: 100%;
+                min-width: 64px;
+                max-width: 100px;
             }
         }
 
@@ -1412,9 +1490,10 @@
                 <h3 class="section-title cursor-pointer flex items-center gap-2 mb-4" id="dailyHeader" style="font-size: 1rem; text-transform: none; letter-spacing: -0.02em; color: var(--text); font-weight: 600;">
                     14-Day Forecast <i class="fas fa-external-link-alt ml-2 text-sm" style="color: var(--text-faint);"></i>
                 </h3>
-                <div id="dailyForecast" class="space-y-2">
+                <div id="dailyForecast">
                     <!-- Daily items will be inserted here -->
                 </div>
+                <div id="dailyForecastNote" class="hidden text-gray-400 text-sm mt-3"></div>
             </section>
 
             <!-- Weather Radar -->

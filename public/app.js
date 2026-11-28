@@ -2421,52 +2421,80 @@ function displayWeather(data) {
         data.daily.temperature_2m_min.slice(2, 2 + dailyCount),
         data.daily.temperature_2m_max.slice(2, 2 + dailyCount)
     );
+    const weekSize = 7;
+    const weekCount = dailyCount > weekSize ? 2 : 1;
 
-    // Start from index 2 to skip past 2 days due to past_days=2
-    for (let i = 0; i < dailyCount; i++) {
-        const dayIndex = i + 2; // Skip past days
-        const day = parseDateString(data.daily.time[dayIndex]);
-        const tideSummary = currentTideData?.dailySummaries ? currentTideData.dailySummaries[formatDateKey(day)] : null;
-        const tideSummaryText = formatTideSummary(tideSummary);
-        // Week separator every 7 days
-        if (i > 0 && i % 7 === 0) {
-            const separator = document.createElement('div');
-            separator.className = 'week-separator flex items-center gap-3 my-4 px-2';
-            separator.innerHTML = `
-                <div class="flex-1 h-px bg-white/10"></div>
-                <span class="text-white/40 text-xs font-semibold tracking-wider uppercase">Week ${Math.floor(i / 7) + 1}</span>
-                <div class="flex-1 h-px bg-white/10"></div>
+    const forecastNote = document.getElementById('dailyForecastNote');
+    if (forecastNote) {
+        forecastNote.textContent = '';
+        forecastNote.classList.add('hidden');
+    }
+
+    // Start from index 2 to skip past 2 days due to past_days=2.
+    // Desktop CSS splits these week columns side by side; mobile stacks them.
+    for (let week = 0; week < weekCount; week++) {
+        const weekEl = document.createElement('div');
+        weekEl.className = 'daily-forecast-week';
+
+        const separator = document.createElement('div');
+        separator.className = 'week-separator flex items-center gap-3 py-1 px-2';
+        separator.innerHTML = `
+            <div class="flex-1 h-px bg-white/10"></div>
+            <span class="text-white/40 text-xs font-semibold tracking-wider uppercase">Week ${week + 1}</span>
+            <div class="flex-1 h-px bg-white/10"></div>
+        `;
+        weekEl.appendChild(separator);
+
+        for (let slot = 0; slot < weekSize; slot++) {
+            const i = week * weekSize + slot;
+            if (i >= dailyCount) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'daily-forecast-card-placeholder';
+                placeholder.setAttribute('aria-hidden', 'true');
+                weekEl.appendChild(placeholder);
+                continue;
+            }
+
+            const dayIndex = i + 2; // Skip past days
+            const day = parseDateString(data.daily.time[dayIndex]);
+            const tideSummary = currentTideData?.dailySummaries ? currentTideData.dailySummaries[formatDateKey(day)] : null;
+            const tideSummaryText = formatTideSummary(tideSummary);
+
+            const dayItem = document.createElement('div');
+            dayItem.className = 'daily-forecast-card forecast-chip rounded-lg backdrop-blur-sm clickable';
+            const snowAmount = data.daily.snowfall_sum ? data.daily.snowfall_sum[dayIndex] : null;
+            const precipChance = data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[dayIndex] : null;
+            const precipCue = getDailyPrecipCue(precipChance, snowAmount);
+            dayItem.innerHTML = `
+                <div class="daily-forecast-main">
+                    <div class="daily-forecast-date">
+                        <div class="daily-forecast-day">${day.toLocaleDateString('en-US', { weekday: weekdayFormat })}</div>
+                        <div class="daily-forecast-date-label">${day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                    </div>
+                    <div class="daily-forecast-icon">${getWeatherIcon(data.daily.weather_code[dayIndex], true, precipChance)}</div>
+                    <div class="daily-forecast-precip${precipCue ? '' : ' is-empty'}">${precipCue ? precipCue.text : '&nbsp;'}</div>
+                    <div class="daily-forecast-spacer" aria-hidden="true"></div>
+                    <div class="daily-forecast-low">${formatRangeTemp(data.daily.temperature_2m_min[dayIndex])}</div>
+                    ${renderTemperatureRangeBar(data.daily.temperature_2m_min[dayIndex], data.daily.temperature_2m_max[dayIndex], dailySpan)}
+                    <div class="daily-forecast-high">${formatRangeTemp(data.daily.temperature_2m_max[dayIndex])}</div>
+                    <span class="daily-forecast-chevron" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg></span>
+                </div>
+                ${tideSummaryText ? `
+                <div class="daily-forecast-tide mt-3 pt-3 border-t border-cyan-400/20 text-cyan-100/90 text-xs md:text-sm">
+                    <i class="fas fa-water mr-2 text-cyan-300/90"></i><span>${tideSummaryText}</span>
+                </div>
+                ` : ''}
             `;
-            dailyContainer.appendChild(separator);
+
+            dayItem.addEventListener('click', () => openDailyModal(data));
+            weekEl.appendChild(dayItem);
         }
 
-        const dayItem = document.createElement('div');
-        dayItem.className = 'daily-forecast-card forecast-chip rounded-lg backdrop-blur-sm clickable';
-        const snowAmount = data.daily.snowfall_sum ? data.daily.snowfall_sum[dayIndex] : null;
-        const precipChance = data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[dayIndex] : null;
-        const precipCue = getDailyPrecipCue(precipChance, snowAmount);
-        dayItem.innerHTML = `
-            <div class="daily-forecast-main">
-                <div class="daily-forecast-date">
-                    <div class="daily-forecast-day">${day.toLocaleDateString('en-US', { weekday: weekdayFormat })}</div>
-                    <div class="daily-forecast-date-label">${day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                </div>
-                <div class="daily-forecast-icon">${getWeatherIcon(data.daily.weather_code[dayIndex], true, precipChance)}</div>
-                <div class="daily-forecast-precip${precipCue ? '' : ' is-empty'}">${precipCue ? precipCue.text : '&nbsp;'}</div>
-                <div class="daily-forecast-low">${formatRangeTemp(data.daily.temperature_2m_min[dayIndex])}</div>
-                ${renderTemperatureRangeBar(data.daily.temperature_2m_min[dayIndex], data.daily.temperature_2m_max[dayIndex], dailySpan)}
-                <div class="daily-forecast-high">${formatRangeTemp(data.daily.temperature_2m_max[dayIndex])}</div>
-                <span class="daily-forecast-chevron" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg></span>
-            </div>
-            ${tideSummaryText ? `
-            <div class="daily-forecast-tide mt-3 pt-3 border-t border-cyan-400/20 text-cyan-100/90 text-xs md:text-sm">
-                <i class="fas fa-water mr-2 text-cyan-300/90"></i><span>${tideSummaryText}</span>
-            </div>
-            ` : ''}
-        `;
-
-        dayItem.addEventListener('click', () => openDailyModal(data));
-        dailyContainer.appendChild(dayItem);
+        const snowSlot = document.createElement('div');
+        snowSlot.className = 'daily-forecast-week-snow';
+        snowSlot.dataset.week = String(week);
+        weekEl.appendChild(snowSlot);
+        dailyContainer.appendChild(weekEl);
     }
 
     // Display weekly snow totals if there's snow in the forecast
@@ -2493,10 +2521,83 @@ function displayWeather(data) {
     }
 }
 
+function groupConsecutiveSnowDays(snowDays) {
+    const snowPeriods = [];
+    let currentPeriod = null;
+
+    for (let i = 0; i < snowDays.length; i++) {
+        const snowDay = snowDays[i];
+
+        if (!currentPeriod) {
+            currentPeriod = {
+                days: [snowDay],
+                totalSnow: snowDay.snowfall
+            };
+        } else {
+            const lastDayIndex = currentPeriod.days[currentPeriod.days.length - 1].index;
+            if (snowDay.index === lastDayIndex + 1) {
+                currentPeriod.days.push(snowDay);
+                currentPeriod.totalSnow += snowDay.snowfall;
+            } else {
+                snowPeriods.push(currentPeriod);
+                currentPeriod = {
+                    days: [snowDay],
+                    totalSnow: snowDay.snowfall
+                };
+            }
+        }
+    }
+
+    if (currentPeriod) {
+        snowPeriods.push(currentPeriod);
+    }
+    return snowPeriods;
+}
+
+function renderSnowPeriodItem(period) {
+    const periodItem = document.createElement('div');
+    periodItem.className = 'forecast-chip rounded-lg p-3 backdrop-blur-sm';
+
+    const totalSnowRounded = Math.round(period.totalSnow * 10) / 10;
+    const unit = totalSnowRounded === 1.0 ? 'inch' : 'inches';
+
+    if (period.days.length === 1) {
+        const day = period.days[0];
+        periodItem.innerHTML = `
+            <div class="text-white font-semibold text-sm">Snowfall on ${day.dayName} (${day.dateStr}) is ${totalSnowRounded.toFixed(1)} ${unit}</div>
+        `;
+    } else {
+        const firstDay = period.days[0];
+        const lastDay = period.days[period.days.length - 1];
+        const dayBreakdown = period.days.map(day => {
+            const dayUnit = day.snowfall === 1.0 ? 'inch' : 'inches';
+            return `${day.dayName}: ${day.snowfall.toFixed(1)} ${dayUnit}`;
+        }).join(' • ');
+
+        periodItem.innerHTML = `
+            <div class="flex-1">
+                <div class="text-white font-semibold text-sm mb-1">Snowfall between ${firstDay.dayName} (${firstDay.dateStr}) and ${lastDay.dayName} (${lastDay.dateStr}) is ${totalSnowRounded.toFixed(1)} ${unit}</div>
+                <div class="text-white/70 text-xs">${dayBreakdown}</div>
+            </div>
+        `;
+    }
+
+    return periodItem;
+}
+
 async function displayWeeklySnowTotals(data) {
     const snowSection = document.getElementById('weeklySnowSection');
     const snowContent = document.getElementById('weeklySnowContent');
-    snowContent.innerHTML = '';
+    const weekSlots = [...document.querySelectorAll('#dailyForecast .daily-forecast-week-snow')];
+    const forecastNote = document.getElementById('dailyForecastNote');
+    if (snowContent) snowContent.innerHTML = '';
+    weekSlots.forEach((slot) => { slot.innerHTML = ''; });
+    if (forecastNote) {
+        forecastNote.textContent = '';
+        forecastNote.classList.add('hidden');
+    }
+    // Snow totals now live in each week's column; keep the standalone section hidden.
+    if (snowSection) snowSection.classList.add('hidden');
 
     // Check if there's any snow in the forecast
     if (!data.daily.snowfall_sum) {
@@ -2534,94 +2635,30 @@ async function displayWeeklySnowTotals(data) {
         return;
     }
 
-    // Group consecutive days
-    const snowPeriods = [];
-    let currentPeriod = null;
-
-    for (let i = 0; i < snowDays.length; i++) {
-        const snowDay = snowDays[i];
-
-        if (!currentPeriod) {
-            // Start new period
-            currentPeriod = {
-                days: [snowDay],
-                totalSnow: snowDay.snowfall
-            };
-        } else {
-            // Check if consecutive (within 1 day index difference)
-            const lastDayIndex = currentPeriod.days[currentPeriod.days.length - 1].index;
-            if (snowDay.index === lastDayIndex + 1) {
-                // Consecutive day - add to current period
-                currentPeriod.days.push(snowDay);
-                currentPeriod.totalSnow += snowDay.snowfall;
-            } else {
-                // Not consecutive - save current period and start new one
-                snowPeriods.push(currentPeriod);
-                currentPeriod = {
-                    days: [snowDay],
-                    totalSnow: snowDay.snowfall
-                };
-            }
-        }
+    // Group consecutive days within each week so totals stay in that column.
+    const weekSize = 7;
+    const weekCount = Math.max(1, weekSlots.length);
+    for (let week = 0; week < weekCount; week++) {
+        const weekDays = snowDays.filter((day) => Math.floor(day.index / weekSize) === week);
+        const slot = weekSlots[week];
+        if (!slot) continue;
+        groupConsecutiveSnowDays(weekDays).forEach((period) => {
+            slot.appendChild(renderSnowPeriodItem(period));
+        });
     }
-
-    // Add the last period
-    if (currentPeriod) {
-        snowPeriods.push(currentPeriod);
-    }
-
-    // Display snow periods
-    snowSection.classList.remove('hidden');
-
-    snowPeriods.forEach(period => {
-        const periodItem = document.createElement('div');
-        periodItem.className = 'forecast-chip rounded-lg p-4 backdrop-blur-sm';
-
-        // Round total to nearest 0.1
-        const totalSnowRounded = Math.round(period.totalSnow * 10) / 10;
-
-        // Determine unit (inch vs inches)
-        const unit = totalSnowRounded === 1.0 ? 'inch' : 'inches';
-
-        let periodText;
-        if (period.days.length === 1) {
-            // Single day
-            const day = period.days[0];
-            periodText = `Snowfall on ${day.dayName} (${day.dateStr}) is ${totalSnowRounded.toFixed(1)} ${unit}`;
-
-            periodItem.innerHTML = `
-                <div class="text-white font-semibold">${periodText}</div>
-            `;
-        } else {
-            // Multiple days - show range
-            const firstDay = period.days[0];
-            const lastDay = period.days[period.days.length - 1];
-            periodText = `Snowfall between ${firstDay.dayName} (${firstDay.dateStr}) and ${lastDay.dayName} (${lastDay.dateStr}) is ${totalSnowRounded.toFixed(1)} ${unit}`;
-
-            // Add breakdown of individual days
-            const dayBreakdown = period.days.map(day => {
-                const dayUnit = day.snowfall === 1.0 ? 'inch' : 'inches';
-                return `${day.dayName}: ${day.snowfall.toFixed(1)} ${dayUnit}`;
-            }).join(' • ');
-
-            periodItem.innerHTML = `
-                <div class="flex-1">
-                    <div class="text-white font-semibold mb-1">${periodText}</div>
-                    <div class="text-white/70 text-sm">${dayBreakdown}</div>
-                </div>
-            `;
-        }
-
-        snowContent.appendChild(periodItem);
-    });
 
     try {
         const nws = await fetchNwsSnowForecast(currentLat, currentLon);
         if (!nws.unavailable && nws.totalInches >= 0.1) {
-            const nwsLine = document.createElement('p');
-            nwsLine.className = 'text-gray-400 text-sm mt-3';
-            nwsLine.textContent = `NWS 48h forecast: ${nws.totalInches.toFixed(1)} in`;
-            snowContent.appendChild(nwsLine);
+            if (forecastNote) {
+                forecastNote.textContent = `NWS 48h forecast: ${nws.totalInches.toFixed(1)} in`;
+                forecastNote.classList.remove('hidden');
+            } else if (weekSlots[0]) {
+                const nwsLine = document.createElement('p');
+                nwsLine.className = 'text-gray-400 text-sm mt-1';
+                nwsLine.textContent = `NWS 48h forecast: ${nws.totalInches.toFixed(1)} in`;
+                weekSlots[0].appendChild(nwsLine);
+            }
         }
     } catch (error) {
         console.error('NWS weekly snow line error:', error);
