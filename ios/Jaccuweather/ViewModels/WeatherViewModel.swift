@@ -726,9 +726,6 @@ final class WeatherViewModel {
             guard serial == refreshSerial else { return }
             pollenPending = false
             errorMessage = error.localizedDescription
-            if weather == nil {
-                WeatherLiveActivitySync.end()
-            }
         }
     }
 
@@ -903,7 +900,6 @@ final class WeatherViewModel {
         if weather == nil {
             showsPlacePrompt = true
             errorMessage = nil
-            WeatherLiveActivitySync.end()
         }
     }
 
@@ -1032,7 +1028,6 @@ final class WeatherViewModel {
 
     private func publishWidgetSnapshot() {
         guard hasResolvedPlace, weather != nil || !hourlyRows.isEmpty else {
-            WeatherLiveActivitySync.end()
             return
         }
         let current = weather?.current
@@ -1104,17 +1099,6 @@ final class WeatherViewModel {
                 fetchedAt: snapshot.fetchedAt
             ), makeCurrent: true)
         }
-        guard weather != nil else {
-            WeatherLiveActivitySync.end()
-            return
-        }
-        WeatherLiveActivitySync.startOrUpdate(
-            placeID: snapshot.locationId,
-            placeName: snapshot.locationName,
-            temperatureF: snapshot.temperatureF,
-            conditionText: liveConditionText(code: code),
-            symbolName: snapshot.symbolName
-        )
     }
 
     /// Naive Open-Meteo sunrise or sunset. Blank values stay off the Watch payload.
@@ -1122,11 +1106,6 @@ final class WeatherViewModel {
         let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !trimmed.isEmpty else { return nil }
         return trimmed
-    }
-
-    private func liveConditionText(code: Int?) -> String {
-        if !conditionDescription.isEmpty { return conditionDescription }
-        return WidgetWeatherCode.shortText(code)
     }
 
     private func runSearch(_ query: String, generation: Int) async {
