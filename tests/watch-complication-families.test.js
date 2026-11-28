@@ -6,6 +6,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const sources = [
+  'ios/Shared/WatchAtmosphere.swift',
   'ios/JaccuweatherWatchWidgets/WatchComplicationCopy.swift',
   'tests/watch-complication-families-check.swift',
 ];
@@ -24,9 +25,13 @@ test('watch complications add inline and corner beside circular and rectangular'
     assert.match(copy, new RegExp(`"${family}"`));
   }
   assert.match(widget, /widgetURL\(WatchPlaceLink\.url/);
+  assert.match(widget, /WidgetHorizonBackground/);
   assert.match(widget, /private var circular/);
   assert.match(widget, /private var rectangular/);
-  assert.doesNotMatch(widget, /sunrise|sunset|\buv\b|\bwind\b/i);
+  assert.match(widget, /rectangularDetail/);
+  assert.match(copy, /WatchAtmosphere\.detailLine/);
+  assert.doesNotMatch(widget, /sunrise|sunset/i);
+  assert.doesNotMatch(widget, /humidity/i);
 
   const binary = path.join('/tmp', 'watch-complication-families-check');
   const sdk = execFileSync('xcrun', ['--sdk', 'macosx', '--show-sdk-path'], { encoding: 'utf8' }).trim();
