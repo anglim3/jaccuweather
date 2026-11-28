@@ -60,12 +60,22 @@ enum ForecastDisplay {
 
     /// "1:00 AM" becomes "1 AM". A non-zero minute stays.
     static func compactClock(_ clock: String) -> String {
-        let trimmed = clock.trimmingCharacters(in: .whitespacesAndNewlines)
-        let range = NSRange(trimmed.startIndex..., in: trimmed)
-        guard let match = zeroMinuteClock.firstMatch(in: trimmed, range: range),
-              let hourRange = Range(match.range(at: 1), in: trimmed),
-              let suffixRange = Range(match.range(at: 2), in: trimmed) else { return trimmed }
-        return "\(trimmed[hourRange]) \(trimmed[suffixRange].uppercased())"
+        timeLabel(clock)
+    }
+
+    /// The one time format on the Forecast tab: "3 PM" on the hour, "7:12 AM"
+    /// otherwise. Reads "3:00 PM", "3 pm", "15:00", or an ISO stamp
+    /// ("2026-10-17T15:00"), so a 24-hour source never reaches the screen.
+    /// When `text` cannot be read, `stamp` is tried before giving up.
+    static func timeLabel(_ text: String, stamp: String? = nil) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let parts = twelveHourParts(trimmed) {
+            return ForecastDisplay.clock(hour: parts.hour, minute: parts.minute, dropZeroMinutes: true)
+        }
+        if let parts = twentyFourHourParts(trimmed) ?? stamp.flatMap({ twentyFourHourParts($0) }) {
+            return ForecastDisplay.clock(hour: parts.hour, minute: parts.minute, dropZeroMinutes: true)
+        }
+        return trimmed
     }
 
     static func marksNewDay(stamp: String, previous: String?) -> Bool {
@@ -74,7 +84,7 @@ enum ForecastDisplay {
     }
 
     static func chipClock(clock: String, stamp: String, markDay: Bool) -> String {
-        let compact = compactClock(clock)
+        let compact = timeLabel(clock, stamp: stamp)
         guard markDay, let day = weekday(fromStamp: stamp) else { return compact }
         return "\(day) \(compact)"
     }
@@ -138,7 +148,7 @@ enum ForecastDisplay {
     static func tideReadout(date: Date, feet: Double, calendar: Calendar = .current) -> String {
         let hour = calendar.component(.hour, from: date)
         let minute = calendar.component(.minute, from: date)
-        let clock = clock(hour: hour, minute: minute, dropZeroMinutes: false)
+        let clock = clock(hour: hour, minute: minute, dropZeroMinutes: true)
         let day = weekdayName(date, calendar: calendar)
         return "\(day) \(clock)  \(String(format: "%.1f ft", feet))"
     }
@@ -167,7 +177,35 @@ enum ForecastDisplay {
         return formatter.string(from: date)
     }
 
-    private static let zeroMinuteClock = try! NSRegularExpression(pattern: #"^(\d{1,2}):00\s*([AaPp][Mm])$"#)
+    /// "3:05 PM", "3 pm", "12:00 AM" → 24-hour parts.
+    private static func twelveHourParts(_ text: String) -> (hour: Int, minute: Int)? {
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = twelveHourClock.firstMatch(in: text, range: range),
+              let hourRange = Range(match.range(at: 1), in: text),
+              let suffixRange = Range(match.range(at: 3), in: text),
+              let hour12 = Int(text[hourRange]), (1...12).contains(hour12) else { return nil }
+        var minute = 0
+        if let minuteRange = Range(match.range(at: 2), in: text) {
+            guard let value = Int(text[minuteRange]), (0..<60).contains(value) else { return nil }
+            minute = value
+        }
+        let isPM = text[suffixRange].lowercased().hasPrefix("p")
+        return (hour: hour12 % 12 + (isPM ? 12 : 0), minute: minute)
+    }
+
+    /// "15:00" or "2026-10-17T15:00" → parts.
+    private static func twentyFourHourParts(_ text: String) -> (hour: Int, minute: Int)? {
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = twentyFourHourClock.firstMatch(in: text, range: range),
+              let hourRange = Range(match.range(at: 1), in: text),
+              let minuteRange = Range(match.range(at: 2), in: text),
+              let hour = Int(text[hourRange]), (0..<24).contains(hour),
+              let minute = Int(text[minuteRange]), (0..<60).contains(minute) else { return nil }
+        return (hour: hour, minute: minute)
+    }
+
+    private static let twelveHourClock = try! NSRegularExpression(pattern: #"^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])$"#)
+    private static let twentyFourHourClock = try! NSRegularExpression(pattern: #"(?:^|T)(\d{1,2}):(\d{2})(?::\d{2})?(?:$|[^\d])"#)
 
     private static let dayParser: DateFormatter = {
         let formatter = DateFormatter()
