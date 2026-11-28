@@ -147,7 +147,20 @@ for (const file of watchSources) {
 }
 const watchWidgetIds = {};
 for (const file of watchWidgetSources) {
-  watchWidgetIds[file] = { ref: hid('watch-widget-ref:' + file), build: hid('watch-widget-build:' + file) };
+  watchWidgetIds[file] = {
+    ref: hid('watch-widget-ref:' + file),
+    build: hid('watch-widget-build:' + file),
+    appBuild: hid('watch-widget-app:' + file),
+  };
+}
+// The glance's debug gallery renders the complication view, so those files
+// also compile into the Watch app. The widget bundle stays in the extension.
+const watchWidgetFilesInApp = [
+  'ConditionsComplication.swift',
+  'WatchComplicationCopy.swift',
+];
+for (const name of watchWidgetFilesInApp) {
+  if (!watchWidgetIds[name]) throw new Error(name + ' missing from the Watch widget sources');
 }
 const watchSupportFiles = [
   { name: 'WidgetSnapshot.swift', ref: sharedIds['WidgetSnapshot.swift'].ref },
@@ -158,6 +171,7 @@ const watchSupportFiles = [
   { name: 'WatchFeelsLike.swift', ref: sharedIds['WatchFeelsLike.swift'].ref },
   { name: 'WatchDewPoint.swift', ref: sharedIds['WatchDewPoint.swift'].ref },
   { name: 'WatchAQI.swift', ref: sharedIds['WatchAQI.swift'].ref },
+  { name: 'WatchFreshness.swift', ref: sharedIds['WatchFreshness.swift'].ref },
   { name: 'WidgetHorizon.swift', ref: widgetIds['WidgetHorizon.swift'].ref },
   { name: 'WidgetRefresh.swift', ref: widgetIds['WidgetRefresh.swift'].ref },
 ];
@@ -217,6 +231,9 @@ const watchBuildFiles = watchSources
 const watchWidgetBuildFiles = watchWidgetSources
   .map((f) => `\t\t${watchWidgetIds[f].build} /* ${path.basename(f)} in Sources */ = {isa = PBXBuildFile; fileRef = ${watchWidgetIds[f].ref} /* ${path.basename(f)} */; };`)
   .join('\n');
+const watchWidgetInApp = watchWidgetFilesInApp
+  .map((name) => `\t\t${watchWidgetIds[name].appBuild} /* ${name} in Sources */ = {isa = PBXBuildFile; fileRef = ${watchWidgetIds[name].ref} /* ${name} */; };`)
+  .join('\n');
 const watchLoaderInWidget = watchFilesInWidget
   .map((name) => `\t\t${watchIds[name].widgetBuild} /* ${name} in Sources */ = {isa = PBXBuildFile; fileRef = ${watchIds[name].ref} /* ${name} */; };`)
   .join('\n');
@@ -235,6 +252,7 @@ const watchWidgetRefs = watchWidgetSources
 const watchSourceBuildPhase = watchSources
   .map((f) => `\t\t\t\t${watchIds[f].build} /* ${path.basename(f)} in Sources */,`)
   .concat(watchSupportFiles.map((f) => `\t\t\t\t${watchSupportIds[f.name].app} /* ${f.name} in Sources */,`))
+  .concat(watchWidgetFilesInApp.map((name) => `\t\t\t\t${watchWidgetIds[name].appBuild} /* ${name} in Sources */,`))
   .join('\n');
 const watchWidgetSourceBuildPhase = watchWidgetSources
   .map((f) => `\t\t\t\t${watchWidgetIds[f].build} /* ${path.basename(f)} in Sources */,`)
@@ -300,6 +318,7 @@ ${sharedWidgetBuilds}
 ${widgetBuildFiles}
 ${watchBuildFiles}
 ${watchWidgetBuildFiles}
+${watchWidgetInApp}
 ${watchLoaderInWidget}
 ${watchSupportAppBuilds}
 ${watchSupportWidgetBuilds}

@@ -99,23 +99,18 @@ struct WatchGlanceView: View {
     }
 
     private func glanceStack(_ metrics: WatchGlanceMetrics) -> some View {
-        VStack(spacing: metrics.spacing) {
-            placeTitle(metrics)
-            HStack(alignment: .center, spacing: 6) {
-                symbol(metrics)
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .center, spacing: 4) {
-                        Text(model.temperatureText)
-                            .font(WidgetHorizon.tempFont(size: metrics.tempSize))
-                            .foregroundStyle(WidgetHorizon.text)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                            .layoutPriority(1)
-                        if let dew = WatchDewPoint.chip(fahrenheit: model.snapshot.dewPointF) {
-                            WatchDewChip(chip: dew, compact: metrics.foldsMetric)
-                        }
+        let fetchedAt = model.snapshot.fetchedAt
+        return VStack(spacing: metrics.spacing) {
+            TimelineView(.everyMinute) { _ in
+                // The schedule date can sit at the start of the minute. The age
+                // uses the actual clock so a reading does not look an hour younger.
+                let line = WatchFreshness.line(fetchedAt: fetchedAt, now: Date())
+                VStack(spacing: metrics.spacing) {
+                    placeTitle(metrics)
+                    if let line {
+                        WatchFreshnessLabel(line: line, compact: metrics.foldsMetric)
                     }
-                    detailLine(metrics)
+                    readingRow(metrics, stale: line?.isStale == true)
                 }
             }
             if !metrics.foldsMetric, let aqi = aqiChip {
@@ -180,6 +175,29 @@ struct WatchGlanceView: View {
             }
             openLaunchHour(hours)
         }
+    }
+
+    /// Temperature, dew point, and feels-like. Dimmed when the reading is stale.
+    /// The freshness line stays outside this row so "Stale" stays readable.
+    private func readingRow(_ metrics: WatchGlanceMetrics, stale: Bool) -> some View {
+        HStack(alignment: .center, spacing: 6) {
+            symbol(metrics)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .center, spacing: 4) {
+                    Text(model.temperatureText)
+                        .font(WidgetHorizon.tempFont(size: metrics.tempSize))
+                        .foregroundStyle(WidgetHorizon.text)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .layoutPriority(1)
+                    if let dew = WatchDewPoint.chip(fahrenheit: model.snapshot.dewPointF) {
+                        WatchDewChip(chip: dew, compact: metrics.foldsMetric)
+                    }
+                }
+                detailLine(metrics)
+            }
+        }
+        .opacity(stale ? 0.55 : 1)
     }
 
     /// Feels-like under the temperature when it differs by at least 2°F.
@@ -298,6 +316,38 @@ struct WatchGlanceView: View {
                     }
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// When the displayed snapshot was fetched. Hidden for the distantPast placeholder.
+/// `TimelineView` advances the words. It does not fetch.
+struct WatchFreshnessLabel: View {
+    var line: WatchFreshness.Line
+    var compact: Bool
+
+    var body: some View {
+        HStack(spacing: 3) {
+            if line.isStale {
+                Image(systemName: "clock")
+                    .accessibilityHidden(true)
+            }
+            Text(line.text)
+            if line.isStale {
+                Text("·")
+                    .foregroundStyle(WidgetHorizon.faint)
+                    .accessibilityHidden(true)
+                Text("Stale")
+                    .foregroundStyle(WidgetHorizon.gold)
+            }
+        }
+        .font(.system(size: compact ? 9 : 10, weight: .medium))
+        .foregroundStyle(line.isStale ? WidgetHorizon.faint : WidgetHorizon.muted)
+        .lineLimit(1)
+        .minimumScaleFactor(0.55)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier("watch-freshness")
+        .accessibilityLabel(line.spoken)
     }
 }
 
@@ -507,14 +557,14 @@ struct WatchGlanceMetrics {
 
     static let regular = WatchGlanceMetrics(
         placeSize: 14,
-        tempSize: 28,
+        tempSize: 24,
         detailSize: 11,
-        sunSize: 12,
+        sunSize: 11,
         symbolIcon: 14,
         symbolBox: 24,
         placesIcon: 11,
         placesHit: 20,
-        spacing: 1,
+        spacing: 0,
         horizontalPadding: 4,
         bottomPadding: 0,
         foldsMetric: false,
@@ -554,8 +604,8 @@ struct WatchStripStyle {
     var bandHeight: CGFloat
 
     static let hourlyRegular = WatchStripStyle(
-        columnWidth: 40, columnSpacing: 2, horizontalPadding: 6, verticalPadding: 4,
-        labelSize: 11, primarySize: 14, secondarySize: 9, symbolSize: 9, cueHeight: 14, bandHeight: 56
+        columnWidth: 40, columnSpacing: 2, horizontalPadding: 6, verticalPadding: 2,
+        labelSize: 11, primarySize: 13, secondarySize: 9, symbolSize: 9, cueHeight: 12, bandHeight: 46
     )
     static let hourlyCompact = WatchStripStyle(
         columnWidth: 36, columnSpacing: 2, horizontalPadding: 4, verticalPadding: 2,
