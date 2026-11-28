@@ -56,7 +56,7 @@
                  <div class="text-2xl">${getWeatherIcon(data.hourly.weather_code[idx], data.hourly.is_day ? data.hourly.is_day[idx] !== 0 : true)}</div>
              </div>
              <div class="grid grid-cols-2 gap-2 text-sm">
-@@ -5161,8 +5202,8 @@
+@@ -5195,8 +5236,8 @@
  function buildVentuskyUrl(lat, lon) {
      const isMobile = window.innerWidth <= 768;
      const zoom = isMobile ? 7 : 8; // Lower zoom on mobile (more zoomed out)
@@ -67,7 +67,7 @@
  }
  
  function setRadarFallback(visible, lat, lon) {
-@@ -5187,23 +5228,18 @@
+@@ -5221,23 +5262,18 @@
          // Set handlers once to avoid listener pileups on repeated weather fetches
          if (!ventuskyFrame.dataset.handlersAttached) {
              ventuskyFrame.addEventListener('load', () => {

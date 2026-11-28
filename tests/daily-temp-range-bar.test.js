@@ -128,7 +128,7 @@ test('daily list is phone-width and the row is a single iOS-like line', () => {
   assert.match(html, /\.daily-forecast-chevron\s*\{/);
   assert.match(js, /daily-forecast-chevron/);
   const rowStart = js.indexOf("dayItem.className = 'daily-forecast-card");
-  const rowEnd = js.indexOf('dayItem.addEventListener', rowStart);
+  const rowEnd = js.indexOf('weekEl.appendChild(dayItem)', rowStart);
   const row = js.slice(rowStart, rowEnd);
   assert.doesNotMatch(row, /daily-forecast-metrics/);
   assert.doesNotMatch(row, /Feels like|fas fa-wind|fas fa-tint/);

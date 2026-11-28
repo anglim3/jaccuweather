@@ -2462,6 +2462,7 @@ function displayWeather(data) {
 
             const dayItem = document.createElement('div');
             dayItem.className = 'daily-forecast-card forecast-chip rounded-lg backdrop-blur-sm clickable';
+            dayItem.setAttribute('data-day-index', String(i));
             const snowAmount = data.daily.snowfall_sum ? data.daily.snowfall_sum[dayIndex] : null;
             const precipChance = data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[dayIndex] : null;
             const precipCue = getDailyPrecipCue(precipChance, snowAmount);
@@ -2486,7 +2487,6 @@ function displayWeather(data) {
                 ` : ''}
             `;
 
-            dayItem.addEventListener('click', () => openDailyModal(data));
             weekEl.appendChild(dayItem);
         }
 
@@ -4612,7 +4612,25 @@ function openHourlyModal(data) {
     setTimeout(() => initializeChartSelector('hourlyChartSelect'), 320);
 }
 
-function openDailyModal(data) {
+// Identify a 14-day row by its absolute data-day-index (0-13).
+// Do not use the card's position in a week column: week 2 would look like 0-6.
+function resolveDailyForecastDayOffset(eventTarget, root) {
+    if (!eventTarget || !root || typeof eventTarget.closest !== 'function') return null;
+    const card = eventTarget.closest('.daily-forecast-card');
+    if (!card || !root.contains(card)) return null;
+    const offset = Number(card.getAttribute('data-day-index'));
+    if (!Number.isInteger(offset) || offset < 0) return null;
+    return offset;
+}
+
+function handleDailyForecastClick(event) {
+    const root = document.getElementById('dailyForecast');
+    const offset = resolveDailyForecastDayOffset(event.target, root);
+    if (offset === null || !currentWeatherData) return;
+    openDailyModal(currentWeatherData, offset);
+}
+
+function openDailyModal(data, dayOffset) {
     const modal = document.getElementById('dailyModal');
     modal.classList.add('active');
     setDailyTidesVisibility(currentTideData);
@@ -5007,6 +5025,11 @@ function openDailyModal(data) {
         const moonPhase = getMoonPhase(moonPhaseValue);
         const detailItem = document.createElement('div');
         detailItem.className = 'forecast-chip rounded-lg p-4 backdrop-blur-sm';
+        detailItem.setAttribute('data-day-index', String(i));
+        if (Number.isInteger(dayOffset) && i === dayOffset) {
+            detailItem.classList.add('is-selected-day');
+            detailItem.setAttribute('aria-current', 'date');
+        }
         detailItem.innerHTML = `
             <div class="flex items-center justify-between mb-3">
                 <div>
@@ -5085,6 +5108,15 @@ function openDailyModal(data) {
     paintExpandedViewFirstPaint(modal.querySelectorAll('.chart-container[data-chart-type]'));
     // Selector after slide-in; first paint already filtered to temperature
     setTimeout(() => initializeChartSelector('dailyChartSelect'), 320);
+
+    if (Number.isInteger(dayOffset)) {
+        const focusSelectedDay = () => {
+            const selected = detailsContainer.querySelector(`.is-selected-day[data-day-index="${dayOffset}"]`);
+            if (selected) selected.scrollIntoView({ block: 'center' });
+        };
+        requestAnimationFrame(() => requestAnimationFrame(focusSelectedDay));
+        setTimeout(focusSelectedDay, 360);
+    }
 }
 
 // Modal close handlers
@@ -5095,6 +5127,8 @@ document.getElementById('closeHourlyModal').addEventListener('click', () => {
 document.getElementById('closeDailyModal').addEventListener('click', () => {
     document.getElementById('dailyModal').classList.remove('active');
 });
+
+document.getElementById('dailyForecast').addEventListener('click', handleDailyForecastClick);
 
 document.getElementById('closeMoonDetailsModal').addEventListener('click', () => {
     document.getElementById('moonDetailsModal').classList.remove('active');
