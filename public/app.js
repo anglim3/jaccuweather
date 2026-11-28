@@ -4302,9 +4302,7 @@ function openHourlyModal(data) {
     paintExpandedViewFirstPaint(modal.querySelectorAll('.chart-container[data-chart-type]'));
 
     // Destroy existing charts if they exist
-    Object.values(hourlyChart).forEach(chart => {
-        if (chart) chart.destroy();
-    });
+    destroyCharts(hourlyChart);
     hourlyChart = {};
 
     // Prepare data
@@ -4630,6 +4628,19 @@ function handleDailyForecastClick(event) {
     openDailyModal(currentWeatherData, offset);
 }
 
+function destroyCharts(chartMap) {
+    Object.values(chartMap || {}).forEach((chart) => {
+        if (chart && typeof chart.destroy === 'function') {
+            try {
+                chart.destroy();
+            } catch (error) {
+                // ApexCharts can throw if a previous modal close left a half-destroyed chart.
+            }
+        }
+    });
+}
+
+
 function openDailyModal(data, dayOffset) {
     const modal = document.getElementById('dailyModal');
     modal.classList.add('active');
@@ -4639,9 +4650,7 @@ function openDailyModal(data, dayOffset) {
     paintExpandedViewFirstPaint(modal.querySelectorAll('.chart-container[data-chart-type]'));
 
     // Destroy existing charts if they exist
-    Object.values(dailyChart).forEach(chart => {
-        if (chart) chart.destroy();
-    });
+    destroyCharts(dailyChart);
     dailyChart = resetDailyChartState();
 
     // Prepare data

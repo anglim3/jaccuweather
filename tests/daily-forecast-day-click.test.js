@@ -109,4 +109,6 @@ test('the daily list stamps absolute data-day-index and delegates clicks from #d
   assert.match(js, /detailItem\.setAttribute\('data-day-index', String\(i\)\)/);
   assert.match(js, /classList\.add\('is-selected-day'\)/);
   assert.match(html, /#dailyDetails \.is-selected-day/);
+  assert.match(js, /function destroyCharts/);
+  assert.match(js, /destroyCharts\(dailyChart\)/);
 });
