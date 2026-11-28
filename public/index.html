@@ -784,24 +784,34 @@
            the short fixed low/bar/high cluster stays right-aligned on the top line. */
         @media (max-width: 480px) {
             .daily-forecast-main {
-                grid-template-columns: minmax(0, 1fr) 2.25rem auto;
+                /* Keep a min width on the day column so the rain % cannot overlap the name. */
+                grid-template-columns: minmax(5.25rem, 1fr) 1.85rem auto;
                 grid-template-areas:
                     "date precip range"
                     "metrics metrics metrics";
+                column-gap: 0.3rem;
                 row-gap: 0.375rem;
             }
 
             .daily-forecast-date {
                 grid-area: date;
                 gap: 0.5rem;
+                min-width: 0;
             }
 
             .daily-forecast-precip {
                 grid-area: precip;
+                text-align: right;
             }
 
             .daily-forecast-range {
                 grid-area: range;
+                grid-template-columns: 1.9rem 64px 1.9rem;
+                column-gap: 0.25rem;
+            }
+
+            .temp-range-track {
+                width: 64px;
             }
 
             .daily-forecast-metrics {
