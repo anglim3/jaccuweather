@@ -627,23 +627,20 @@
             min-height: 88px;
         }
 
+        /* Columns: day+icon | rain % (reserved even when dry) | low, range bar, high | amount + wind */
         .daily-forecast-main {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: 11rem 4.25rem minmax(11rem, 1fr) 6.75rem;
             align-items: center;
-            gap: 1rem;
+            column-gap: 1rem;
             width: 100%;
         }
 
-        .daily-forecast-date,
-        .daily-forecast-details {
+        .daily-forecast-date {
             display: flex;
             align-items: center;
-            min-width: 0;
-        }
-
-        .daily-forecast-date {
             gap: 1rem;
+            min-width: 0;
         }
 
         .daily-forecast-icon {
@@ -651,9 +648,55 @@
             text-align: center;
         }
 
-        .daily-forecast-details {
-            justify-content: flex-end;
-            gap: 1.5rem;
+        .daily-forecast-precip {
+            min-height: 1rem;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        /* Dry days keep the slot (same width and height) but show nothing. */
+        .daily-forecast-precip.is-empty {
+            visibility: hidden;
+        }
+
+        .daily-forecast-range {
+            display: grid;
+            grid-template-columns: 2.75rem minmax(5rem, 1fr) 2.75rem;
+            align-items: center;
+            column-gap: 0.625rem;
+            min-width: 0;
+        }
+
+        .daily-forecast-low,
+        .daily-forecast-high {
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+        }
+
+        .daily-forecast-feels {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-top: 0.125rem;
+        }
+
+        /* Low-to-high range bar. Every day uses the same 14-day scale. */
+        .temp-range-track {
+            position: relative;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .temp-range-fill {
+            --range-min-bar: 6px;
+            --range-bar-w: min(100%, max(calc((var(--range-end) - var(--range-start)) * 100%), var(--range-min-bar)));
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: var(--range-bar-w);
+            left: min(calc(var(--range-start) * 100%), calc(100% - var(--range-bar-w)));
+            border-radius: 999px;
         }
 
         .daily-forecast-day,
@@ -665,13 +708,9 @@
             white-space: nowrap;
         }
 
-        .daily-forecast-temps,
+        /* Fixed column width so every row's range bar starts and ends at the same x. */
         .daily-forecast-metrics {
-            flex: 0 0 auto;
-        }
-
-        .daily-forecast-metrics {
-            min-width: 100px;
+            min-width: 0;
         }
 
         .daily-forecast-tide {
@@ -687,22 +726,41 @@
             overflow: hidden;
         }
 
+        /* Narrow: day/icon, rain % and metrics on one line; low + bar + high on the next. */
         @media (max-width: 640px) {
             .daily-forecast-card {
                 padding: 0.875rem;
             }
 
             .daily-forecast-main {
-                grid-template-columns: minmax(6rem, 1fr) auto;
-                gap: 0.75rem;
+                grid-template-columns: minmax(0, 1fr) 2.5rem 5rem;
+                grid-template-areas:
+                    "date precip metrics"
+                    "range range range";
+                column-gap: 0.75rem;
+                row-gap: 0.625rem;
             }
 
             .daily-forecast-date {
+                grid-area: date;
                 gap: 0.75rem;
             }
 
-            .daily-forecast-details {
-                gap: 0.75rem;
+            .daily-forecast-precip {
+                grid-area: precip;
+                text-align: right;
+            }
+
+            .daily-forecast-metrics {
+                grid-area: metrics;
+                font-size: 0.75rem;
+                line-height: 1.05rem;
+            }
+
+            .daily-forecast-range {
+                grid-area: range;
+                grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+                column-gap: 0.5rem;
             }
 
             .daily-forecast-icon {
@@ -724,27 +782,15 @@
                 font-size: 0.6875rem;
                 line-height: 1rem;
             }
-
-            .daily-forecast-metrics {
-                min-width: 4.6rem;
-                font-size: 0.75rem;
-                line-height: 1.05rem;
-            }
         }
 
         @media (max-width: 380px) {
+            .daily-forecast-date {
+                gap: 0.5rem;
+            }
+
             .daily-forecast-main {
-                grid-template-columns: 1fr;
-                align-items: stretch;
-            }
-
-            .daily-forecast-details {
-                justify-content: space-between;
-                padding-left: 3.91rem;
-            }
-
-            .daily-forecast-metrics {
-                min-width: auto;
+                column-gap: 0.5rem;
             }
         }
 

@@ -2416,8 +2416,15 @@ function displayWeather(data) {
     const isMobile = window.innerWidth <= 768;
     const weekdayFormat = isMobile ? 'short' : 'long';
 
+    // One shared low/high scale for every row's range bar (computed once per render).
+    const dailyCount = Math.max(0, Math.min(14, data.daily.time.length - 2));
+    const dailySpan = getTemperatureSpan(
+        data.daily.temperature_2m_min.slice(2, 2 + dailyCount),
+        data.daily.temperature_2m_max.slice(2, 2 + dailyCount)
+    );
+
     // Start from index 2 to skip past 2 days due to past_days=2
-    for (let i = 0; i < Math.min(14, data.daily.time.length - 2); i++) {
+    for (let i = 0; i < dailyCount; i++) {
         const dayIndex = i + 2; // Skip past days
         const day = parseDateString(data.daily.time[dayIndex]);
         const tideSummary = currentTideData?.dailySummaries ? currentTideData.dailySummaries[formatDateKey(day)] : null;
@@ -2443,27 +2450,29 @@ function displayWeather(data) {
 
         const dayItem = document.createElement('div');
         dayItem.className = 'daily-forecast-card forecast-chip rounded-lg p-4 backdrop-blur-sm clickable';
+        const snowAmount = data.daily.snowfall_sum ? data.daily.snowfall_sum[dayIndex] : null;
+        const hasSnow = snowAmount > 0;
+        const precipChance = data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[dayIndex] : null;
+        const precipCue = getDailyPrecipCue(precipChance, snowAmount);
         dayItem.innerHTML = `
             <div class="daily-forecast-main">
                 <div class="daily-forecast-date">
-                    <div class="daily-forecast-icon text-3xl">${getWeatherIcon(data.daily.weather_code[dayIndex], true, data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[dayIndex] : null)}</div>
+                    <div class="daily-forecast-icon text-3xl">${getWeatherIcon(data.daily.weather_code[dayIndex], true, precipChance)}</div>
                     <div class="min-w-0">
                         <div class="daily-forecast-day text-white font-semibold text-lg">${day.toLocaleDateString('en-US', { weekday: weekdayFormat })}</div>
                         <div class="daily-forecast-date-label text-white/70 text-sm">${day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                     </div>
                 </div>
-                <div class="daily-forecast-details">
-                    <div class="daily-forecast-temps text-right">
-                        <div class="daily-forecast-high text-white font-bold text-xl">${Math.round(data.daily.temperature_2m_max[dayIndex])}${UNITS.temperature}</div>
-                        <div class="daily-forecast-low text-white/70 text-sm">${Math.round(data.daily.temperature_2m_min[dayIndex])}${UNITS.temperature}</div>
-                        ${hasApparentTemps ? `<div class="daily-forecast-feels text-white/50 text-xs">Feels like ${apparentMax}${apparentUnit} / ${apparentMin}${apparentUnit}</div>` : ''}
-                    </div>
-                    <div class="daily-forecast-metrics text-white/70 text-sm text-right">
-                        ${data.daily.snowfall_sum && data.daily.snowfall_sum[dayIndex] > 0 ? '' : `<div><i class="fas fa-tint mr-1"></i>${data.daily.precipitation_sum[dayIndex] || 0} ${UNITS.precipitation}</div>`}
-                        ${data.daily.snowfall_sum && data.daily.snowfall_sum[dayIndex] > 0 ? `<div><i class="fas fa-snowflake mr-1"></i>${data.daily.snowfall_sum[dayIndex]} ${UNITS.snowfall}</div>` : ''}
-                        ${data.daily.snowfall_sum && data.daily.snowfall_sum[dayIndex] > 0 ? (data.daily.precipitation_probability_max && data.daily.precipitation_probability_max[dayIndex] !== null && data.daily.precipitation_probability_max[dayIndex] !== undefined ? `<div><i class="fas fa-snowflake mr-1"></i>${data.daily.precipitation_probability_max[dayIndex]}%</div>` : '') : (data.daily.precipitation_probability_max && data.daily.precipitation_probability_max[dayIndex] !== null && data.daily.precipitation_probability_max[dayIndex] !== undefined ? `<div><i class="fas fa-tint mr-1"></i>${data.daily.precipitation_probability_max[dayIndex]}%</div>` : '')}
-                        <div><i class="fas fa-wind mr-1"></i>${data.daily.wind_speed_10m_max[dayIndex]} ${UNITS.wind}</div>
-                    </div>
+                <div class="daily-forecast-precip text-white/70 text-xs${precipCue ? '' : ' is-empty'}">${precipCue ? `${precipCue.snow ? '<i class="fas fa-snowflake mr-1"></i>' : ''}${precipCue.text}` : '&nbsp;'}</div>
+                <div class="daily-forecast-range">
+                    <div class="daily-forecast-low text-white/70 text-sm">${formatRangeTemp(data.daily.temperature_2m_min[dayIndex])}</div>
+                    ${renderTemperatureRangeBar(data.daily.temperature_2m_min[dayIndex], data.daily.temperature_2m_max[dayIndex], dailySpan)}
+                    <div class="daily-forecast-high text-white font-bold text-lg">${formatRangeTemp(data.daily.temperature_2m_max[dayIndex])}</div>
+                    ${hasApparentTemps ? `<div class="daily-forecast-feels text-white/50 text-xs">Feels like ${apparentMax}${apparentUnit} / ${apparentMin}${apparentUnit}</div>` : ''}
+                </div>
+                <div class="daily-forecast-metrics text-white/70 text-sm text-right">
+                    ${hasSnow ? `<div><i class="fas fa-snowflake mr-1"></i>${snowAmount} ${UNITS.snowfall}</div>` : `<div><i class="fas fa-tint mr-1"></i>${data.daily.precipitation_sum[dayIndex] || 0} ${UNITS.precipitation}</div>`}
+                    <div><i class="fas fa-wind mr-1"></i>${data.daily.wind_speed_10m_max[dayIndex]} ${UNITS.wind}</div>
                 </div>
             </div>
             ${tideSummaryText ? `
@@ -2634,6 +2643,73 @@ async function displayWeeklySnowTotals(data) {
     } catch (error) {
         console.error('NWS weekly snow line error:', error);
     }
+}
+
+// ─── Daily forecast temperature range bars ───
+// Gradient ends match the daily temperature chart's Low / High series colours.
+const DAILY_RANGE_LOW_COLOR = 'rgb(54, 162, 235)';
+const DAILY_RANGE_HIGH_COLOR = 'rgb(255, 99, 132)';
+const DAILY_RANGE_BAR_HEIGHT = 6;
+const DAILY_PRECIP_CUE_MIN_CHANCE = 10;
+
+// One scale shared by every row: lowest low to highest high in the list.
+// Minimum span of 1 degree so a flat forecast still draws.
+function getTemperatureSpan(lows, highs) {
+    const values = [...(lows || []), ...(highs || [])]
+        .filter((v) => v !== null && v !== undefined && v !== '')
+        .map(Number)
+        .filter(Number.isFinite);
+    if (!values.length) return { lower: 0, upper: 1 };
+    const lower = Math.min(...values);
+    const upper = Math.max(...values);
+    return { lower, upper: Math.max(upper, lower + 1) };
+}
+
+const clampUnit = (v) => Math.min(Math.max(v, 0), 1);
+
+// Start/end of a day's range as 0..1 fractions of the shared span.
+// Inverted low/high are swapped. Returns null when either value is missing.
+function getTemperatureRangeFractions(low, high, span) {
+    if (low === null || low === undefined || high === null || high === undefined) return null;
+    const lo = Number(low);
+    const hi = Number(high);
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;
+    const total = Math.max(span.upper - span.lower, 1);
+    return {
+        start: clampUnit((Math.min(lo, hi) - span.lower) / total),
+        end: clampUnit((Math.max(lo, hi) - span.lower) / total)
+    };
+}
+
+// Pixel segment inside a track (mirrors iOS TemperatureRangeBar.segment).
+// The page applies the same math in CSS (percentages + a min-width) so it
+// tracks the track width without measuring layout.
+function getTemperatureRangeSegment(low, high, span, trackWidth, minBarWidth = DAILY_RANGE_BAR_HEIGHT) {
+    const fractions = getTemperatureRangeFractions(low, high, span);
+    if (!fractions || !(trackWidth > 0)) return null;
+    const width = Math.min(Math.max((fractions.end - fractions.start) * trackWidth, minBarWidth), trackWidth);
+    return { x: Math.min(fractions.start * trackWidth, trackWidth - width), width };
+}
+
+function formatRangeTemp(value) {
+    const n = value === null || value === undefined ? NaN : Math.round(Number(value));
+    return Number.isFinite(n) ? `${n}\u00b0` : '--';
+}
+
+function renderTemperatureRangeBar(low, high, span) {
+    const f = getTemperatureRangeFractions(low, high, span);
+    const fill = f
+        ? `<span class="temp-range-fill" style="--range-start:${f.start.toFixed(4)};--range-end:${f.end.toFixed(4)};background:linear-gradient(90deg, ${DAILY_RANGE_LOW_COLOR}, ${DAILY_RANGE_HIGH_COLOR})"></span>`
+        : '';
+    return `<div class="temp-range-track" aria-hidden="true">${fill}</div>`;
+}
+
+// Rain chance (or snow-day chance) worth a glance; dry days return null and the
+// row still reserves the slot. `snow` tells the caller to add the snowflake.
+function getDailyPrecipCue(chance, snowAmount) {
+    const n = chance === null || chance === undefined ? NaN : Number(chance);
+    if (!Number.isFinite(n) || n < DAILY_PRECIP_CUE_MIN_CHANCE) return null;
+    return { text: `${Math.round(n)}%`, snow: Number(snowAmount) > 0 };
 }
 
 function getWeatherIconFile(code, isDay = true, precipProbability = null) {
