@@ -2464,15 +2464,15 @@ function displayWeather(data) {
                     </div>
                 </div>
                 <div class="daily-forecast-precip text-white/70 text-xs${precipCue ? '' : ' is-empty'}">${precipCue ? `${precipCue.snow ? '<i class="fas fa-snowflake mr-1"></i>' : ''}${precipCue.text}` : '&nbsp;'}</div>
+                <div class="daily-forecast-metrics text-white/70">
+                    ${hasSnow ? `<div><i class="fas fa-snowflake mr-1"></i>${snowAmount} ${UNITS.snowfall}</div>` : `<div><i class="fas fa-tint mr-1"></i>${data.daily.precipitation_sum[dayIndex] || 0} ${UNITS.precipitation}</div>`}
+                    <div><i class="fas fa-wind mr-1"></i>${data.daily.wind_speed_10m_max[dayIndex]} ${UNITS.wind}</div>
+                    ${hasApparentTemps ? `<div class="daily-forecast-feels text-white/50"><i class="fas fa-temperature-half mr-1"></i>Feels ${apparentMax}${apparentUnit} / ${apparentMin}${apparentUnit}</div>` : ''}
+                </div>
                 <div class="daily-forecast-range">
                     <div class="daily-forecast-low text-white/70 text-sm">${formatRangeTemp(data.daily.temperature_2m_min[dayIndex])}</div>
                     ${renderTemperatureRangeBar(data.daily.temperature_2m_min[dayIndex], data.daily.temperature_2m_max[dayIndex], dailySpan)}
                     <div class="daily-forecast-high text-white font-bold text-lg">${formatRangeTemp(data.daily.temperature_2m_max[dayIndex])}</div>
-                    ${hasApparentTemps ? `<div class="daily-forecast-feels text-white/50 text-xs">Feels like ${apparentMax}${apparentUnit} / ${apparentMin}${apparentUnit}</div>` : ''}
-                </div>
-                <div class="daily-forecast-metrics text-white/70 text-sm text-right">
-                    ${hasSnow ? `<div><i class="fas fa-snowflake mr-1"></i>${snowAmount} ${UNITS.snowfall}</div>` : `<div><i class="fas fa-tint mr-1"></i>${data.daily.precipitation_sum[dayIndex] || 0} ${UNITS.precipitation}</div>`}
-                    <div><i class="fas fa-wind mr-1"></i>${data.daily.wind_speed_10m_max[dayIndex]} ${UNITS.wind}</div>
                 </div>
             </div>
             ${tideSummaryText ? `

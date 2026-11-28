@@ -109,3 +109,23 @@ test('temperature labels are rounded with a degree sign, not 24-hour or unit tex
   assert.equal(h.formatRangeTemp(-0.2), '0\u00b0');
   assert.equal(h.formatRangeTemp(undefined), '--');
 });
+
+test('range track is a short fixed width pinned right, not a stretching column', () => {
+  const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+  const rule = (sel) => {
+    const m = html.match(new RegExp(`(?:^|\\n)\\s*${sel.replace('.', '\\.')}\\s*\\{([^}]*)\\}`));
+    assert.ok(m, `missing rule ${sel}`);
+    return m[1];
+  };
+  const track = rule('.temp-range-track');
+  const width = Number(track.match(/\bwidth:\s*(\d+)px/)[1]);
+  assert.ok(width >= 90 && width <= 120, `desktop track ${width}px`);
+  assert.doesNotMatch(track, /flex:\s*1\b|width:\s*100%/);
+  const range = rule('.daily-forecast-range');
+  assert.match(range, /grid-template-columns:\s*[\d.]+rem\s+\d+px\s+[\d.]+rem/);
+  assert.match(range, /flex:\s*0 0 auto/);
+  assert.match(range, /justify-self:\s*end/);
+  assert.doesNotMatch(range, /1fr/);
+  const narrow = html.match(/@media \(max-width: 640px\)[\s\S]*?\.temp-range-track\s*\{\s*width:\s*(\d+)px/);
+  assert.ok(narrow && Number(narrow[1]) >= 60 && Number(narrow[1]) <= 80, 'narrow track 60-80px');
+});
