@@ -15,7 +15,7 @@ enum ForecastSeries: String, CaseIterable, Identifiable {
         case .niceweather: return "Nice Weather"
         case .precip: return "Precipitation"
         case .wind: return "Wind Speed"
-        case .uv: return "UV index"
+        case .uv: return "UV Index"
         case .humidity: return "Humidity"
         case .pressure: return "Pressure"
         case .snow: return "Snowfall"
@@ -112,9 +112,9 @@ struct ForecastView: View {
                 }
             }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: ForecastLayout.spacingTight) {
                 Text(current.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(ForecastType.control)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Image(systemName: "chevron.down")
@@ -122,13 +122,9 @@ struct ForecastView: View {
                     .foregroundStyle(theme.muted)
             }
             .foregroundStyle(theme.text)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(theme.tile, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous)
-                    .stroke(theme.cardStroke, lineWidth: 1)
-            )
+            .padding(.horizontal, ForecastLayout.pillPaddingH)
+            .padding(.vertical, ForecastLayout.pillPaddingV)
+            .jwInsetTile(emphasized: true)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -203,17 +199,14 @@ struct ForecastView: View {
     private func scrubBanner(_ text: String?) -> some View {
         if let text {
             Text(text)
-                .font(.caption.weight(.semibold))
+                .font(ForecastType.readout)
+                .monospacedDigit()
                 .foregroundStyle(theme.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(theme.chip, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(theme.chipStroke, lineWidth: 1)
-                )
+                .padding(.horizontal, ForecastLayout.pillPaddingH)
+                .padding(.vertical, ForecastLayout.pillPaddingV)
+                .jwInsetTile()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.updatesFrequently)
         }
@@ -235,22 +228,22 @@ struct ForecastView: View {
                 LineMark(x: .value("t", point.time), y: .value("ft", point.value))
                     .foregroundStyle(JWChart.tide)
                     .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartLineWidth, lineCap: .round))
             }
             if let nearest {
                 RuleMark(x: .value("t", nearest.time))
                     .foregroundStyle(theme.text.opacity(0.85))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartRuleWidth))
                 PointMark(x: .value("t", nearest.time), y: .value("ft", nearest.value))
                     .foregroundStyle(theme.gold)
-                    .symbolSize(70)
+                    .symbolSize(ForecastLayout.chartPointSize)
             }
         }
         .chartYScale(domain: span)
         .chartYAxisLabel("ft")
         .modifier(ForecastAxisStyle(theme: theme, hourly: hourly))
         .modifier(DateScrubber(selection: selection))
-        .frame(height: 236)
+        .frame(height: ForecastLayout.chartHeight)
     }
 
     private func windChart(_ samples: [WindSample], hourly: Bool, selection: Binding<Date?>) -> some View {
@@ -269,31 +262,33 @@ struct ForecastView: View {
                 LineMark(x: .value("t", sample.axis), y: .value("mph", sample.speed))
                     .foregroundStyle(by: .value("series", "Speed"))
                     .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartLineWidth, lineCap: .round))
                 LineMark(x: .value("t", sample.axis), y: .value("mph", sample.gust))
                     .foregroundStyle(by: .value("series", "Gust"))
                     .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartLineWidth, lineCap: .round))
             }
             if let selected {
                 RuleMark(x: .value("t", selected.axis))
                     .foregroundStyle(theme.text.opacity(0.85))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartRuleWidth))
                 PointMark(x: .value("t", selected.axis), y: .value("mph", selected.speed))
                     .foregroundStyle(theme.gold)
-                    .symbolSize(70)
+                    .symbolSize(ForecastLayout.chartPointSize)
                 PointMark(x: .value("t", selected.axis), y: .value("mph", selected.gust))
                     .foregroundStyle(theme.gold)
-                    .symbolSize(70)
+                    .symbolSize(ForecastLayout.chartPointSize)
             }
         }
         .chartYScale(domain: span)
         .chartForegroundStyleScale(["Speed": JWChart.wind, "Gust": JWChart.orange])
-        .chartLegend(position: .top, alignment: .leading, spacing: 8)
+        .chartLegend(position: .top, alignment: .leading) {
+            legend([("Speed", JWChart.wind), ("Gust", JWChart.orange)])
+        }
         .chartYAxisLabel("mph")
         .modifier(ForecastAxisStyle(theme: theme, hourly: hourly))
         .modifier(SeriesScrubber(dates: axes, selection: selection))
-        .frame(height: 248)
+        .frame(height: ForecastLayout.chartHeightWithLegend)
     }
 
     private func rangeChart(_ samples: [RangeSample], hourly: Bool, selection: Binding<Date?>) -> some View {
@@ -326,22 +321,22 @@ struct ForecastView: View {
                 LineMark(x: .value("t", sample.axis), y: .value("high", sample.high))
                     .foregroundStyle(by: .value("series", "High"))
                     .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartLineWidth, lineCap: .round))
                 LineMark(x: .value("t", sample.axis), y: .value("low", sample.low))
                     .foregroundStyle(by: .value("series", "Low"))
                     .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartLineWidth, lineCap: .round))
             }
             if let selected {
                 RuleMark(x: .value("t", selected.axis))
                     .foregroundStyle(theme.text.opacity(0.85))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartRuleWidth))
                 PointMark(x: .value("t", selected.axis), y: .value("°", selected.high))
                     .foregroundStyle(theme.gold)
-                    .symbolSize(70)
+                    .symbolSize(ForecastLayout.chartPointSize)
                 PointMark(x: .value("t", selected.axis), y: .value("°", selected.low))
                     .foregroundStyle(theme.gold)
-                    .symbolSize(70)
+                    .symbolSize(ForecastLayout.chartPointSize)
             }
         }
         .chartYScale(domain: span)
@@ -352,16 +347,12 @@ struct ForecastView: View {
             "Low": lowColor
         ])
         .chartLegend(position: .top, alignment: .leading) {
-            HStack(spacing: 14) {
-                seriesKey("High", highColor)
-                seriesKey("Low", lowColor)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            legend([("High", highColor), ("Low", lowColor)])
         }
         .chartYAxisLabel("°F")
         .modifier(ForecastAxisStyle(theme: theme, hourly: hourly))
         .modifier(SeriesScrubber(dates: axes, selection: selection))
-        .frame(height: 248)
+        .frame(height: ForecastLayout.chartHeightWithLegend)
     }
 
     private func singleSeriesChart(_ samples: [PlotPoint], series: String, hourly: Bool, domain: ClosedRange<Double>?, unit: String, selection: Binding<Date?>) -> some View {
@@ -382,31 +373,42 @@ struct ForecastView: View {
                 LineMark(x: .value("t", sample.axis), y: .value("v", sample.value))
                     .foregroundStyle(color)
                     .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartLineWidth, lineCap: .round))
             }
             if let selected {
                 RuleMark(x: .value("t", selected.axis))
                     .foregroundStyle(theme.text.opacity(0.85))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartRuleWidth))
                 PointMark(x: .value("t", selected.axis), y: .value("v", selected.value))
                     .foregroundStyle(theme.gold)
-                    .symbolSize(80)
+                    .symbolSize(ForecastLayout.chartPointSize)
             }
         }
         .chartYScale(domain: span)
         .chartYAxisLabel(unit)
         .modifier(ForecastAxisStyle(theme: theme, hourly: hourly))
         .modifier(SeriesScrubber(dates: axes, selection: selection))
-        .frame(height: 236)
+        .frame(height: ForecastLayout.chartHeight)
+    }
+
+    /// One legend style for every chart with more than one line.
+    private func legend(_ keys: [(title: String, color: Color)]) -> some View {
+        HStack(spacing: ForecastLayout.legendSpacing) {
+            ForEach(keys, id: \.title) { key in
+                seriesKey(key.title, key.color)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func seriesKey(_ title: String, _ color: Color) -> some View {
-        HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 8, height: 8)
+        HStack(spacing: ForecastLayout.spacingTight) {
+            Circle().fill(color).frame(width: ForecastLayout.legendDot, height: ForecastLayout.legendDot)
             Text(title)
-                .font(.system(size: 12, weight: .medium))
+                .font(ForecastType.legend)
                 .foregroundStyle(theme.text)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private func chartDomain(_ values: [Double], includeZero: Bool) -> ClosedRange<Double> {
@@ -429,17 +431,17 @@ struct ForecastView: View {
 
     private func emptyLine(_ text: String) -> some View {
         Text(text)
-            .font(.subheadline)
+            .font(ForecastType.detail)
             .foregroundStyle(theme.muted)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 4)
+            .padding(.vertical, ForecastLayout.spacingXS)
             .accessibilityIdentifier("forecast-empty")
     }
 
     private var hourlyScrubText: String? {
         guard let axis = hourlySelection, let row = model.hourlyRows.first(where: { ForecastDates.sameHour($0.time, axis) }) else { return nil }
-        let when = ForecastDisplay.compactClock(row.clock)
+        let when = ForecastDisplay.timeLabel(row.clock, stamp: row.time)
         switch hourlyMode {
         case "feelslike":
             return "\(when)  \(ForecastDisplay.temperature(row.feels))"
@@ -626,16 +628,16 @@ struct ForecastView: View {
                 LineMark(x: .value("t", sample.axis), y: .value("%", sample.value))
                     .foregroundStyle(by: .value("Layer", sample.series))
                     .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartLineWidth, lineCap: .round))
             }
             if let selectedAxis, !selected.isEmpty {
                 RuleMark(x: .value("t", selectedAxis))
                     .foregroundStyle(theme.text.opacity(0.85))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+                    .lineStyle(StrokeStyle(lineWidth: ForecastLayout.chartRuleWidth))
                 ForEach(selected) { sample in
                     PointMark(x: .value("t", sample.axis), y: .value("%", sample.value))
                         .foregroundStyle(theme.gold)
-                        .symbolSize(56)
+                        .symbolSize(ForecastLayout.chartPointSize)
                 }
             }
         }
@@ -644,12 +646,14 @@ struct ForecastView: View {
             "Mid": theme.cloudMid,
             "High": theme.cloudHigh
         ])
-        .chartLegend(position: .top, alignment: .leading, spacing: 8)
+        .chartLegend(position: .top, alignment: .leading) {
+            legend([("Low", theme.cloudLow), ("Mid", theme.cloudMid), ("High", theme.cloudHigh)])
+        }
         .chartYScale(domain: 0...100)
         .chartYAxisLabel("%")
         .modifier(ForecastAxisStyle(theme: theme, hourly: hourly))
         .modifier(SeriesScrubber(dates: axes, selection: selection))
-        .frame(height: 248)
+        .frame(height: ForecastLayout.chartHeightWithLegend)
     }
 
 }
@@ -659,6 +663,8 @@ private struct HourlyStrip: View, Equatable {
     let rows: [HourRow]
     let mode: String
     let theme: JWPalette
+    @ScaledMetric(relativeTo: .footnote) private var chipWidth = ForecastLayout.hourChipWidth
+    @ScaledMetric(relativeTo: .footnote) private var wideChipWidth = ForecastLayout.hourChipWideWidth
 
     static func == (lhs: HourlyStrip, rhs: HourlyStrip) -> Bool {
         lhs.mode == rhs.mode && lhs.rows == rhs.rows
@@ -666,64 +672,88 @@ private struct HourlyStrip: View, Equatable {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: 10) {
+            LazyHStack(alignment: .top, spacing: ForecastLayout.rowSpacing) {
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                     let previous = index > 0 ? rows[index - 1] : nil
                     chip(row, previous: previous, emphasized: index == 0)
                 }
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, ForecastLayout.spacingXXS)
         }
+    }
+
+    /// Every chip in the strip shares one width. Pressure ("29.91 inHg") gets a wider one.
+    private var tileWidth: CGFloat {
+        mode == "pressure" ? wideChipWidth : chipWidth
     }
 
     private var showsConditionIcon: Bool {
         mode == "temp" || mode == "feelslike" || mode == "tides"
     }
 
+    /// Wind keeps the arrow slot on every chip, so an hour without a direction is the same height.
+    private var showsIconSlot: Bool {
+        showsConditionIcon || mode == "wind"
+    }
+
+    /// Modes with a second line reserve it on every chip, so all chips are the same height.
+    private var showsSecondaryLine: Bool {
+        mode == "precip" || mode == "wind" || mode == "uv"
+    }
+
     private func chip(_ row: HourRow, previous: HourRow?, emphasized: Bool) -> some View {
         let markDay = ForecastDisplay.marksNewDay(stamp: row.time, previous: previous?.time)
         let clock = ForecastDisplay.chipClock(clock: row.clock, stamp: row.time, markDay: markDay)
         let reading = chipReading(row)
-        return VStack(spacing: 6) {
+        return VStack(spacing: ForecastLayout.spacingTight) {
             Text(clock)
-                .font(.footnote.weight(.medium))
+                .font(ForecastType.time)
                 .foregroundStyle(emphasized ? theme.text : theme.muted)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-            if mode == "wind", let dir = row.windDir {
+            if showsIconSlot {
+                iconSlot(row)
+                    .frame(width: ForecastLayout.hourlyIconSize, height: ForecastLayout.hourlyIconSize)
+                    .accessibilityHidden(true)
+            }
+            Text(reading.primary)
+                .font(ForecastType.value)
+                .monospacedDigit()
+                .foregroundStyle(theme.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            if showsSecondaryLine {
+                Text(reading.secondary ?? " ")
+                    .font(ForecastType.valueNote)
+                    .foregroundStyle(theme.muted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .opacity(reading.secondary == nil ? 0 : 1)
+            }
+        }
+        .padding(.vertical, ForecastLayout.tilePaddingV)
+        .padding(.horizontal, ForecastLayout.hourChipPaddingH)
+        .frame(width: tileWidth)
+        .jwInsetTile(emphasized: emphasized)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(reading.spoken)
+    }
+
+    /// Meteocon for condition modes. Wind keeps its existing direction arrow (a pointer, not a weather icon).
+    @ViewBuilder
+    private func iconSlot(_ row: HourRow) -> some View {
+        if mode == "wind" {
+            if let dir = row.windDir {
                 Image(systemName: "location.north.fill")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(theme.accent)
                     .rotationEffect(.degrees(WindCompass.arrowDegrees(dir)))
-                    .accessibilityHidden(true)
-            } else if showsConditionIcon {
-                SVGIconView(fileName: row.iconFile, folder: "weather", pointSize: 32)
-                    .frame(width: 32, height: 32)
-                    .accessibilityHidden(true)
+            } else {
+                Color.clear
             }
-            Text(reading.primary)
-                .font(.headline.weight(.bold))
-                .foregroundStyle(theme.text)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            if let secondary = reading.secondary {
-                Text(secondary)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(theme.muted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
+        } else {
+            SVGIconView(fileName: row.iconFile, folder: "weather", pointSize: ForecastLayout.hourlyIconSize)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 8)
-        .frame(minWidth: 76)
-        .background(emphasized ? theme.tile : theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous)
-                .stroke(emphasized ? theme.cardStroke : theme.chipStroke, lineWidth: 1)
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(reading.spoken)
     }
 
     private func chipReading(_ row: HourRow) -> (primary: String, secondary: String?, spoken: String) {
@@ -783,13 +813,16 @@ private struct DailyDetailList: View, Equatable {
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var expandedID: Int?
     @State private var didApplyLaunchDetail = false
+    @ScaledMetric(relativeTo: .body) private var dayColumnWidth = ForecastLayout.dayColumnWidth
+    @ScaledMetric(relativeTo: .footnote) private var precipColumnWidth = ForecastLayout.precipColumnWidth
+    @ScaledMetric(relativeTo: .headline) private var tempColumnWidth = ForecastLayout.tempColumnWidth
 
     static func == (lhs: DailyDetailList, rhs: DailyDetailList) -> Bool {
         lhs.days == rhs.days
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: ForecastLayout.rowSpacing) {
             ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
                 if index > 0, index.isMultiple(of: 7) {
                     weekSeparator(index / 7 + 1)
@@ -804,31 +837,40 @@ private struct DailyDetailList: View, Equatable {
         }
     }
 
+    /// Lowest low to highest high across the whole list, so range bars share one scale.
+    private var temperatureSpan: ClosedRange<Double> {
+        let values = (days.compactMap(\.low) + days.compactMap(\.high)).filter(\.isFinite)
+        guard let lo = values.min(), let hi = values.max() else { return 0...1 }
+        return lo...max(hi, lo + 1)
+    }
+
     private func weekSeparator(_ week: Int) -> some View {
-        HStack(spacing: 12) {
-            Rectangle().fill(theme.divider).frame(height: 1)
+        HStack(spacing: ForecastLayout.spacingM) {
+            Rectangle().fill(theme.divider).frame(height: ForecastLayout.hairline)
             Text("Week \(week)")
-                .font(.caption.weight(.semibold))
+                .font(ForecastType.groupLabel)
                 .foregroundStyle(theme.muted)
-            Rectangle().fill(theme.divider).frame(height: 1)
+            Rectangle().fill(theme.divider).frame(height: ForecastLayout.hairline)
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 4)
+        .padding(.vertical, ForecastLayout.spacingXS)
+        .padding(.horizontal, ForecastLayout.spacingXS)
         .accessibilityElement(children: .combine)
     }
 
     private func dayCard(_ day: DayRow) -> some View {
         let expanded = expandedID == day.id
-        return VStack(alignment: .leading, spacing: 10) {
+        let span = temperatureSpan
+        return VStack(alignment: .leading, spacing: ForecastLayout.tileStackSpacing) {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     expandedID = expanded ? nil : day.id
                 }
             } label: {
                 ViewThatFits(in: .horizontal) {
-                    summary(day, stacked: false)
-                    summary(day, stacked: true)
+                    columns(day, span: span, expanded: expanded)
+                    stacked(day, span: span, expanded: expanded)
                 }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(summarySpoken(day, expanded: expanded))
@@ -840,88 +882,104 @@ private struct DailyDetailList: View, Equatable {
                     .accessibilityIdentifier("forecast-day-detail")
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, ForecastLayout.tilePaddingH)
+        .padding(.vertical, ForecastLayout.tilePaddingV)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.chip, in: RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: JWMetrics.radiusChip, style: .continuous)
-                .stroke(theme.chipStroke, lineWidth: 1)
-        )
+        .jwInsetTile()
     }
 
-    private func summary(_ day: DayRow, stacked: Bool) -> some View {
-        let parts = day.label.split(separator: " ", maxSplits: 1).map(String.init)
-        let weekday = parts.first ?? day.label
-        let dateLabel = parts.count > 1 ? parts[1] : day.date
-        let cue = ForecastDisplay.precipCue(chance: day.precipChance, amount: day.precip, snow: day.snowSum)
-        return Group {
-            if stacked {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 12) {
-                        dayIcon(day)
-                        dateBlock(weekday: weekday, dateLabel: dateLabel)
-                        Spacer(minLength: 8)
-                        chevron(expanded: expandedID == day.id)
-                    }
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        temps(day)
-                        if let cue {
-                            Text(cue)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(theme.muted)
-                        }
-                    }
-                }
-            } else {
-                HStack(alignment: .center, spacing: 12) {
-                    dayIcon(day)
-                    dateBlock(weekday: weekday, dateLabel: dateLabel)
-                    Spacer(minLength: 8)
-                    temps(day)
-                    if let cue {
-                        Text(cue)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(theme.muted)
-                            .lineLimit(1)
-                    }
-                    chevron(expanded: expandedID == day.id)
-                }
+    /// Fixed columns: day, icon, precip, low, range bar, high, chevron. Every
+    /// column but the bar has a set width, so rows line up and all rows pick
+    /// the same layout from `ViewThatFits`.
+    private func columns(_ day: DayRow, span: ClosedRange<Double>, expanded: Bool) -> some View {
+        HStack(alignment: .center, spacing: ForecastLayout.dayColumnSpacing) {
+            dateBlock(day)
+                .frame(width: dayColumnWidth, alignment: .leading)
+            dayIcon(day)
+            precipCue(day)
+                .frame(width: precipColumnWidth, alignment: .leading)
+            lowLabel(day)
+            TemperatureRangeBar(low: day.low, high: day.high, span: span, theme: theme)
+            highLabel(day)
+            chevron(expanded: expanded)
+        }
+    }
+
+    /// Large Dynamic Type: the day on one line, the temperatures and cue below.
+    private func stacked(_ day: DayRow, span: ClosedRange<Double>, expanded: Bool) -> some View {
+        VStack(alignment: .leading, spacing: ForecastLayout.spacingS) {
+            HStack(spacing: ForecastLayout.spacingM) {
+                dayIcon(day)
+                dateBlock(day)
+                Spacer(minLength: ForecastLayout.spacingS)
+                chevron(expanded: expanded)
+            }
+            HStack(alignment: .center, spacing: ForecastLayout.dayColumnSpacing) {
+                lowLabel(day)
+                TemperatureRangeBar(low: day.low, high: day.high, span: span, theme: theme)
+                highLabel(day)
+                precipCue(day)
+                    .frame(width: precipColumnWidth, alignment: .trailing)
             }
         }
     }
 
     private func dayIcon(_ day: DayRow) -> some View {
-        SVGIconView(fileName: day.iconFile, folder: "weather", pointSize: 28)
-            .frame(width: 28, height: 28)
+        SVGIconView(fileName: day.iconFile, folder: "weather", pointSize: ForecastLayout.dailyIconSize)
+            .frame(width: ForecastLayout.dailyIconSize, height: ForecastLayout.dailyIconSize)
             .accessibilityHidden(true)
     }
 
-    private func dateBlock(weekday: String, dateLabel: String) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private func dateBlock(_ day: DayRow) -> some View {
+        let parts = day.label.split(separator: " ", maxSplits: 1).map(String.init)
+        let weekday = parts.first ?? day.label
+        let dateLabel = parts.count > 1 ? parts[1] : day.date
+        return VStack(alignment: .leading, spacing: 0) {
             Text(weekday)
-                .font(.body.weight(.semibold))
+                .font(ForecastType.dayName)
                 .foregroundStyle(theme.text)
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
             Text(dateLabel)
-                .font(.subheadline)
+                .font(ForecastType.dayDate)
                 .foregroundStyle(theme.muted)
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
         .layoutPriority(1)
     }
 
-    private func temps(_ day: DayRow) -> some View {
-        VStack(alignment: .trailing, spacing: 0) {
-            Text(ForecastDisplay.temperature(day.high))
-                .font(.headline.weight(.bold))
-                .foregroundStyle(theme.text)
-                .monospacedDigit()
-            Text(ForecastDisplay.temperature(day.low))
-                .font(.subheadline)
-                .foregroundStyle(theme.muted)
-                .monospacedDigit()
-        }
+    /// Chance, amount, or snow. Dry days keep the empty column so rows stay aligned.
+    private func precipCue(_ day: DayRow) -> some View {
+        let cue = ForecastDisplay.precipCue(chance: day.precipChance, amount: day.precip, snow: day.snowSum)
+        return Text(cue ?? " ")
+            .font(ForecastType.cue)
+            .monospacedDigit()
+            .foregroundStyle(theme.muted)
+            .lineLimit(2)
+            .minimumScaleFactor(0.8)
+            .opacity(cue == nil ? 0 : 1)
+            .accessibilityHidden(true)
+    }
+
+    private func lowLabel(_ day: DayRow) -> some View {
+        Text(ForecastDisplay.temperature(day.low))
+            .font(ForecastType.valueSecondary)
+            .monospacedDigit()
+            .foregroundStyle(theme.muted)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(width: tempColumnWidth, alignment: .trailing)
+    }
+
+    private func highLabel(_ day: DayRow) -> some View {
+        Text(ForecastDisplay.temperature(day.high))
+            .font(ForecastType.value)
+            .monospacedDigit()
+            .foregroundStyle(theme.text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(width: tempColumnWidth, alignment: .trailing)
     }
 
     private func chevron(expanded: Bool) -> some View {
@@ -929,6 +987,7 @@ private struct DailyDetailList: View, Equatable {
             .font(.caption.weight(.bold))
             .foregroundStyle(theme.muted)
             .rotationEffect(.degrees(expanded ? 180 : 0))
+            .frame(width: ForecastLayout.chevronWidth)
             .accessibilityHidden(true)
     }
 
@@ -945,13 +1004,13 @@ private struct DailyDetailList: View, Equatable {
 
     private func dayDetail(_ day: DayRow) -> some View {
         let rows = detailRows(day)
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: ForecastLayout.rowSpacing) {
             Rectangle()
                 .fill(theme.divider)
-                .frame(height: 1)
+                .frame(height: ForecastLayout.hairline)
             if !day.summary.isEmpty {
                 Text(day.summary)
-                    .font(.subheadline.weight(.medium))
+                    .font(ForecastType.detailEmphasis)
                     .foregroundStyle(theme.text)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -965,22 +1024,23 @@ private struct DailyDetailList: View, Equatable {
         let stacks = typeSize >= .accessibility1
         return Group {
             if stacks {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: ForecastLayout.spacingXXS) {
                     Text(label).foregroundStyle(theme.muted)
                     Text(value).foregroundStyle(theme.text)
                 }
             } else {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: ForecastLayout.spacingM) {
                     Text(label)
                         .foregroundStyle(theme.muted)
-                    Spacer(minLength: 8)
+                    Spacer(minLength: ForecastLayout.spacingS)
                     Text(value)
                         .foregroundStyle(theme.text)
                         .multilineTextAlignment(.trailing)
                 }
             }
         }
-        .font(.subheadline)
+        .font(ForecastType.detail)
+        .monospacedDigit()
         .accessibilityElement(children: .combine)
     }
 
@@ -1000,9 +1060,10 @@ private struct DailyDetailList: View, Equatable {
             rows.append(("UV", band.isEmpty ? number : "\(number) \(band)"))
         }
         rows.append(("Humidity", ForecastDisplay.percent(day.humidityAvg)))
-        let sun = [day.sunriseClock, day.sunsetClock].filter { !$0.isEmpty }
-        if sun.count == 2 {
-            rows.append(("Sun", "\(sun[0]) – \(sun[1])"))
+        if !day.sunriseClock.isEmpty, !day.sunsetClock.isEmpty {
+            let rise = ForecastDisplay.timeLabel(day.sunriseClock, stamp: day.sunrise)
+            let set = ForecastDisplay.timeLabel(day.sunsetClock, stamp: day.sunset)
+            rows.append(("Sun", "\(rise) – \(set)"))
         }
         rows.append(("Pressure", ForecastDisplay.pressure(inHg: day.pressureInHg)))
         rows.append(("Clouds", ForecastDisplay.cloudDetail(low: day.cloudLowAvg, mid: day.cloudMidAvg, high: day.cloudHighAvg)))
@@ -1010,6 +1071,47 @@ private struct DailyDetailList: View, Equatable {
         rows.append(("Nice weather", ForecastDisplay.niceScore(day.niceScore)))
         rows.append(("Moon", ForecastDisplay.moonPercent(day.moonPhase)))
         return rows
+    }
+}
+
+/// Day low-to-high bar on the 14-day scale. Uses the chart's Low/High colors.
+private struct TemperatureRangeBar: View {
+    let low: Double?
+    let high: Double?
+    let span: ClosedRange<Double>
+    let theme: JWPalette
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(theme.tile)
+                if let segment = segment(width: geo.size.width) {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [JWChart.low("temp"), JWChart.high("temp")],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: segment.width)
+                        .offset(x: segment.x)
+                }
+            }
+        }
+        .frame(height: ForecastLayout.rangeBarHeight)
+        .frame(minWidth: ForecastLayout.rangeBarMinWidth, maxWidth: .infinity)
+        .accessibilityHidden(true)
+    }
+
+    private func segment(width: CGFloat) -> (x: CGFloat, width: CGFloat)? {
+        guard let low, let high, low.isFinite, high.isFinite, width > 0 else { return nil }
+        let total = max(span.upperBound - span.lowerBound, 1)
+        let start = CGFloat(min(max((min(low, high) - span.lowerBound) / total, 0), 1))
+        let end = CGFloat(min(max((max(low, high) - span.lowerBound) / total, 0), 1))
+        let barWidth = min(max((end - start) * width, ForecastLayout.rangeBarHeight), width)
+        return (x: min(start * width, width - barWidth), width: barWidth)
     }
 }
 
@@ -1100,11 +1202,11 @@ private struct ForecastAxisStyle: ViewModifier {
             .chartPlotStyle { $0.background(.clear) }
             .chartXAxis {
                 AxisMarks(values: .stride(by: hourly ? .hour : .day, count: hourly ? 6 : 2, calendar: ForecastDates.calendar)) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6, dash: [3, 3])).foregroundStyle(theme.grid)
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: ForecastLayout.chartGridWidth, dash: ForecastLayout.chartGridDash)).foregroundStyle(theme.grid)
                     AxisValueLabel(centered: true) {
                         if let date = value.as(Date.self) {
                             Text(ForecastDates.axisLabel(date, hourly: hourly))
-                                .font(.caption2.weight(.semibold))
+                                .font(ForecastType.axis)
                                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(theme.text.opacity(0.92))
@@ -1114,10 +1216,10 @@ private struct ForecastAxisStyle: ViewModifier {
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { _ in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6, dash: [3, 3])).foregroundStyle(theme.grid)
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: ForecastLayout.chartGridWidth, dash: ForecastLayout.chartGridDash)).foregroundStyle(theme.grid)
                     AxisValueLabel()
                         .foregroundStyle(theme.text.opacity(0.82))
-                        .font(.caption2.weight(.medium))
+                        .font(ForecastType.axisValue)
                 }
             }
     }

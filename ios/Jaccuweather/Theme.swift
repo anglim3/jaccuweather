@@ -800,10 +800,147 @@ struct WeatherCard<Content: View>: View {
                 .foregroundStyle(JWPalette.dark.muted)
         case .section:
             Text(title)
-                .font(JWFont.section)
-                .tracking(-0.32)
-                .foregroundStyle(JWPalette.dark.text)
+                .jwSectionHeader()
         }
+    }
+}
+
+// MARK: - Forecast tab shared styles
+
+/// Spacing, sizes, and column widths for the Forecast tab. Cards reuse the
+/// app-wide `JWMetrics` glass values; everything inside a card uses this scale.
+enum ForecastLayout {
+    // Spacing scale
+    static let spacingXXS: CGFloat = 2
+    static let spacingXS: CGFloat = 4
+    static let spacingTight: CGFloat = 6
+    static let spacingS: CGFloat = 8
+    static let spacingM: CGFloat = 12
+    static let spacingL: CGFloat = 16
+
+    // Cards (glass panels) and the inset tiles inside them
+    static let cardPadding: CGFloat = JWMetrics.panelPadding
+    static let cardSpacing: CGFloat = spacingL
+    static let tileRadius: CGFloat = JWMetrics.radiusChip
+    static let tilePaddingH: CGFloat = 12
+    static let tilePaddingV: CGFloat = 10
+    static let pillPaddingH: CGFloat = 12
+    static let pillPaddingV: CGFloat = 6
+    static let hairline: CGFloat = 1
+
+    // Lists
+    static let rowSpacing: CGFloat = spacingS
+    static let tileStackSpacing: CGFloat = spacingS
+
+    // Icons (Meteocons)
+    static let dailyIconSize: CGFloat = 28
+    static let hourlyIconSize: CGFloat = 32
+
+    // Hourly strip: every chip in one strip is the same width and height
+    static let hourChipWidth: CGFloat = 80
+    static let hourChipWideWidth: CGFloat = 100
+    static let hourChipPaddingH: CGFloat = 6
+
+    // Daily rows: fixed columns so every row lines up
+    static let dayColumnWidth: CGFloat = 50
+    static let precipColumnWidth: CGFloat = 44
+    static let tempColumnWidth: CGFloat = 40
+    static let chevronWidth: CGFloat = 14
+    static let dayColumnSpacing: CGFloat = 6
+    static let rangeBarHeight: CGFloat = 6
+    static let rangeBarMinWidth: CGFloat = 24
+
+    // Charts
+    static let chartHeight: CGFloat = 236
+    static let chartHeightWithLegend: CGFloat = 248
+    static let chartLineWidth: CGFloat = 3
+    static let chartRuleWidth: CGFloat = 1.5
+    static let chartGridWidth: CGFloat = 0.6
+    static let chartGridDash: [CGFloat] = [3, 3]
+    static let chartPointSize: CGFloat = 70
+    static let legendDot: CGFloat = 8
+    static let legendSpacing: CGFloat = 14
+}
+
+/// Text roles for the Forecast tab. Dynamic Type styles, so rows scale together.
+enum ForecastType {
+    /// Card header, e.g. "48-Hour Forecast" (title case). Same as other tabs.
+    static let sectionTitle = JWFont.section
+    /// In-card group label, e.g. "Week 2" (title case).
+    static let groupLabel = Font.caption.weight(.semibold)
+    /// Chart menu button.
+    static let control = Font.subheadline.weight(.semibold)
+    /// Chart scrub readout.
+    static let readout = Font.caption.weight(.semibold)
+    /// Chart legend keys.
+    static let legend = Font.caption.weight(.medium)
+    /// Chart axis labels.
+    static let axis = Font.caption2.weight(.semibold)
+    static let axisValue = Font.caption2.weight(.medium)
+    /// Clock on an hourly chip.
+    static let time = Font.footnote.weight(.medium)
+    /// Main reading: temperatures, hourly values, day highs.
+    static let value = Font.headline.weight(.bold)
+    /// Paired reading at the same size: day lows.
+    static let valueSecondary = Font.headline.weight(.medium)
+    /// Small secondary line under a value (gust, UV band, chance).
+    static let valueNote = Font.caption.weight(.medium)
+    /// Precip cue column on a day row.
+    static let cue = Font.footnote.weight(.medium)
+    static let dayName = Font.body.weight(.semibold)
+    static let dayDate = Font.subheadline
+    /// Expanded detail rows and empty states.
+    static let detail = Font.subheadline
+    static let detailEmphasis = Font.subheadline.weight(.medium)
+}
+
+/// Sentence-weight card header used by `WeatherCard` and `ForecastPanel`.
+struct JWSectionHeader: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(ForecastType.sectionTitle)
+            .tracking(-0.32)
+            .foregroundStyle(JWPalette.dark.text)
+    }
+}
+
+/// The glass panel every Forecast card sits on (same `.panel` glass as other tabs).
+struct JWForecastCard: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(ForecastLayout.cardPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .jwGlass(.panel)
+    }
+}
+
+/// Inset tile inside a glass card: hour chips, day rows, the chart menu, and
+/// the scrub readout. `emphasized` is the brighter tile used for "now" and controls.
+struct JWInsetTile: ViewModifier {
+    var emphasized = false
+
+    func body(content: Content) -> some View {
+        let theme = JWPalette.dark
+        let shape = RoundedRectangle(cornerRadius: ForecastLayout.tileRadius, style: .continuous)
+        content
+            .background(emphasized ? theme.tile : theme.chip, in: shape)
+            .overlay(
+                shape.stroke(emphasized ? theme.cardStroke : theme.chipStroke, lineWidth: ForecastLayout.hairline)
+            )
+    }
+}
+
+extension View {
+    func jwSectionHeader() -> some View {
+        modifier(JWSectionHeader())
+    }
+
+    func jwForecastCard() -> some View {
+        modifier(JWForecastCard())
+    }
+
+    func jwInsetTile(emphasized: Bool = false) -> some View {
+        modifier(JWInsetTile(emphasized: emphasized))
     }
 }
 
@@ -820,21 +957,18 @@ struct ForecastPanel<Accessory: View, Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .center, spacing: 12) {
+        VStack(alignment: .leading, spacing: ForecastLayout.cardSpacing) {
+            HStack(alignment: .center, spacing: ForecastLayout.spacingM) {
                 Text(title)
-                    .font(JWFont.section)
-                    .tracking(-0.32)
-                    .foregroundStyle(JWPalette.dark.text)
+                    .jwSectionHeader()
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
-                Spacer(minLength: 8)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: ForecastLayout.spacingS)
                 accessory
             }
             content
         }
-        .padding(JWMetrics.panelPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .jwGlass(.panel)
+        .jwForecastCard()
     }
 }
