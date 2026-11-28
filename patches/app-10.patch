@@ -1,6 +1,6 @@
 --- a/public/app.js
 +++ b/public/app.js
-@@ -3091,73 +3091,48 @@
+@@ -3074,73 +3074,48 @@
          return;
      }
  
