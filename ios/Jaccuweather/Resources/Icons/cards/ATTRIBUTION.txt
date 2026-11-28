@@ -8,6 +8,8 @@ at runtime.
 
 Mapping:
 - Feels Like -> thermometer.svg
+- Dew Point -> thermometer-colder.svg (the pack has no dew-point glyph;
+  this is the colder thermometer from the same static fill set)
 - Humidity -> humidity.svg (monochrome variant, fill="currentColor",
   so the glyph renders in the header text color instead of the blue fill)
 - Wind -> wind.svg
