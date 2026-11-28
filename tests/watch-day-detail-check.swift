@@ -76,13 +76,13 @@ func run() {
 
     check(WatchDailyPlan.stripCue(for: days[0]) == .rain, "a rain code is a rain cue on the strip")
     check(WatchDailyPlan.stripChance(probability: days[0].precipProbability, cue: .rain) == 72, "the strip shows 72 percent")
-    check(WatchDailyPlan.stripSpoken(for: days[0]) == "Fri, high 51°, low 40°, 72 percent, rain", "the column label includes the chance and rain")
+    check(WatchDailyPlan.stripSpoken(for: days[0]) == "Friday, Light rain, high 51 degrees, low 40 degrees, 72 percent chance of rain", "the column label includes the chance and rain")
     check(WatchDailyPlan.stripCue(for: days[1]) == .snow, "a snow code is a snow cue on the strip")
     check(WatchDailyPlan.stripChance(probability: days[1].precipProbability, cue: .snow) == 80, "the strip shows 80 percent")
-    check(WatchDailyPlan.stripSpoken(for: days[1]) == "Sat, high 34°, low 28°, 80 percent, snow", "the column label includes the chance and snow")
+    check(WatchDailyPlan.stripSpoken(for: days[1]) == "Saturday, Snow, high 34 degrees, low 28 degrees, 80 percent chance of snow", "the column label includes the chance and snow")
     check(WatchDailyPlan.stripCue(for: days[2]) == .none, "a dry day has no precip cue")
     check(WatchDailyPlan.showsStripPrecip(probability: days[2].precipProbability, cue: .none) == false, "a day without a chance draws no precip line")
-    check(WatchDailyPlan.stripSpoken(for: days[2]) == "Sun, high 40°, low 31°", "a dry column label stays weekday, high, and low")
+    check(WatchDailyPlan.stripSpoken(for: days[2]) == "Sunday, Partly cloudy, high 40 degrees, low 31 degrees", "a dry column names the condition, high, and low")
 
     check(WatchDailyPlan.stripChance(probability: 10, cue: .none) == 10, "a 10 percent chance is shown")
     let quietChance = WatchDaySlot(
@@ -96,7 +96,7 @@ func run() {
         snowInches: 0
     )
     check(WatchDailyPlan.stripChance(probability: 9, cue: .none) == nil, "a chance under 10 stays off the column")
-    check(WatchDailyPlan.stripSpoken(for: quietChance) == "Thu, high 61°, low 49°, 9 percent", "voiceover still speaks a chance the column hides")
+    check(WatchDailyPlan.stripSpoken(for: quietChance) == "Thursday, Clear, high 61 degrees, low 49 degrees, 9 percent chance of precipitation", "voiceover still speaks a chance the column hides")
     check(WatchDailyPlan.stripChance(probability: 4, cue: .rain) == 4, "a small chance is shown when rain is present")
     check(WatchDailyPlan.stripChance(probability: nil, cue: .snow) == nil, "a snow cue without a chance has no percent")
     check(WatchDailyPlan.showsStripPrecip(probability: nil, cue: .snow) == true, "a snow cue still occupies the precip line")
@@ -126,7 +126,7 @@ func run() {
         snowInches: 0
     )
     check(WatchDailyPlan.stripCue(for: storm) == .rain, "a thunderstorm symbol is a rain cue")
-    check(WatchDailyPlan.stripSpoken(for: storm) == "Tue, high 62°, low 55°, 15 percent, rain", "the column label includes the thunderstorm as rain")
+    check(WatchDailyPlan.stripSpoken(for: storm) == "Tuesday, Thunderstorm, high 62 degrees, low 55 degrees, 15 percent chance of rain", "the column label includes the thunderstorm as rain")
 
     let likely = WatchDaySlot(
         date: "2026-10-07",
@@ -140,7 +140,7 @@ func run() {
     )
     check(WatchDailyPlan.stripCue(for: likely) == .none, "a chance without rain or snow has no cue")
     check(WatchDailyPlan.stripChance(probability: likely.precipProbability, cue: .none) == 15, "a chance of at least 10 percent is still shown")
-    check(WatchDailyPlan.stripSpoken(for: likely) == "Wed, high 58°, low 47°, 15 percent", "voiceover keeps a chance the column is allowed to show")
+    check(WatchDailyPlan.stripSpoken(for: likely) == "Wednesday, Cloudy, high 58 degrees, low 47 degrees, 15 percent chance of precipitation", "voiceover keeps a chance the column is allowed to show")
 
     print("ok")
 }

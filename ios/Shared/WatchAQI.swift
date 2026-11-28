@@ -35,7 +35,7 @@ enum WatchAQI {
             shortWord: band.shortWord,
             category: band.category,
             colorToken: band.colorToken,
-            spoken: "Air Quality \(value), \(band.category)"
+            spoken: "Air quality index \(value), \(band.category)"
         )
     }
 

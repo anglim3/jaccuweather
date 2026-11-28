@@ -5,6 +5,10 @@ import WatchKit
 struct WatchDayDetailView: View {
     var day: WatchDaySlot
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var environmentTypeSize
+    private var dynamicTypeSize: DynamicTypeSize {
+        WatchTextSizeLaunch.forced ?? environmentTypeSize
+    }
 
     private var copy: WatchDayDetailCopy {
         WatchDailyPlan.detail(for: day)
@@ -12,32 +16,45 @@ struct WatchDayDetailView: View {
 
     /// 40mm is 197pt. 45mm (242pt) and larger keep the roomier type.
     private var metrics: WatchDayDetailMetrics {
-        WKInterfaceDevice.current().screenBounds.height >= 240 ? .regular : .compact
+        let base = WKInterfaceDevice.current().screenBounds.height >= 240 ? WatchDayDetailMetrics.regular : .compact
+        return base.scaled(by: WatchTextScale.factor(dynamicTypeSize))
     }
+
+    private var roomyText: Bool { WatchTextScale.needsRoom(dynamicTypeSize) }
 
     var body: some View {
         NavigationStack {
-            detail(metrics)
-                .padding(.horizontal, metrics.horizontalPadding)
-                .padding(.top, metrics.topPadding)
-                .padding(.bottom, metrics.bottomPadding)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background {
-                    WidgetHorizonBackground()
-                        .ignoresSafeArea()
-                }
-                .toolbarBackground(.hidden, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") { dismiss() }
-                            .accessibilityIdentifier("watch-day-close")
+            Group {
+                if roomyText {
+                    ScrollView {
+                        detail(metrics)
+                            .padding(.horizontal, metrics.horizontalPadding)
+                            .padding(.top, metrics.topPadding)
+                            .padding(.bottom, metrics.bottomPadding)
                     }
+                } else {
+                    detail(metrics)
+                        .padding(.horizontal, metrics.horizontalPadding)
+                        .padding(.top, metrics.topPadding)
+                        .padding(.bottom, metrics.bottomPadding)
                 }
-                .navigationBarTitleDisplayMode(.inline)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background {
+                WidgetHorizonBackground()
+                    .ignoresSafeArea()
+            }
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                        .accessibilityIdentifier("watch-day-close")
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
         }
         .accessibilityIdentifier("watch-day-detail")
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(copy.spoken)
     }
 
     private func detail(_ metrics: WatchDayDetailMetrics) -> some View {
@@ -45,7 +62,7 @@ struct WatchDayDetailView: View {
             Text(copy.title)
                 .font(WidgetHorizon.placeFont(size: metrics.titleSize))
                 .foregroundStyle(WidgetHorizon.text)
-                .lineLimit(1)
+                .lineLimit(roomyText ? 2 : 1)
                 .minimumScaleFactor(0.6)
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("watch-day-title")
@@ -55,17 +72,14 @@ struct WatchDayDetailView: View {
                 Text(copy.condition)
                     .font(.system(size: metrics.conditionSize, weight: .semibold))
                     .foregroundStyle(WidgetHorizon.text)
-                    .lineLimit(2)
+                    .lineLimit(roomyText ? 3 : 2)
                     .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("watch-day-condition")
             }
 
             VStack(spacing: metrics.cardSpacing) {
-                HStack(spacing: 4) {
-                    reading("High", copy.high, size: metrics.tempSize, identifier: "watch-day-high")
-                    reading("Low", copy.low, size: metrics.tempSize, identifier: "watch-day-low")
-                }
+                rangeRow(metrics)
                 if copy.probability != nil || copy.rain != nil || copy.snow != nil {
                     precipRow(metrics)
                 }
@@ -73,8 +87,11 @@ struct WatchDayDetailView: View {
                     Text(uv)
                         .font(.system(size: metrics.captionSize, weight: .semibold))
                         .foregroundStyle(WidgetHorizon.gold)
+                        .lineLimit(roomyText ? 2 : 1)
+                        .minimumScaleFactor(0.7)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityIdentifier("watch-day-uv")
+                        .accessibilityLabel(WatchSpoken.ultraviolet(index: day.uvMax) ?? uv)
                 }
             }
             .padding(.horizontal, metrics.cardPadding)
@@ -107,44 +124,83 @@ struct WatchDayDetailView: View {
             .accessibilityHidden(true)
     }
 
+    @ViewBuilder
+    private func rangeRow(_ metrics: WatchDayDetailMetrics) -> some View {
+        if roomyText {
+            VStack(spacing: 2) {
+                reading("High", copy.high, size: metrics.tempSize, identifier: "watch-day-high")
+                reading("Low", copy.low, size: metrics.tempSize, identifier: "watch-day-low")
+            }
+        } else {
+            HStack(spacing: 4) {
+                reading("High", copy.high, size: metrics.tempSize, identifier: "watch-day-high")
+                reading("Low", copy.low, size: metrics.tempSize, identifier: "watch-day-low")
+            }
+        }
+    }
+
     private func reading(_ caption: String, _ value: String, size: CGFloat, identifier: String) -> some View {
         VStack(spacing: 0) {
             Text(value)
                 .font(WidgetHorizon.tempFont(size: size))
                 .foregroundStyle(WidgetHorizon.text)
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.5)
             Text(caption)
-                .font(.system(size: metricsCaption, weight: .medium))
+                .font(.system(size: metrics.captionSize, weight: .medium))
                 .foregroundStyle(WidgetHorizon.muted)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
         .accessibilityIdentifier(identifier)
-    }
-
-    private var metricsCaption: CGFloat {
-        metrics.captionSize
+        .accessibilityLabel("\(caption) \(WatchSpoken.degrees(fromDisplay: value))")
     }
 
     private func precipRow(_ metrics: WatchDayDetailMetrics) -> some View {
-        HStack(spacing: 4) {
-            if let probability = copy.probability {
-                Text(probability)
-                    .font(.system(size: metrics.conditionSize, weight: .semibold))
-                    .foregroundStyle(WidgetHorizon.text)
+        precipLayout(metrics)
+            .minimumScaleFactor(0.6)
+            .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier("watch-day-precip")
+            .accessibilityLabel(WatchSpoken.dayPrecip(day) ?? "")
+    }
+
+    @ViewBuilder
+    private func precipLayout(_ metrics: WatchDayDetailMetrics) -> some View {
+        if roomyText {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) {
+                    precipPieces(metrics)
+                    Spacer(minLength: 0)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    precipPieces(metrics)
+                }
             }
-            if let snow = copy.snow {
-                cue("snowflake", snow, tint: WidgetHorizon.text)
+        } else {
+            HStack(spacing: 4) {
+                precipPieces(metrics)
+                Spacer(minLength: 0)
             }
-            if let rain = copy.rain {
-                cue("drop.fill", rain, tint: WidgetHorizon.accent)
-            }
-            Spacer(minLength: 0)
         }
-        .lineLimit(1)
-        .minimumScaleFactor(0.6)
-        .accessibilityIdentifier("watch-day-precip")
+    }
+
+    @ViewBuilder
+    private func precipPieces(_ metrics: WatchDayDetailMetrics) -> some View {
+        if let probability = copy.probability {
+            Text(probability)
+                .font(.system(size: metrics.conditionSize, weight: .semibold))
+                .foregroundStyle(WidgetHorizon.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        if let snow = copy.snow {
+            cue("snowflake", snow, tint: WidgetHorizon.text)
+        }
+        if let rain = copy.rain {
+            cue("drop.fill", rain, tint: WidgetHorizon.accent)
+        }
     }
 
     private func cue(_ symbol: String, _ amount: String, tint: Color) -> some View {
@@ -204,4 +260,22 @@ struct WatchDayDetailMetrics {
         topPadding: 8,
         bottomPadding: 2
     )
+
+    func scaled(by factor: CGFloat) -> WatchDayDetailMetrics {
+        guard factor > 1.001 else { return self }
+        return WatchDayDetailMetrics(
+            titleSize: titleSize * factor,
+            conditionSize: conditionSize * factor,
+            tempSize: tempSize * factor,
+            captionSize: captionSize * factor,
+            symbolIcon: symbolIcon * min(factor, 1.4),
+            symbolBox: symbolBox * min(factor, 1.4),
+            spacing: spacing,
+            cardSpacing: cardSpacing,
+            cardPadding: cardPadding,
+            horizontalPadding: horizontalPadding,
+            topPadding: topPadding,
+            bottomPadding: bottomPadding
+        )
+    }
 }

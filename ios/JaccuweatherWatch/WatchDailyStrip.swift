@@ -31,6 +31,7 @@ struct WatchDailyStrip: View {
                             .accessibilityElement(children: .combine)
                             .accessibilityAddTraits(.isButton)
                             .accessibilityLabel(WatchDailyPlan.stripSpoken(for: day))
+                            .accessibilityHint("Shows this day")
                             .accessibilityIdentifier("watch-day-\(index)")
                     }
                 }
@@ -47,7 +48,7 @@ struct WatchDailyStrip: View {
             .clipShape(cardShape)
             .overlay { cardShape.strokeBorder(WidgetHorizon.glassBorder, lineWidth: 1) }
         }
-        .frame(height: style.bandHeight)
+        .frame(height: fittedBandHeight)
         .accessibilityIdentifier("watch-daily-strip")
     }
 
@@ -65,6 +66,7 @@ struct WatchDailyStrip: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(WidgetHorizon.accent)
                 .frame(height: rows.symbol)
+                .accessibilityHidden(true)
             Text(degrees(day.highF))
                 .font(.system(size: style.primarySize, weight: .semibold))
                 .foregroundStyle(WidgetHorizon.text)
@@ -79,18 +81,32 @@ struct WatchDailyStrip: View {
                 .frame(height: rows.low)
             precipLine(day, height: rows.precip)
         }
-        .frame(width: width, height: style.bandHeight - style.verticalPadding * 2)
+        .frame(width: width, height: contentHeight, alignment: .top)
     }
 
     /// Label, symbol, high, and low keep a fixed box. The chance uses whatever height is left.
+    /// Grown Dynamic Type uses a line box and lengthens the card so lows stay whole.
     private var rowHeights: (label: CGFloat, symbol: CGFloat, high: CGFloat, low: CGFloat, precip: CGFloat) {
-        let label = style.labelSize + 2
-        let symbol = style.cueHeight
-        let high = style.primarySize + 3
-        let low = style.secondarySize + 2
+        let label = style.textBox(style.labelSize, slack: 2)
+        let symbol = style.textScale >= 1.4
+            ? max(style.cueHeight, ceil(style.symbolSize * 1.35))
+            : style.cueHeight
+        let high = style.textBox(style.primarySize, slack: 3)
+        let low = style.textBox(style.secondarySize, slack: 2)
         let available = style.bandHeight - style.verticalPadding * 2
-        let precip = available - label - symbol - high - low
+        let used = label + symbol + high + low
+        let precipFloor = style.textScale >= 1.4 ? style.textBox(style.secondarySize, slack: 2) : 0
+        let precip = max(precipFloor, available - used)
         return (label, symbol, high, low, precip)
+    }
+
+    private var contentHeight: CGFloat {
+        let rows = rowHeights
+        return rows.label + rows.symbol + rows.high + rows.low + rows.precip
+    }
+
+    private var fittedBandHeight: CGFloat {
+        max(style.bandHeight, contentHeight + style.verticalPadding * 2)
     }
 
     @ViewBuilder
@@ -122,10 +138,12 @@ struct WatchDailyStrip: View {
             Image(systemName: "snowflake")
                 .font(.system(size: cueSymbolSize, weight: .semibold))
                 .foregroundStyle(WidgetHorizon.text)
+                .accessibilityHidden(true)
         case .rain:
             Image(systemName: "drop.fill")
                 .font(.system(size: cueSymbolSize, weight: .semibold))
                 .foregroundStyle(WidgetHorizon.accent)
+                .accessibilityHidden(true)
         case .none:
             EmptyView()
         }

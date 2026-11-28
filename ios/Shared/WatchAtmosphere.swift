@@ -87,7 +87,7 @@ enum WatchAtmosphere {
     static func uvChip(_ metrics: Metrics) -> UVChip? {
         guard let uv = metrics.uvIndex else { return nil }
         let shown = rounded(uv)
-        return UVChip(text: "UV \(shown)", spoken: "UV index \(shown), \(category(uvIndex: uv))")
+        return UVChip(text: "UV \(shown)", spoken: "Ultraviolet index \(shown), \(category(uvIndex: uv))")
     }
 
     static func windChip(_ metrics: Metrics) -> WindChip? {

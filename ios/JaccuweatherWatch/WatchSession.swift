@@ -78,49 +78,27 @@ final class WatchWeatherModel {
     }
 
     var accessibilityLabel: String {
-        var parts = [placeName, temperatureText]
-        if let dew = WatchDewPoint.chip(fahrenheit: snapshot.dewPointF) {
-            parts.append(dew.spoken)
-        }
-        if let chip = feelsChip {
-            parts.append(chip.spoken)
-        } else if !detailText.isEmpty, detailText != "Updating" {
-            parts.append(detailText)
-        }
-        if !conditionText.isEmpty { parts.append(conditionText) }
-        if let aqi = WatchAQI.chip(usAqi: snapshot.usAqi, category: snapshot.usAqiCategory) {
-            parts.append(aqi.spoken)
-        }
         let atmosphere = snapshot.atmosphereMetrics
-        if let uv = WatchAtmosphere.uvChip(atmosphere) { parts.append(uv.spoken) }
-        if let wind = WatchAtmosphere.windChip(atmosphere) { parts.append(wind.spoken) }
-        if let humidity = WatchAtmosphere.humidityLine(atmosphere) { parts.append(humidity.spoken) }
-        let upcoming = hours.prefix(4).map { slot in
-            let degrees = slot.temperatureF.map { "\(Int($0.rounded()))°" } ?? "—"
-            return "\(slot.label) \(degrees)"
-        }
-        if !upcoming.isEmpty {
-            parts.append(upcoming.joined(separator: ", "))
-        }
-        let upcomingDays = days.prefix(4).map { day in
-            let high = day.highF.map { "\(Int($0.rounded()))°" } ?? "—"
-            let low = day.lowF.map { "\(Int($0.rounded()))°" } ?? "—"
-            return "\(day.label) \(high) \(low)"
-        }
-        if !upcomingDays.isEmpty {
-            parts.append(upcomingDays.joined(separator: ", "))
-        }
-        if let sun, sun.hasAny, !sun.spoken.isEmpty {
-            parts.append(sun.spoken)
-        }
-        if let alert {
-            if alert.count > 1 {
-                parts.append("\(alert.count) alerts, \(alert.title), \(alert.severity)")
-            } else {
-                parts.append("\(alert.title), \(alert.severity)")
-            }
-        }
-        return parts.joined(separator: ", ")
+        var atmosphereSpoken: [String] = []
+        if let uv = WatchAtmosphere.uvChip(atmosphere) { atmosphereSpoken.append(uv.spoken) }
+        if let wind = WatchAtmosphere.windChip(atmosphere) { atmosphereSpoken.append(wind.spoken) }
+        if let humidity = WatchAtmosphere.humidityLine(atmosphere) { atmosphereSpoken.append(humidity.spoken) }
+        let condition = snapshot.temperatureF == nil ? "" : snapshot.conditionText
+        let alertSpoken: String? = {
+            guard let alert else { return nil }
+            return alert.spokenLabel
+        }()
+        return WatchSpoken.glance(
+            place: placeName,
+            temperatureText: temperatureText,
+            condition: condition,
+            feelsSpoken: feelsChip?.spoken,
+            dewSpoken: WatchDewPoint.chip(fahrenheit: snapshot.dewPointF)?.spoken,
+            aqiSpoken: WatchAQI.chip(usAqi: snapshot.usAqi, category: snapshot.usAqiCategory)?.spoken,
+            atmosphere: atmosphereSpoken,
+            sunSpoken: (sun?.hasAny == true) ? sun?.spoken : nil,
+            alertSpoken: alertSpoken
+        )
     }
 
     func start() async {

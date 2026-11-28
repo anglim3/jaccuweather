@@ -144,22 +144,6 @@ enum WatchHourlyPlan {
         let wind = windText(hour.windMph)
         let humidity = humidityText(hour.humidity)
         let uv = uvText(hour.uvIndex)
-        var spoken = [title]
-        if !condition.isEmpty { spoken.append(condition) }
-        spoken.append(degrees(hour.temperatureF))
-        if let chance = hour.precipProbability {
-            spoken.append("\(min(100, max(0, chance))) percent chance of precipitation")
-        }
-        if snow != nil {
-            spoken.append("\(spokenAmount(hour.snowInches)) of snow")
-        }
-        if rain != nil {
-            spoken.append("\(spokenAmount(hour.rainInches)) of rain")
-        }
-        if let feels { spoken.append(feels) }
-        if let wind { spoken.append(wind) }
-        if let humidity { spoken.append(humidity) }
-        if let uv { spoken.append(uv) }
         return WatchHourDetailCopy(
             title: title,
             condition: condition,
@@ -171,7 +155,7 @@ enum WatchHourlyPlan {
             wind: wind,
             humidity: humidity,
             uv: uv,
-            spoken: spoken.joined(separator: ", ")
+            spoken: WatchSpoken.hourSheet(hour)
         )
     }
 
@@ -374,10 +358,5 @@ enum WatchHourlyPlan {
     private static func uvValue(_ value: Double?) -> Double? {
         guard let value = finite(value), value >= 0 else { return nil }
         return value
-    }
-
-    private static func spokenAmount(_ inches: Double?) -> String {
-        guard let inches = finite(inches) else { return "" }
-        return String(format: "%.2f inches", inches)
     }
 }
